@@ -1,0 +1,349 @@
+-- 森林中的99个夜晚 多功能脚本
+-- 支持 Rayfield UI 框架
+
+-- 检查游戏ID（请替换为实际的99夜游戏ID）
+if game.PlaceId == 79546208627805 then
+
+-- 加载 Rayfield UI 框架
+local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Rayfield/main/source'))()
+
+-- 创建主窗口
+local Window = Rayfield:CreateWindow({
+    Name = "🌲 森林中的99个夜晚 🔦",
+    LoadingTitle = "正在加载脚本...",
+    LoadingSubtitle = "by Script Hub",
+    Theme = "Default",
+    ToggleUIKeybind = "K",
+    ConfigurationSaving = {
+        Enabled = true,
+        FileName = "Forest99_Night"
+    },
+    KeySystem = false
+})
+
+-- 获取玩家对象
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+
+local Player = Players.LocalPlayer
+local Character = Player.Character or Player.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+local RootPart = Character:WaitForChild("HumanoidRootPart")
+
+-- 更新角色引用
+Player.CharacterAdded:Connect(function(newChar)
+    Character = newChar
+    Humanoid = newChar:WaitForChild("Humanoid")
+    RootPart = newChar:WaitForChild("HumanoidRootPart")
+end)
+
+-- ==================== 创建标签页 ====================
+
+-- 主功能标签页
+local MainTab = Window:CreateTab("🏠 主页", nil)
+-- 战斗标签页
+local CombatTab = Window:CreateTab("⚔️ 战斗", nil)
+-- 移动标签页
+local MovementTab = Window:CreateTab("🏃 移动", nil)
+-- 杂项标签页
+local MiscTab = Window:CreateTab("🎮 杂项", nil)
+
+-- ==================== 功能区 ====================
+
+-- 【主页】无限跳跃
+local InfiniteJumpEnabled = false
+MainTab:CreateToggle({
+    Name = "无限跳跃",
+    CurrentValue = false,
+    Flag = "InfiniteJump",
+    Callback = function(Value)
+        InfiniteJumpEnabled = Value
+    end
+})
+
+UserInputService.JumpRequest:Connect(function()
+    if InfiniteJumpEnabled and Humanoid then
+        Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+    end
+end)
+
+-- 【主页】夜视/亮度
+MainTab:CreateToggle({
+    Name = "夜视模式 (亮度100)",
+    CurrentValue = false,
+    Flag = "NightVision",
+    Callback = function(Value)
+        if Value then
+            Lighting.Brightness = 100
+            Lighting.ClockTime = 12
+            Lighting.FogEnd = 1000
+            Lighting.GlobalShadows = false
+        else
+            Lighting.Brightness = 2
+            Lighting.FogEnd = 4000
+            Lighting.GlobalShadows = true
+        end
+    end
+})
+
+-- 【战斗】杀戮光环
+local KillAuraEnabled = false
+local KillAuraRange = 30
+
+CombatTab:CreateToggle({
+    Name = "⚔️ 杀戮光环",
+    CurrentValue = false,
+    Flag = "KillAura",
+    Callback = function(Value)
+        KillAuraEnabled = Value
+    end
+})
+
+CombatTab:CreateSlider({
+    Name = "杀戮光环范围",
+    Range = {10, 100},
+    Increment = 5,
+    CurrentValue = 30,
+    Flag = "KillAuraRange",
+    Callback = function(Value)
+        KillAuraRange = Value
+    end
+})
+
+-- 杀戮光环逻辑
+RunService.Stepped:Connect(function()
+    if KillAuraEnabled and Character and RootPart then
+        for _, enemy in ipairs(Workspace:GetDescendants()) do
+            if enemy:IsA("Model") and enemy:FindFirstChild("Humanoid") and enemy ~= Character then
+                local enemyHumanoid = enemy:FindFirstChild("Humanoid")
+                if enemyHumanoid and enemyHumanoid.Health > 0 then
+                    local enemyRoot = enemy:FindFirstChild("HumanoidRootPart")
+                    if enemyRoot and (enemyRoot.Position - RootPart.Position).Magnitude <= KillAuraRange then
+                        enemyHumanoid.Health = 0
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- 【战斗】无敌模式
+CombatTab:CreateToggle({
+    Name = "🛡️ 无敌模式",
+    CurrentValue = false,
+    Flag = "GodMode",
+    Callback = function(Value)
+        if Value and Humanoid then
+            Humanoid.MaxHealth = math.huge
+            Humanoid.Health = math.huge
+            -- 持续保持无敌
+            local godModeConnection
+            godModeConnection = RunService.Stepped:Connect(function()
+                if Humanoid and Value then
+                    Humanoid.MaxHealth = math.huge
+                    Humanoid.Health = math.huge
+                elseif not Value then
+                    godModeConnection:Disconnect()
+                end
+            end)
+        elseif Humanoid then
+            Humanoid.MaxHealth = 100
+            if Humanoid.Health > 100 then Humanoid.Health = 100 end
+        end
+    end
+})
+
+-- 【移动】速度调节
+local SpeedEnabled = false
+local SpeedValue = 50
+
+MovementTab:CreateToggle({
+    Name = "速度修改",
+    CurrentValue = false,
+    Flag = "SpeedToggle",
+    Callback = function(Value)
+        SpeedEnabled = Value
+        if not Value and Humanoid then
+            Humanoid.WalkSpeed = 16
+        end
+    end
+})
+
+MovementTab:CreateSlider({
+    Name = "移动速度",
+    Range = {16, 250},
+    Increment = 5,
+    CurrentValue = 50,
+    Flag = "SpeedValue",
+    Callback = function(Value)
+        SpeedValue = Value
+        if SpeedEnabled and Humanoid then
+            Humanoid.WalkSpeed = SpeedValue
+        end
+    end
+})
+
+-- 【移动】飞行模式
+local FlightEnabled = false
+local FlightSpeed = 50
+local BodyVelocity = nil
+
+MovementTab:CreateToggle({
+    Name = "✈️ 飞行模式",
+    CurrentValue = false,
+    Flag = "FlightToggle",
+    Callback = function(Value)
+        FlightEnabled = Value
+        if not Value and BodyVelocity then
+            BodyVelocity:Destroy()
+            BodyVelocity = nil
+            if Humanoid then Humanoid.PlatformStand = false end
+        end
+    end
+})
+
+MovementTab:CreateSlider({
+    Name = "飞行速度",
+    Range = {20, 200},
+    Increment = 10,
+    CurrentValue = 50,
+    Flag = "FlightSpeed",
+    Callback = function(Value)
+        FlightSpeed = Value
+    end
+})
+
+-- 飞行逻辑
+RunService.Stepped:Connect(function()
+    if FlightEnabled and RootPart then
+        if not BodyVelocity or BodyVelocity.Parent ~= RootPart then
+            BodyVelocity = Instance.new("BodyVelocity")
+            BodyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
+            BodyVelocity.Parent = RootPart
+            if Humanoid then Humanoid.PlatformStand = true end
+        end
+        
+        local moveDirection = Vector3.new(
+            (UserInputService:IsKeyDown(Enum.KeyCode.D) and 1 or 0) -
+            (UserInputService:IsKeyDown(Enum.KeyCode.A) and 1 or 0),
+            (UserInputService:IsKeyDown(Enum.KeyCode.Space) and 1 or 0) -
+            (UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) and 1 or 0),
+            (UserInputService:IsKeyDown(Enum.KeyCode.W) and 1 or 0) -
+            (UserInputService:IsKeyDown(Enum.KeyCode.S) and 1 or 0)
+        )
+        
+        if moveDirection.Magnitude > 0 then
+            moveDirection = moveDirection.Unit
+        end
+        
+        BodyVelocity.Velocity = (RootPart.CFrame.RightVector * moveDirection.X +
+                                 RootPart.CFrame.UpVector * moveDirection.Y +
+                                 RootPart.CFrame.LookVector * moveDirection.Z) * FlightSpeed
+    end
+end)
+
+-- 【移动】攀爬/穿墙
+local NoclipEnabled = false
+local NoclipConnection = nil
+
+MovementTab:CreateToggle({
+    Name = "🔓 穿墙模式 (Noclip)",
+    CurrentValue = false,
+    Flag = "Noclip",
+    Callback = function(Value)
+        NoclipEnabled = Value
+        if NoclipConnection then
+            NoclipConnection:Disconnect()
+            NoclipConnection = nil
+        end
+        if Value then
+            NoclipConnection = RunService.Stepped:Connect(function()
+                if Character then
+                    for _, part in ipairs(Character:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = false
+                        end
+                    end
+                end
+            end)
+        end
+    end
+})
+
+-- 【杂项】自动收集
+local AutoCollectEnabled = false
+
+MiscTab:CreateToggle({
+    Name = "📦 自动收集物品",
+    CurrentValue = false,
+    Flag = "AutoCollect",
+    Callback = function(Value)
+        AutoCollectEnabled = Value
+    end
+})
+
+-- 自动收集逻辑（搜索 wood, log, item 等）
+RunService.Stepped:Connect(function()
+    if AutoCollectEnabled and Character and RootPart then
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            local objName = obj.Name:lower()
+            if (objName:find("wood") or objName:find("log") or objName:find("item") or objName:find("drop")) and obj:IsA("BasePart") then
+                if (obj.Position - RootPart.Position).Magnitude < 25 then
+                    -- 尝试触发拾取
+                    fireproximityprompt(obj)
+                end
+            end
+        end
+    end
+end})
+
+-- 【杂项】刷钻石脚本（自动收集钻石）
+MiscTab:CreateButton({
+    Name = "💎 刷钻石模式 (10秒/颗)",
+    Callback = function()
+        Rayfield:Notify({
+            Title = "刷钻石模式已启动",
+            Content = "自动寻找并收集钻石中...",
+            Duration = 3
+        })
+        
+        local diamondCollecting = true
+        local function collectDiamonds()
+            while diamondCollecting and Character and RootPart do
+                for _, obj in ipairs(Workspace:GetDescendants()) do
+                    if obj:IsA("BasePart") and (obj.Name:lower():find("diamond") or obj.Name:lower():find("gem") or obj.Name:lower():find("crystal")) then
+                        if (obj.Position - RootPart.Position).Magnitude < 50 then
+                            -- 移动到钻石位置
+                            RootPart.CFrame = CFrame.new(obj.Position)
+                            task.wait(0.5)
+                        end
+                    end
+                end
+                task.wait(10) -- 每10秒扫描一次
+            end
+        end
+        
+        task.spawn(collectDiamonds)
+        
+        -- 5分钟后自动停止提示
+        task.wait(300)
+        diamondCollecting = false
+        Rayfield:Notify({
+            Title = "刷钻石模式已停止",
+            Content = "如需继续请重新点击按钮",
+            Duration = 3
+        })
+    end
+})
+
+-- 【杂项】传送至篝火
+MiscTab:CreateButton({
+    Name = "🔥 传送至最近篝火",
+    Callback = function()
+        local nearestCampfire = nil
+        local nearestDistance = math.huge
+        
+        for _, obj i
