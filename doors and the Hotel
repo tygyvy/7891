@@ -8,52 +8,42 @@
 *{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif}
 body{background:#0c0f17;color:#fff}
 
-/* 卡密界面 */
-.login{position:fixed;inset:0;background:#0c0f17;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;z-index:10;}
-.login h2{font-size:24px}
-#card{padding:12px 16px;width:260px;border-radius:10px;border:none;background:#1b1f2e;color:#fff;text-align:center;}
-button{padding:10px 24px;background:#0071e3;color:#fff;border:none;border-radius:10px;font-weight:bold;cursor:pointer;}
+/* 卡密页面 */
+.login{position:fixed;inset:0;background:#0c0f17;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;z-index:10}
+h2{font-size:24px}
+#key{padding:12px 16px;width:260px;border-radius:10px;border:none;background:#1b1f2e;color:#fff;text-align:center}
+button{padding:10px 24px;background:#0071e3;color:#fff;border:none;border-radius:10px;font-weight:bold;cursor:pointer}
 
 /* 悬浮提示 */
-.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#1b1f2e;padding:12px 24px;border-radius:12px;opacity:0;transition:0.4s;z-index:999;}
-.toast.show{opacity:1;}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#1b1f2e;padding:12px 24px;border-radius:12px;opacity:0;transition:.4s;z-index:999}
+.toast.show{opacity:1}
 
-/* 加载条 */
-.loading{position:fixed;inset:0;background:#0c0f17;display:none;flex-direction:column;align-items:center;justify-content:center;gap:20px;}
-.bar{width:320px;height:8px;background:#1b1f2e;border-radius:99px;overflow:hidden;}
-.progress{height:100%;width:0%;background:#0071e3;transition:width 0.05s linear;}
+/* 加载页 */
+.loading{position:fixed;inset:0;background:#0c0f17;display:none;flex-direction:column;align-items:center;justify-content:center;gap:20px}
+.bar{width:300px;height:8px;background:#1b1f2e;border-radius:99px;overflow:hidden}
+.progress{height:100%;width:0%;background:#0071e3;transition:width .05s linear}
 
 /* 主面板 */
-.main{display:none;padding:30px 20px;max-width:500px;margin:0 auto;position:relative;}
-.logo{font-size:32px;font-weight:bold;color:#0071e3;margin-bottom:30px;}
+.main{display:none;padding:30px 20px;max-width:500px;margin:0 auto;position:relative}
+.logo{font-size:32px;font-weight:bold;color:#0071e3;margin-bottom:30px}
 
-/* 关闭UI按钮 */
-.close-btn{position:absolute;top:10px;right:20px;padding:6px 12px;background:#1b1f2e;border:none;border-radius:8px;color:#fff;cursor:pointer;}
-
-/* 翻页箭头 */
-.next{position:absolute;right:20px;top:50%;transform:translateY(-50%);width:40px;height:40px;background:#1b1f2e;border-radius:50%;display:grid;place-items:center;font-size:20px;cursor:pointer;}
-
-/* 分页 */
-.wrap{position:relative;height:500px;}
-.page{position:absolute;width:100%;transition:0.4s;}
-.page2{transform:translateX(100%);opacity:0;pointer-events:none;}
-.wrap.nextPage .page1{transform:translateX(-100%);opacity:0;pointer-events:none;}
-.wrap.nextPage .page2{transform:translateX(0);opacity:1;pointer-events:auto;}
+/* 关闭UI */
+.close-btn{position:absolute;top:10px;right:20px;padding:6px 12px;background:#1b1f2e;border:none;border-radius:8px;color:#fff;cursor:pointer}
 
 /* 功能项 */
-.item{display:flex;justify-content:space-between;align-items:center;background:#1b1f2e;padding:16px;border-radius:12px;margin-bottom:12px;}
-.item span{font-size:16px;}
+.item{display:flex;justify-content:space-between;align-items:center;background:#1b1f2e;padding:16px;border-radius:12px;margin-bottom:12px}
+.item span{font-size:16px}
 
 /* 开关 */
-.switch{width:44px;height:22px;background:#333;border-radius:99px;position:relative;cursor:pointer;}
-.switch::after{content:'';position:absolute;width:18px;height:18px;background:#fff;border-radius:50%;top:2px;left:2px;transition:0.2s;}
-.switch.on{background:#0071e3;}
-.switch.on::after{left:24px;}
+.switch{width:44px;height:22px;background:#333;border-radius:99px;position:relative;cursor:pointer}
+.switch::after{content:'';position:absolute;width:18px;height:18px;background:#fff;border-radius:50%;top:2px;left:2px;transition:.2s}
+.switch.on{background:#0071e3}
+.switch.on::after{left:24px}
 
 /* 滑块 */
-.slide{flex-direction:column;align-items:flex-start;gap:10px;}
-.slide input{width:100%;accent-color:#0071e3;}
-.val{color:#999;font-size:14px;align-self:flex-end;}
+.slide{flex-direction:column;align-items:flex-start;gap:10px}
+.slide input{width:100%;accent-color:#0071e3}
+.val{color:#999;font-size:14px;align-self:flex-end}
 
 /* 悬浮球 */
 .float-ball{
@@ -65,14 +55,14 @@ button{padding:10px 24px;background:#0071e3;color:#fff;border:none;border-radius
 </head>
 <body>
 
-<!-- 卡密界面 -->
+<!-- 卡密 -->
 <div class="login" id="login">
   <h2>输入卡密</h2>
-  <input type="text" id="card" placeholder="请输入卡密">
-  <button onclick="checkCard()">确认</button>
+  <input type="text" id="key" placeholder="请输入卡密">
+  <button onclick="check()">确认</button>
 </div>
 
-<!-- 欢迎悬浮 -->
+<!-- 欢迎提示 -->
 <div class="toast" id="toast">欢迎使用</div>
 
 <!-- 加载 -->
@@ -81,42 +71,52 @@ button{padding:10px 24px;background:#0071e3;color:#fff;border:none;border-radius
   <div class="bar"><div class="progress" id="prog"></div></div>
 </div>
 
-<!-- 主功能界面 -->
+<!-- 主界面 -->
 <div class="main" id="main">
   <div class="logo">DOORS</div>
   <button class="close-btn" onclick="closeUI()">关闭UI</button>
 
-  <div class="next" onclick="document.querySelector('.wrap').classList.toggle('nextPage')">→</div>
+  <div id="panel">
+    <div class="item"><span>👁️ 透视门</span><div class="switch" onclick="this.classList.toggle('on')"></div></div>
+    <div class="item"><span>🟢 透视柜子</span><div class="switch" onclick="this.classList.toggle('on')"></div></div>
+    <div class="item"><span>🟡 透视金币</span><div class="switch" onclick="this.classList.toggle('on')"></div></div>
+    <div class="item"><span>🔴 透视实体</span><div class="switch" onclick="this.classList.toggle('on')"></div></div>
+    <div class="item"><span>🩷 透视物品</span><div class="switch" onclick="this.classList.toggle('on')"></div></div>
+    <div class="item"><span>🤖 自动点击(柜、床除外)</span><div class="switch" onclick="this.classList.toggle('on')"></div></div>
+    <div class="item"><span>👁️ 防Eeye不掉血</span><div class="switch" onclick="this.classList.toggle('on')"></div></div>
+    <div class="item"><span>⚡ 快速互动</span><div class="switch" onclick="this.classList.toggle('on')"></div></div>
+    <div class="item"><span>💡 亮度100</span><div class="switch" onclick="this.classList.toggle('on')"></div></div>
+    <div class="item"><span>🟢 透视书</span><div class="switch" onclick="this.classList.toggle('on')"></div></div>
+    <div class="item"><span>❌ 删除Seek追逐战</span><div class="switch" onclick="this.classList.toggle('on')"></div></div>
 
-  <div class="wrap" id="panel">
-    <!-- 第一页 -->
-    <div class="page page1">
-      <div class="item"><span>👁️ 透视门</span><div class="switch" onclick="this.classList.toggle('on')"></div></div>
-      <div class="item"><span>🗄️ 透视柜子</span><div class="switch" onclick="this.classList.toggle('on')"></div></div>
-      <div class="item"><span>💰 透视金币</span><div class="switch" onclick="this.classList.toggle('on')"></div></div>
-      <div class="item"><span>👻 透视实体</span><div class="switch" onclick="this.classList.toggle('on')"></div></div>
-      <div class="item"><span>📦 透视物品</span><div class="switch" onclick="this.classList.toggle('on')"></div></div>
-      <div class="item slide">
-        <div style="display:flex;justify-content:space-between;width:100%">
-          <span>⚡ 速度调节</span><span class="val" id="vSpeed">100 / 200</span>
-        </div>
-        <input type="range" min="0" max="200" value="100" oninput="vSpeed.textContent=this.value+' / 200'">
+    <div class="item slide">
+      <div style="display:flex;justify-content:space-between;width:100%">
+        <span>👁️ 视野 FOV (60~120)</span><span class="val" id="vFov">90 / 120</span>
       </div>
+      <input type="range" min="60" max="120" value="90" oninput="vFov.textContent=this.value+' / 120'">
     </div>
 
-    <!-- 第二页 -->
-    <div class="page page2">
-      <div class="item"><span>🚪 穿墙</span><div class="switch" onclick="this.classList.toggle('on')"></div></div>
-      <div class="item"><span>🛑 无滑步</span><div class="switch" onclick="this.classList.toggle('on')"></div></div>
-      <div class="item slide">
-        <div style="display:flex;justify-content:space-between;width:100%">
-          <span>📏 透视距离</span><span class="val" id="vDist">250 / 500</span>
-        </div>
-        <input type="range" min="0" max="500" value="250" oninput="vDist.textContent=this.value+' / 500'">
+    <div class="item"><span>🎮 第三人称锁定视野</span><div class="switch" onclick="this.classList.toggle('on')"></div></div>
+
+    <div class="item slide">
+      <div style="display:flex;justify-content:space-between;width:100%">
+        <span>🏃 速度调节</span><span class="val" id="vSpeed">100 / 200</span>
       </div>
-      <div class="item"><span>🛡️ 无敌模式</span><div class="switch" onclick="this.classList.toggle('on')"></div></div>
-      <div class="item"><span>♾️ 无限物品</span><div class="switch" onclick="this.classList.toggle('on')"></div></div>
+      <input type="range" min="0" max="200" value="100" oninput="vSpeed.textContent=this.value+' / 200'">
     </div>
+
+    <div class="item"><span>🚪 穿墙</span><div class="switch" onclick="this.classList.toggle('on')"></div></div>
+    <div class="item"><span>🛑 无滑步</span><div class="switch" onclick="this.classList.toggle('on')"></div></div>
+
+    <div class="item slide">
+      <div style="display:flex;justify-content:space-between;width:100%">
+        <span>📏 透视距离</span><span class="val" id="vDist">250 / 500</span>
+      </div>
+      <input type="range" min="0" max="500" value="250" oninput="vDist.textContent=this.value+' / 500'">
+    </div>
+
+    <div class="item"><span>🛡️ 无敌模式</span><div class="switch" onclick="this.classList.toggle('on')"></div></div>
+    <div class="item"><span>♾️ 无限物品</span><div class="switch" onclick="this.classList.toggle('on')"></div></div>
   </div>
 </div>
 
@@ -124,15 +124,14 @@ button{padding:10px 24px;background:#0071e3;color:#fff;border:none;border-radius
 <div class="float-ball" id="floatBall" onclick="openUI()">6</div>
 
 <script>
-// 卡密验证
-function checkCard(){
-  let val = document.getElementById('card').value.trim();
-  if(val === 'NB66'){
-    let toast = document.getElementById('toast');
-    toast.classList.add('show');
+function check(){
+  let v = document.getElementById('key').value.trim();
+  if(v === 'NB66'){
+    let t = document.getElementById('toast');
+    t.classList.add('show');
     setTimeout(()=>{
-      toast.classList.remove('show');
-      document.getElementById('login').style.display = 'none';
+      t.classList.remove('show');
+      login.style.display='none';
       startLoad();
     },1500);
   }else{
@@ -140,35 +139,32 @@ function checkCard(){
   }
 }
 
-// 加载动画
 function startLoad(){
-  let loading = document.getElementById('loading');
+  let load = document.getElementById('loading');
   let prog = document.getElementById('prog');
-  loading.style.display = 'flex';
-  let w = 0;
-  let timer = setInterval(()=>{
+  load.style.display='flex';
+  let w=0;
+  let timer=setInterval(()=>{
     w++;
-    prog.style.width = w+'%';
-    if(w >= 100){
+    prog.style.width=w+'%';
+    if(w>=100){
       clearInterval(timer);
       setTimeout(()=>{
-        loading.style.display = 'none';
-        document.getElementById('main').style.display = 'block';
+        load.style.display='none';
+        main.style.display='block';
       },500);
     }
   },25);
 }
 
-// 关闭UI → 显示悬浮球
 function closeUI(){
-  document.getElementById('panel').style.display = 'none';
-  document.getElementById('floatBall').style.display = 'grid';
+  panel.style.display='none';
+  floatBall.style.display='grid';
 }
 
-// 打开UI → 隐藏悬浮球
 function openUI(){
-  document.getElementById('panel').style.display = 'block';
-  document.getElementById('floatBall').style.display = 'none';
+  panel.style.display='block';
+  floatBall.style.display='none';
 }
 </script>
 </body>
