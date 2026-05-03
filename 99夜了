@@ -1,0 +1,295 @@
+--[[
+    森林中的99个夜晚 · MSDOORS风格UI
+    功能：无敌、加速、无限跳跃、飞行、秒杀、自动收集、夜视、防摔
+    操作：K键打开/关闭菜单
+]]
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
+
+-- 等待角色加载
+repeat task.wait() until LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
+
+-- 创建ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "Forest99Night"
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- 悬浮球
+local floatBall = Instance.new("TextButton")
+floatBall.Name = "FloatBall"
+floatBall.Size = UDim2.new(0, 50, 0, 50)
+floatBall.Position = UDim2.new(0, 15, 1, -70)
+floatBall.Text = "🌙"
+floatBall.TextSize = 26
+floatBall.TextColor3 = Color3.fromRGB(80, 255, 80)
+floatBall.BackgroundColor3 = Color3.fromRGB(20, 25, 35)
+floatBall.BackgroundTransparency = 0.1
+floatBall.BorderSizePixel = 0
+floatBall.Visible = false
+floatBall.Parent = screenGui
+
+local ballCorner = Instance.new("UICorner")
+ballCorner.CornerRadius = UDim.new(1, 0)
+ballCorner.Parent = floatBall
+
+local ballStroke = Instance.new("UIStroke")
+ballStroke.Thickness = 1.5
+ballStroke.Color = Color3.fromRGB(80, 255, 80)
+ballStroke.Transparency = 0.5
+ballStroke.Parent = floatBall
+
+-- 主框架 (MSDOORS风格)
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 320, 0, 500)
+mainFrame.Position = UDim2.new(0.5, -160, 0.5, -250)
+mainFrame.BackgroundColor3 = Color3.fromRGB(15, 18, 25)
+mainFrame.BackgroundTransparency = 0.05
+mainFrame.BorderSizePixel = 0
+mainFrame.Visible = true
+mainFrame.Parent = screenGui
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 12)
+mainCorner.Parent = mainFrame
+
+-- 标题栏
+local titleBar = Instance.new("Frame")
+titleBar.Size = UDim2.new(1, 0, 0, 45)
+titleBar.BackgroundColor3 = Color3.fromRGB(20, 25, 35)
+titleBar.BorderSizePixel = 0
+titleBar.Parent = mainFrame
+
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 12)
+titleCorner.Parent = titleBar
+
+local titleText = Instance.new("TextLabel")
+titleText.Size = UDim2.new(1, -80, 1, 0)
+titleText.Position = UDim2.new(0, 15, 0, 0)
+titleText.Text = "🌙 森林99夜"
+titleText.TextColor3 = Color3.fromRGB(80, 255, 80)
+titleText.TextSize = 18
+titleText.TextXAlignment = Enum.TextXAlignment.Left
+titleText.Font = Enum.Font.GothamBold
+titleText.BackgroundTransparency = 1
+titleText.Parent = titleBar
+
+local statusText = Instance.new("TextLabel")
+statusText.Size = UDim2.new(0, 60, 1, 0)
+statusText.Position = UDim2.new(1, -130, 0, 0)
+statusText.Text = "PREMIUM"
+statusText.TextColor3 = Color3.fromRGB(80, 255, 80)
+statusText.TextSize = 12
+statusText.TextXAlignment = Enum.TextXAlignment.Right
+statusText.Font = Enum.Font.GothamBold
+statusText.BackgroundTransparency = 1
+statusText.Parent = titleBar
+
+-- 最小化按钮
+local miniBtn = Instance.new("TextButton")
+miniBtn.Size = UDim2.new(0, 35, 0, 35)
+miniBtn.Position = UDim2.new(1, -80, 0, 5)
+miniBtn.Text = "─"
+miniBtn.TextSize = 20
+miniBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+miniBtn.BackgroundColor3 = Color3.fromRGB(30, 35, 45)
+miniBtn.BorderSizePixel = 0
+miniBtn.Parent = titleBar
+
+local miniCorner = Instance.new("UICorner")
+miniCorner.CornerRadius = UDim.new(0, 6)
+miniCorner.Parent = miniBtn
+
+miniBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = false
+    floatBall.Visible = true
+end)
+
+-- 关闭按钮
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 35, 0, 35)
+closeBtn.Position = UDim2.new(1, -40, 0, 5)
+closeBtn.Text = "✕"
+closeBtn.TextSize = 16
+closeBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+closeBtn.BackgroundColor3 = Color3.fromRGB(30, 35, 45)
+closeBtn.BorderSizePixel = 0
+closeBtn.Parent = titleBar
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 6)
+closeCorner.Parent = closeBtn
+
+closeBtn.MouseButton1Click:Connect(function()
+    screenGui:Destroy()
+end)
+
+-- 悬浮球点击展开
+floatBall.MouseButton1Click:Connect(function()
+    floatBall.Visible = false
+    mainFrame.Visible = true
+end)
+
+-- 可滚动区域
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Size = UDim2.new(1, -16, 1, -60)
+scrollFrame.Position = UDim2.new(0, 8, 0, 52)
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.ScrollBarThickness = 4
+scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(80, 255, 80)
+scrollFrame.ScrollBarImageTransparency = 0.5
+scrollFrame.Parent = mainFrame
+
+local uiList = Instance.new("UIListLayout")
+uiList.Padding = UDim.new(0, 8)
+uiList.SortOrder = Enum.SortOrder.LayoutOrder
+uiList.Parent = scrollFrame
+
+-- 功能状态
+local features = {
+    godMode = false,
+    speedMode = false,
+    jumpMode = false,
+    flyMode = false,
+    oneHit = false,
+    autoCollect = false,
+    nightVision = false,
+    antiFall = false,
+    espEnabled = false,
+    tracerEnabled = false
+}
+
+local speedValue = 80
+local flySpeedValue = 60
+local espDistance = 250
+local flyConnection = nil
+local jumpConnection = nil
+local autoCollectConnection = nil
+local oneHitConnection = nil
+local espConnections = {}
+
+-- 创建分类文件夹
+local function createCategory(parent, name, icon)
+    local categoryBtn = Instance.new("TextButton")
+    categoryBtn.Size = UDim2.new(1, 0, 0, 40)
+    categoryBtn.BackgroundColor3 = Color3.fromRGB(25, 30, 40)
+    categoryBtn.BorderSizePixel = 0
+    categoryBtn.Text = "  " .. icon .. "  " .. name
+    categoryBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
+    categoryBtn.TextSize = 14
+    categoryBtn.TextXAlignment = Enum.TextXAlignment.Left
+    categoryBtn.Font = Enum.Font.GothamBold
+    categoryBtn.Parent = parent
+    
+    local catCorner = Instance.new("UICorner")
+    catCorner.CornerRadius = UDim.new(0, 8)
+    catCorner.Parent = categoryBtn
+    
+    local content = Instance.new("Frame")
+    content.Size = UDim2.new(1, 0, 0, 0)
+    content.BackgroundTransparency = 1
+    content.Visible = false
+    content.Parent = parent
+    
+    local contentList = Instance.new("UIListLayout")
+    contentList.Padding = UDim.new(0, 6)
+    contentList.Parent = content
+    
+    local expanded = false
+    
+    categoryBtn.MouseButton1Click:Connect(function()
+        expanded = not expanded
+        content.Visible = expanded
+        content.Size = UDim2.new(1, 0, 0, contentList.AbsoluteContentSize.Y + 10)
+        categoryBtn.Text = (expanded and "▼" or "▶") .. "  " .. icon .. "  " .. name
+        -- 更新滚动区域大小
+        task.wait(0.05)
+        scrollFrame.CanvasSize = UDim2.new(0, 0, 0, uiList.AbsoluteContentSize.Y + 20)
+    end)
+    
+    return content, contentList
+end
+
+-- 创建开关按钮
+local function createToggle(parent, name, featureKey, color)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, -10, 0, 38)
+    frame.BackgroundColor3 = Color3.fromRGB(20, 24, 32)
+    frame.BackgroundTransparency = 0.3
+    frame.BorderSizePixel = 0
+    frame.Parent = parent
+    
+    local frameCorner = Instance.new("UICorner")
+    frameCorner.CornerRadius = UDim.new(0, 6)
+    frameCorner.Parent = frame
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.65, 0, 1, 0)
+    label.Text = name
+    label.TextColor3 = Color3.fromRGB(220, 230, 255)
+    label.TextSize = 13
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.BackgroundTransparency = 1
+    label.Parent = frame
+    
+    local toggle = Instance.new("TextButton")
+    toggle.Size = UDim2.new(0, 50, 0, 24)
+    toggle.Position = UDim2.new(1, -60, 0.5, -12)
+    toggle.Text = "OFF"
+    toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    toggle.TextSize = 11
+    toggle.Font = Enum.Font.GothamBold
+    toggle.BackgroundColor3 = Color3.fromRGB(60, 65, 85)
+    toggle.BorderSizePixel = 0
+    toggle.Parent = frame
+    
+    local toggleCorner = Instance.new("UICorner")
+    toggleCorner.CornerRadius = UDim.new(0, 4)
+    toggleCorner.Parent = toggle
+    
+    toggle.MouseButton1Click:Connect(function()
+        features[featureKey] = not features[featureKey]
+        toggle.Text = features[featureKey] and "ON" or "OFF"
+        toggle.BackgroundColor3 = features[featureKey] and color or Color3.fromRGB(60, 65, 85)
+        
+        if featureKey == "godMode" then
+            local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
+            if hum then
+                if features.godMode then
+                    hum.MaxHealth = math.huge
+                    hum.Health = math.huge
+                    hum:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
+                else
+                    hum.MaxHealth = 100
+                    hum.Health = 100
+                    hum:SetStateEnabled(Enum.HumanoidStateType.Dead, true)
+                end
+            end
+        elseif featureKey == "speedMode" then
+            local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
+            if hum then
+                hum.WalkSpeed = features.speedMode and speedValue or 16
+            end
+        elseif featureKey == "jumpMode" then
+            if jumpConnection then jumpConnection:Disconnect() end
+            if features.jumpMode then
+                jumpConnection = UserInputService.JumpRequest:Connect(function()
+                    local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
+                    if hum then
+                        hum:ChangeState(Enum.HumanoidStateType.Jumping)
+                    end
+                end)
+            end
+        elseif featureKey == "flyMode" then
+            if flyConnection then flyConnection:Disconnect() end
+            if features.flyMode then
+                workspace.Gravity = 0
+                flyConnection = RunService.Heartbeat:Connect(function()
+                    if not features.flyMode then return end
+                    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
