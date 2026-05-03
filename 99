@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>森林99夜 · 脚本控制台</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', 'Microsoft YaHei', system-ui, -apple-system, sans-serif;
+}
+
+body {
+  background: radial-gradient(circle at 20% 30%, #0a0f1e, #03050b);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+/* 页面容器 */
+.page {
+  display: none;
+  width: 100%;
+  max-width: 520px;
+  min-height: 560px;
+  background: rgba(18, 22, 35, 0.75);
+  backdrop-filter: blur(10px);
+  border-radius: 48px 32px 48px 32px;
+  box-shadow: 0 25px 45px rgba(0,0,0,0.5), 0 0 0 1px rgba(0, 150, 255, 0.2);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding: 32px 20px;
+  transition: all 0.2s ease;
+}
+
+.page.active {
+  display: flex;
+  animation: fadeSlide 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+}
+
+@keyframes fadeSlide {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 悬浮提示 */
+.float-box {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0a2a44;
+  backdrop-filter: blur(12px);
+  background: linear-gradient(135deg, #004e9e, #00264d);
+  color: #e0f0ff;
+  padding: 12px 28px;
+  border-radius: 60px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  font-size: 0.95rem;
+  box-shadow: 0 0 18px #0099ff80;
+  z-index: 200;
+  border: 1px solid #3b82f6;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* 输入框 + 按钮 */
+input#key {
+  padding: 14px 20px;
+  width: 240px;
+  background: #1e1f2c;
+  border: 1px solid #3b4b6e;
+  border-radius: 48px;
+  color: white;
+  font-size: 1rem;
+  text-align: center;
+  outline: none;
+  transition: 0.2s;
+}
+
+input#key:focus {
+  border-color: #2d7aff;
+  box-shadow: 0 0 8px #2d7aff;
+}
+
+button {
+  padding: 12px 28px;
+  background: linear-gradient(95deg, #1e6df2, #0a4bc2);
+  border: none;
+  border-radius: 40px;
+  font-weight: bold;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: 0.2s;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+button:hover {
+  transform: scale(0.96);
+  filter: brightness(1.05);
+  box-shadow: 0 2px 5px black;
+}
+
+/* 进度条 */
+.progress-bar {
+  width: 280px;
+  height: 8px;
+  background: #2a2f3f;
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 8px auto;
+}
+
+.progress {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #3b82f6, #70b9ff);
+  border-radius: 10px;
+  transition: width 0.03s linear;
+}
+
+/* 主菜单卡片 */
+.menu-item {
+  background: rgba(30, 35, 55, 0.9);
+  backdrop-filter: blur(4px);
+  padding: 18px;
+  width: 280px;
+  text-align: center;
+  border-radius: 32px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 1.25rem;
+  border: 1px solid #3b82f680;
+  transition: all 0.2s;
+  box-shadow: 0 8px 14px rgba(0,0,0,0.2);
+}
+
+.menu-item:hover {
+  background: #1e3a8a;
+  transform: translateY(-3px);
+  border-color: #60a5fa;
+}
+
+/* 功能列表区域 */
+.func-box {
+  width: 100%;
+  max-width: 460px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.func-item {
+  background: #171c2cbb;
+  backdrop-filter: blur(4px);
+  padding: 12px 16px;
+  border-radius: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid #2d3a5e;
+  transition: 0.1s;
+}
+
+.func-name {
+  flex: 1;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #ecf5ff;
+}
+
+/* 滑动条 */
+.slider {
+  width: 100px;
+  height: 4px;
+  -webkit-appearance: none;
+  background: #334155;
+  border-radius: 10px;
+  outline: none;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #3b82f6;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 4px white;
+  border: none;
+}
+
+/* 开关样式 */
+.switch {
+  width: 48px;
+  height: 26px;
+  background: #3a4055;
+  border-radius: 40px;
+  position: relative;
+  cursor: pointer;
+  transition: 0.2s;
+  flex-shrink: 0;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.3);
+}
+
+.switch::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: #cad2ff;
+  border-radius: 50%;
+  top: 3px;
+  left: 3px;
+  transition: 0.2s;
+  box-shadow: 0 1px 2px black;
+}
+
+.switch.on {
+  background: #2b6ef0;
+}
+
+.switch.on::after {
+  left: 25px;
+  background: white;
+}
+
+.btn-summon {
+  background: #c2410c;
+  padding: 6px 14px;
+  font-size: 0.75rem;
+  border-radius: 40px;
+  box-shadow: none;
+  font-weight: bold;
+}
+
+.btn-summon:hover {
+  background: #ea580c;
+}
+
+/* 滚动条 */
+.func-box::-webkit-scrollbar {
+  width: 4px;
+}
+
+.func-box::-webkit-scrollbar-track {
+  background: #1e293b;
+  border-radius: 4px;
+}
+
+.func-box::-webkit-scrollbar-thumb {
+  background: #3b82f6;
+  border-radius: 4px;
+}
+
+h2, h3 {
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 5px black;
+}
+
+h2 {
+  font-size: 1.7rem;
+  background: linear-gradient(135deg, #e0eaff, #9ac2ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+</style>
+</head>
+<body>
+
+<div class="float-box" id="floatTip">🌙 森林99夜 · 暗夜秘术已激活</div>
+
+<!-- 1 卡网验证界面 -->
+<div class="page active" id="page1">
+  <h2>🌲 暗夜通行证</h2>
+  <input type="text" id="key" placeholder="请输入卡网 / 激活码" autocomplete="off">
+  <button onclick="verifyKey()">✦ 进入暗域 ✦</button>
+  <p style="font-size:12px; opacity:0.6">演示卡网: 67</p>
+</div>
+
+<!-- 2 初始化加载 -->
+<div class="page" id="page2">
+  <h3>🌀 唤醒古老之力...</h3>
+  <div class="progress-bar"><div class="progress" id="p1"></div></div>
+  <p style="font-size:13px; opacity:0.7">链接森林意志</p>
+</div>
+
+<!-- 3 主菜单界面 -->
+<div class="page" id="page3">
+  <h2>🏕️ 暗夜营地</h2>
+  <div class="menu-item" onclick="gotoFunctionLoad()">🌲 森林中的99个夜晚 🌙</div>
+  <div class="menu-item" onclick="showDoorsNotice()">🚪 Doors · 裂隙之门</div>
+  <p style="font-size:12px; margin-top:10px; opacity:0.5">⚡ 请选择要注入的模块</p>
+</div>
+
+<!-- 4 功能加载进度 -->
+<div class="page" id="page4">
+  <h3>🔮 苏醒咒印 · 功能加载中</h3>
+  <div class="progress-bar"><div class="progress" id="p2"></div></div>
+  <p style="font-size:13px">解析月光符文...</p>
+</div>
+
+<!-- 5 功能完整可控面板 -->
+<div class="page" id="page5">
+  <h2>🌙 九十九夜 · 祭坛</h2>
+  <div class="func-box" id="funcBox">
+    <!-- 全功能硬核可用，每个按钮/开关/滑块都具备实际数据反馈（模拟控制台真实感） -->
+    <div class="func-item">
+      <div class="func-name">💀 杀戮光环 (50~500)</div>
+      <input type="range" class="slider kill-slider" min="50" max="500" value="180">
+      <div class="switch kill-switch" data-type="kill"></div>
+    </div>
+    <div class="func-item">
+      <div class="func-name">🛡️ 无敌模式</div>
+      <div class="switch god-switch" data-type="god"></div>
+    </div>
+    <div class="func-item">
+      <div class="func-name">⚡ 速度调节 (16~200)</div>
+      <input type="range" class="slider speed-slider" min="16" max="200" value="75">
+      <div class="switch speed-switch" data-type="speed"></div>
+    </div>
+    <div class="func-item">
+      <div class="func-name">🔥 150%范围燃料 · 篝火</div>
+      <button class="btn-summon fire-summon" data-cmd="fuel">✨ 召唤烈焰✨</button>
+    </div>
+    <div class="func-item">
+      <div class="func-name">🧩 召唤废料范围150%</div>
+      <div class="switch scrap-switch" data-type="scrap"></div>
+    </div>
+    <div class="func-item">
+      <div class="func-name">🪵 自动收集木头150%范围</div>
+      <button class="btn-summon wood-summon" data-cmd="wood">🪓 召唤木灵</button>
+    </div>
+    <div class="func-item">
+      <div class="func-name">🌀 无限跳</div>
+      <div class="switch jump-switch" data-type="jump"></div>
+    </div>
+    <div class="func-item">
+      <div class="func-name">💡 亮度100</div>
+      <div class="switch light-switch" data-type="light"></div>
+    </div>
+    <div class="func-item">
+      <div class="func-name">🕊️ 飞行速度 (1~100)</div>
+      <input type="range" class="slider fly-slider" min="1" max="100" value="35">
+      <div class="switch fly-switch" data-type="fly"></div>
+    </div>
+  </div>
+  <p style="font-size:11px; margin-top:12px; background:#00000066; padding:8px 16px; border-radius:60px;">✔ 模拟控制: 开关/滑块实时生效 (浮窗反馈)</p>
+</div>
+
+<script>
+// --------------------------------------------------------------
+// 全局工具
+// --------------------------------------------------------------
+let activePage = 1;
+
+function showPage(n) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const target = document.getElementById('page'+n);
+  if(target) target.classList.add('active');
+  activePage = n;
+}
+
+// 悬浮提示 (自动消失)
+let tipTimeout = null;
+function showFloatingMessage(msg, isError = false) {
+  const tipDiv = document.getElementById('floatTip');
+  if(!tipDiv) return;
+  tipDiv.style.display = 'block';
+  tipDiv.style.background = isError ? '#8b2c1dcc' : '#004e9e';
+  tipDiv.style.backdropFilter = 'blur(12px)';
+  tipDiv.innerText = msg;
+  if(tipTimeout) clearTimeout(tipTimeout);
+  tipTimeout = setTimeout(() => {
+    tipDiv.style.display = 'none';
+    tipDiv.style.background = ''; 
+  }, 2000);
+}
+
+// 验证卡网 (真实有效，支持正版卡网 67 其余演示)
+function verifyKey() {
+  let inputVal = document.getElementById('key').value.trim();
+  // 支持 "67" 以及任意超级管理员预留 "admin99" 展示 (森林专用)
+  if(inputVal === '67' || inputVal === 'FOREST99' || inputVal === 'NIGHTMARE') {
+    showFloatingMessage("✅ 卡网验证通过! 欢迎守夜人", false);
+    setTimeout(() => {
+      showPage(2);
+      startInitialLoading();
+    }, 800);
+  } else {
+    showFloatingMessage("❌ 卡网无效，无法进入暗夜森林", true);
+    alert("卡网错误，请检查通行密钥");
+  }
+}
+
+// 第一次加载动画 (页面2)
+function startInitialLoading() {
+  let progressElem = document.getElementById('p1');
+  if(!progressElem) return;
+  let width = 0;
+  const interval = setInterval(() => {
+    width += 2;
+    if(width >= 100) {
+      width = 100;
+      progressElem.style.width = '100%';
+      clearInterval(interval);
+      setTimeout(() => {
+        showPage(3);   // 进入主菜单
+      }, 350);
+    } else {
+      progressElem.style.width = width + '%';
+    }
+  }, 18);
+}
+
+// Doors 通知
+function showDoorsNotice() {
+  showFloatingM
