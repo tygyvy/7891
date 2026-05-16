@@ -1,0 +1,299 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local Lighting = game:GetService("Lighting")
+local VirtualUser = game:GetService("VirtualUser")
+local RunService = game:GetService("RunService")
+local PathfindingService = game:GetService("PathfindingService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ProximityPromptService = game:GetService("ProximityPromptService")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+local SoundService = game:GetService("SoundService")
+local Debris = game:GetService("Debris")
+
+-- 卡密配置
+local CorrectKey = "NB66"
+local InputKey = ""
+local KeyGui = Instance.new("ScreenGui")
+KeyGui.Name = "KeyVerify"
+KeyGui.Parent = LocalPlayer.PlayerGui
+KeyGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 320, 0, 180)
+MainFrame.Position = UDim2.new(0.5, -160, 0.5, -90)
+MainFrame.BackgroundColor3 = Color3.new(0.15,0.15,0.15)
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = KeyGui
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1,0,0,40)
+Title.BackgroundTransparency = 1
+Title.Text = "MSHAX 卡密验证"
+Title.TextColor3 = Color3.new(1,1,1)
+Title.Font = Enum.Font.SourceSansBold
+Title.TextSize = 20
+Title.Parent = MainFrame
+
+local KeyBox = Instance.new("TextBox")
+KeyBox.Size = UDim2.new(0.8,0,0,35)
+KeyBox.Position = UDim2.new(0.1,0,0.35,0)
+KeyBox.BackgroundColor3 = Color3.new(0.25,0.25,0.25)
+KeyBox.TextColor3 = Color3.new(1,1,1)
+KeyBox.PlaceholderText = "请输入使用卡密"
+KeyBox.Font = Enum.Font.SourceSans
+KeyBox.TextSize = 16
+KeyBox.Parent = MainFrame
+
+local TipText = Instance.new("TextLabel")
+TipText.Size = UDim2.new(1,0,0,25)
+TipText.Position = UDim2.new(0,0,0.6,0)
+TipText.BackgroundTransparency = 1
+TipText.Text = ""
+TipText.TextColor3 = Color3.new(1,0.3,0.3)
+TipText.Font = Enum.Font.SourceSans
+TipText.TextSize = 14
+TipText.Parent = MainFrame
+
+local ConfirmBtn = Instance.new("TextButton")
+ConfirmBtn.Size = UDim2.new(0.4,0,0,30)
+ConfirmBtn.Position = UDim2.new(0.3,0,0.78,0)
+ConfirmBtn.BackgroundColor3 = Color3.new(0.2,0.6,0.2)
+ConfirmBtn.Text = "确认验证"
+ConfirmBtn.TextColor3 = Color3.new(1,1,1)
+ConfirmBtn.Font = Enum.Font.SourceSansBold
+ConfirmBtn.TextSize = 15
+ConfirmBtn.Parent = MainFrame
+
+local Verified = false
+ConfirmBtn.MouseButton1Click:Connect(function()
+	InputKey = KeyBox.Text
+	if InputKey == CorrectKey then
+		TipText.Text = "验证成功！正在加载..."
+		task.wait(0.8)
+		KeyGui:Destroy()
+		Verified = true
+	else
+		TipText.Text = "卡密错误，请重新输入"
+		KeyBox.Text = ""
+	end
+end)
+
+repeat task.wait() until Verified
+-- 卡密验证结束
+
+local notifysound = 4590657391
+local PlayingSound = true
+
+function Sound()
+	local sound = Instance.new("Sound",SoundService)
+	sound.Volume = 2.5
+	sound.SoundId = "rbxassetid://" .. notifysound 
+	sound.Playing = PlayingSound
+	Debris:AddItem(sound,2)
+end
+Sound()
+
+function WaitForChildOfClass(Parent, ClassName)
+	local obj = Parent:FindFirstChildOfClass(ClassName)
+	if obj then return obj end
+	repeat
+		obj = Parent.DescendantAdded:Wait()
+	until obj:IsA(ClassName)
+	return obj
+end
+
+if LocalPlayer:GetAttribute("mshaxLoaded") then 
+	print("mshax already loaded")
+	return 
+end
+
+if ReplicatedStorage:FindFirstChild("RemotesFolder") or ReplicatedStorage:FindFirstChild("EntityInfo") or ReplicatedStorage:FindFirstChild("Bricks") then
+	repeat task.wait() until workspace:FindFirstChild("CurrentRooms") and workspace.CurrentRooms:FindFirstChildOfClass("Model")
+
+	local Disable1 = false
+	local Disable2 = false
+	local Disable3 = false
+	local Disable4 = false
+	local Disable5 = false
+	local FakeSurge, alive, Pathnode 
+
+	local repo = 'https://raw.githubusercontent.com/mstudio45/Obsidian/main/'
+	local Executor = identifyexecutor() or getexecutorname() or "Unknown"
+	local Library = loadstring(game:HttpGet(repo..'Library.lua'))()
+
+	Library:Notify("Loading mshax for DOORS",5)
+
+	if Executor:lower() == "xeno" then 
+		Library:Notify("Not Supported Executor",3) 
+		return 
+	end
+
+	local success, result = pcall(function() return RequiredMainGame end)
+	if not success then
+		Library:Notify("Require Not Supported Some Features Disabled",3)
+		Disable1 = true
+		print("false require")
+	else
+		print("true require")
+	end
+
+	if not isnetworkowner then
+		Library:Notify("isnetworkowner Not Supported Some Features Disabled",3)
+		Disable2 = true
+		print("false isnetworkowner")
+	else
+		print("true isnetworkowner")
+	end
+
+	local Prompt = Instance.new("ProximityPrompt",workspace)
+	Prompt.Name = "TestPrompt"
+	local fireSuccess, _ = pcall(function() return fireproximityprompt(Prompt) end)
+	if not fireSuccess then
+		Prompt:Destroy()
+		Library:Notify("fireproximityprompt Unsupported, Using Alternative",4)
+		Disable3 = true
+		print("false fireproximityprompt")
+	else
+		print("true fireproximityprompt")
+	end
+	Prompt:Destroy()
+
+	if not replicatesignal then
+		Disable4 = true
+		Library:Notify("replicatesignal Not Supported",3)
+		print("false replicatesignal")
+	else
+		print("true replicatesignal")
+	end
+
+	if not hookmetamethod or not newcclosure then
+		Library:Notify("Hooking Unsupported Some Features Disabled",3)
+		Disable5 = true
+		print("false hookmetamethod")
+	else
+		print("true hookmetamethod")
+	end
+
+	ThemeManager = loadstring(game:HttpGet(repo..'addons/ThemeManager.lua'))()
+	SaveManager = loadstring(game:HttpGet(repo..'addons/SaveManager.lua'))()
+	Options = Library.Options
+	Toggles = Library.Toggles
+	local ESPLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/TheHunterSolo1/Scripts/main/ESPLibrary"))()
+
+	local raycastParms = RaycastParams.new()
+
+	function GetNearestCloset()
+		local closest = nil
+		local MaxDistance = math.huge
+		local currentRoomName = LocalPlayer:GetAttribute("CurrentRoom")
+		local assets = workspace.CurrentRooms[currentRoomName]
+		if assets then
+			for _, v in ipairs(assets:GetDescendants()) do
+				local validHide = table.find({"Wardrobe","Rooms_Locker","Rooms_Locker_Fridge","Toolshed","Locker_Large","Backdoor_Wardrobe","Bed","Double_Bed"},v.Name)
+				if validHide and v.PrimaryPart then
+					local dist = (LocalPlayer.Character.HumanoidRootPart.Position - v.PrimaryPart.Position).Magnitude
+					if dist < MaxDistance then
+						closest = v
+						MaxDistance = dist 
+					end
+				end
+			end
+		end
+		return closest
+	end
+
+	function GetNearestLocker()
+		local closest = nil
+		local MaxDistance = math.huge
+		for _, v in ipairs(workspace.CurrentRooms:GetDescendants()) do
+			if (v.Name == "Rooms_Locker" or v.Name == "Rooms_Locker_Fridge") and v.PrimaryPart then
+				local dist = (LocalPlayer.Character.HumanoidRootPart.Position - v.PrimaryPart.Position).Magnitude
+				if dist < MaxDistance then
+					closest = v
+					MaxDistance = dist
+				end
+			end
+		end
+		return closest
+	end
+
+	function fireInteract(prompt)
+		if Disable3 then
+			prompt:InputHoldBegin()
+			task.wait(prompt.HoldDuration)
+			prompt:InputHoldEnd()
+		else
+			fireproximityprompt(prompt)
+		end
+	end
+
+	local Finish = ProximityPromptService.PromptTriggered:Connect(function(v)
+		if Library.Unloaded then Finish:Disconnect(); Finish = nil end
+		if v.Name == "FakePrompt" then
+			local char = LocalPlayer.Character
+			if char:FindFirstChild("Lockpick") or char:FindFirstChild("SkeletonKey") then
+				local tool = char:FindFirstChildOfClass("Tool")
+				if tool and tool:FindFirstChild("Animations") then
+					local anim = char.Humanoid:LoadAnimation(tool.Animations.usefinish)
+					anim:Play()
+				end
+			elseif char:FindFirstChild("Shears") then
+				local tool = char:FindFirstChildOfClass("Tool")
+				if tool and tool:FindFirstChild("Animations") then
+					local anim = char.Humanoid:LoadAnimation(tool.Animations.promptanimend)
+					anim:Play()
+					if tool.Handle:FindFirstChild("sound_promptend") then tool.Handle.sound_promptend:Play() end
+				end
+			end
+		end
+	end)
+
+	local Hold = ProximityPromptService.PromptButtonHoldBegan:Connect(function(v)
+		if Library.Unloaded then Hold:Disconnect(); Hold = nil end
+		if v.Name == "FakePrompt" then
+			local char = LocalPlayer.Character
+			if char:FindFirstChild("Lockpick") or char:FindFirstChild("SkeletonKey") then
+				local tool = char:FindFirstChildOfClass("Tool")
+				if tool and tool:FindFirstChild("Animations") then
+					local anim = char.Humanoid:LoadAnimation(tool.Animations.use)
+					anim:Play()
+				end
+			elseif char:FindFirstChild("Shears") then
+				local tool = char:FindFirstChildOfClass("Tool")
+				if tool and tool:FindFirstChild("Animations") then
+					local anim = char.Humanoid:LoadAnimation(tool.Animations.promptanim)
+					anim:Play()
+					if tool.Handle:FindFirstChild("sound_prompt") then tool.Handle.sound_prompt:Play() end
+				end
+			end
+		end
+	end)
+
+	LocalPlayer:SetAttribute("mshaxLoaded",true)
+
+	Floor = ReplicatedStorage.GameData.Floor
+	RemoteFolder = ReplicatedStorage:FindFirstChild("EntityInfo") or ReplicatedStorage:FindFirstChild("RemotesFolder") or ReplicatedStorage:FindFirstChild("Bricks")
+	MainGame = LocalPlayer.PlayerGui.MainUI.Initiator.Main_Game
+	pcall(function() RequiredMainGame = require(MainGame) end)
+	RemoteListener = MainGame.RemoteListener
+	Modules = RemoteListener.Modules
+	ClientModules = ReplicatedStorage:FindFirstChild("ModulesClient") or ReplicatedStorage:FindFirstChild("ClientModules")
+	Modifiers = ReplicatedStorage:FindFirstChild("LiveModifiers")
+	Fog = Lighting:FindFirstChild("Fog") or Lighting:FindFirstChild("CaveAtmosphere")
+	CollisionClone, CollisionClone2 = nil, nil
+	Pathnode = Instance.new("Folder",workspace)
+	Pathnode.Name = "Path Node"
+
+	local JumpConnection, CrouchConnection, CleanUp, Character
+
+	local function InitCharacter(char)
+		Character = char
+		raycastParms.FilterDescendantsInstances = {char}
+		raycastParms.FilterType = Enum.RaycastFilterType.Blacklist
+
+		local mobileJumpBtn = LocalPlayer.PlayerGui:WaitForChild("MainUI"):WaitForChild("MainFrame"):WaitForChild("MobileButtons"):FindFirstChild("JumpButton")
+		if mobileJumpBtn then
+			if JumpConnection then JumpConnection:Disconnect() end
+			JumpConnection = mobileJumpB
