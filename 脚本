@@ -1,0 +1,396 @@
+-- ==============================================
+-- Roblox 四大游戏聚合脚本（Doors/森林99夜/死铁轨/僵尸）
+-- 卡密：7891
+-- 每个游戏功能完全独立，不共用逻辑
+-- ==============================================
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+local Camera = workspace.CurrentCamera
+
+-- UI全局
+local MainGui, LoadGui, MenuGui, FuncGui
+local Verified = false
+local CurrentGame = nil
+
+-- 保存原始属性
+local OriginalWalkSpeed = Humanoid.WalkSpeed
+local OriginalFov = Camera.FieldOfView
+local OriginalBrightness = Camera.Brightness
+
+-- 清理UI
+local function ClearUI()
+    if MainGui then MainGui:Destroy() MainGui = nil end
+    if LoadGui then LoadGui:Destroy() LoadGui = nil end
+    if MenuGui then MenuGui:Destroy() MenuGui = nil end
+    if FuncGui then FuncGui:Destroy() FuncGui = nil end
+end
+
+-- ==============================================
+-- 1. 卡密界面（7891）
+-- ==============================================
+local function LoginUI()
+    ClearUI()
+    MainGui = Instance.new("ScreenGui")
+    MainGui.Parent = CoreGui
+
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(0,320,0,180)
+    Frame.Position = UDim2.new(0.5,-160,0.5,-90)
+    Frame.BackgroundColor3 = Color3.new(0.08,0.08,0.12)
+    Frame.BorderSizePixel = 2
+    Frame.BorderColor3 = Color3.new(0,1,1)
+    Frame.Parent = MainGui
+
+    local Title = Instance.new("TextLabel")
+    Title.Size = UDim2.new(1,0,0,40)
+    Title.BackgroundTransparency = 1
+    Title.Text = "多游戏聚合脚本"
+    Title.TextColor3 = Color3.new(1,1,1)
+    Title.TextSize = 22
+    Title.Parent = Frame
+
+    local KeyBox = Instance.new("TextBox")
+    KeyBox.Size = UDim2.new(0.8,0,0,40)
+    KeyBox.Position = UDim2.new(0.1,0,0.35,0)
+    KeyBox.BackgroundColor3 = Color3.new(0.15,0.15,0.2)
+    KeyBox.TextColor3 = Color3.new(1,1,1)
+    KeyBox.PlaceholderText = "输入卡密"
+    KeyBox.TextSize = 18
+    KeyBox.Parent = Frame
+
+    local Confirm = Instance.new("TextButton")
+    Confirm.Size = UDim2.new(0.8,0,0,40)
+    Confirm.Position = UDim2.new(0.1,0,0.65,0)
+    Confirm.BackgroundColor3 = Color3.new(0,0.5,1)
+    Confirm.Text = "确认"
+    Confirm.TextColor3 = Color3.new(1,1,1)
+    Confirm.TextSize = 18
+    Confirm.Parent = Frame
+
+    Confirm.MouseButton1Click:Connect(function()
+        if KeyBox.Text == "7891" then
+            Verified = true
+            LoadingUI()
+        else
+            KeyBox.Text = ""
+            KeyBox.PlaceholderText = "卡密错误"
+        end
+    end)
+end
+
+-- ==============================================
+-- 2. 加载界面
+-- ==============================================
+local function LoadingUI()
+    ClearUI()
+    LoadGui = Instance.new("ScreenGui")
+    LoadGui.Parent = CoreGui
+
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(0,400,0,140)
+    Frame.Position = UDim2.new(0.5,-200,0.5,-70)
+    Frame.BackgroundColor3 = Color3.new(0.08,0.08,0.12)
+    Frame.BorderColor3 = Color3.new(0,1,0.5)
+    Frame.BorderSizePixel = 2
+    Frame.Parent = LoadGui
+
+    local LoadText = Instance.new("TextLabel")
+    LoadText.Size = UDim2.new(1,0,0,50)
+    LoadText.BackgroundTransparency = 1
+    LoadText.Text = "正在加载资源..."
+    LoadText.TextColor3 = Color3.new(0,1,0.5)
+    LoadText.TextSize = 20
+    LoadText.Parent = Frame
+
+    task.wait(2.5)
+    SelectGameUI()
+end
+
+-- ==============================================
+-- 3. 游戏选择菜单
+-- ==============================================
+local function SelectGameUI()
+    ClearUI()
+    MenuGui = Instance.new("ScreenGui")
+    MenuGui.Parent = CoreGui
+
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(0,420,0,350)
+    Frame.Position = UDim2.new(0.5,-210,0.5,-175)
+    Frame.BackgroundColor3 = Color3.new(0.1,0.1,0.18)
+    Frame.BorderSizePixel = 3
+    Frame.BorderColor3 = Color3.new(0.3,0.7,1)
+    Frame.Parent = MenuGui
+
+    local Title = Instance.new("TextLabel")
+    Title.Size = UDim2.new(1,0,0,50)
+    Title.BackgroundColor3 = Color3.new(0.15,0.2,0.3)
+    Title.Text = "选择游戏服务器"
+    Title.TextColor3 = Color3.new(1,1,1)
+    Title.TextSize = 24
+    Title.Parent = Frame
+
+    local function MakeBtn(name, y, callback)
+        local Btn = Instance.new("TextButton")
+        Btn.Size = UDim2.new(0.85,0,0,50)
+        Btn.Position = UDim2.new(0.075,0,y,0)
+        Btn.BackgroundColor3 = Color3.new(0.2,0.3,0.4)
+        Btn.Text = name
+        Btn.TextColor3 = Color3.new(1,1,1)
+        Btn.TextSize = 18
+        Btn.Parent = Frame
+        Btn.MouseButton1Click:Connect(callback)
+    end
+
+    MakeBtn("Doors 恐怖密室", 0.18, function() CurrentGame = "Doors"; GameFuncUI() end)
+    MakeBtn("森林中的99夜", 0.38, function() CurrentGame = "Forest99" ; GameFuncUI() end)
+    MakeBtn("死铁轨 Dead Rails", 0.58, function() CurrentGame = "DeadRail" ; GameFuncUI() end)
+    MakeBtn("僵尸游戏 Zombie", 0.78, function() CurrentGame = "Zombie" ; GameFuncUI() end)
+end
+
+-- ==============================================
+-- 4. 功能面板（四个游戏完全独立）
+-- ==============================================
+local function GameFuncUI()
+    ClearUI()
+    FuncGui = Instance.new("ScreenGui")
+    FuncGui.Parent = CoreGui
+
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(0,280,0,450)
+    Frame.Position = UDim2.new(0.02,0,0.08,0)
+    Frame.BackgroundColor3 = Color3.new(0.08,0.08,0.14)
+    Frame.BorderSizePixel = 2
+    Frame.BorderColor3 = Color3.new(1,0,1)
+    Frame.Draggable = true
+    Frame.Parent = FuncGui
+
+    local Title = Instance.new("TextLabel")
+    Title.Size = UDim2.new(1,0,0,40)
+    Title.BackgroundColor3 = Color3.new(0.2,0.1,0.3)
+    Title.TextColor3 = Color3.new(1,1,1)
+    Title.TextSize = 20
+    Title.Parent = Frame
+
+    local function AddToggle(name, y, callback)
+        local Btn = Instance.new("TextButton")
+        Btn.Size = UDim2.new(0.9,0,0,35)
+        Btn.Position = UDim2.new(0.05,0,y,0)
+        Btn.BackgroundColor3 = Color3.new(0.15,0.15,0.25)
+        Btn.Text = name .. ": 关"
+        Btn.TextColor3 = Color3.new(1,1,1)
+        Btn.TextSize = 15
+        Btn.Parent = Frame
+        local On = false
+        Btn.MouseButton1Click:Connect(function()
+            On = not On
+            Btn.Text = name .. ": " .. (On and "开" or "关")
+            callback(On)
+        end)
+        return Btn
+    end
+
+    -- ========== Doors 专属功能 ==========
+    if CurrentGame == "Doors" then
+        Title.Text = "Doors 密室功能"
+        local esp, fullbright, speed, noclip, autounlock = false, false, false, false, false
+
+        AddToggle("实体ESP", 0.12, function(v) esp = v end)
+        AddToggle("全亮(无黑暗)", 0.22, function(v)
+            fullbright = v
+            Camera.Brightness = v and 3 or OriginalBrightness
+        end)
+        AddToggle("极速跑", 0.32, function(v)
+            speed = v
+            Humanoid.WalkSpeed = v and 70 or OriginalWalkSpeed
+        end)
+        AddToggle("穿墙Noclip", 0.42, function(v)
+            noclip = v
+            Humanoid.CanCollide = not v
+        end)
+        AddToggle("自动开门", 0.52, function(v) autounlock = v end)
+
+        -- Doors专属ESP
+        RunService.RenderStepped:Connect(function()
+            if esp then
+                for _,v in pairs(workspace:GetDescendants()) do
+                    if v:IsA("BasePart") and (v.Parent.Name:find("Entity") or v.Parent.Name:find("Rush") or v.Parent.Name:find("Ambush")) then
+                        v.Color = Color3.new(1,0,0)
+                        v.Transparency = 0.2
+                    end
+                end
+            end
+            -- 自动开门
+            if autounlock then
+                for _,v in pairs(workspace:GetDescendants()) do
+                    if v:IsA("BasePart") and v.Name:find("Door") then
+                        fireclickdetector(v:FindFirstChildOfClass("ClickDetector"))
+                    end
+                end
+            end
+        end)
+
+    -- ========== 森林中的99夜 专属功能 ==========
+    elseif CurrentGame == "Forest99" then
+        Title.Text = "森林99夜功能"
+        local monsterEsp, itemEsp, autoChop, autoEat, killAura = false, false, false, false, false
+
+        AddToggle("怪物ESP", 0.12, function(v) monsterEsp = v end)
+        AddToggle("资源ESP", 0.22, function(v) itemEsp = v end)
+        AddToggle("自动砍树", 0.32, function(v) autoChop = v end)
+        AddToggle("自动进食", 0.42, function(v) autoEat = v end)
+        AddToggle("杀戮光环", 0.52, function(v) killAura = v end)
+
+        RunService.Heartbeat:Connect(function()
+            -- 自动砍树
+            if autoChop then
+                for _,v in pairs(workspace:GetDescendants()) do
+                    if v:IsA("BasePart") and v.Name:find("Tree") then
+                        Humanoid:MoveTo(v.Position)
+                        task.wait(0.2)
+                    end
+                end
+            end
+            -- 杀戮光环
+            if killAura then
+                for _,v in pairs(workspace:GetDescendants()) do
+                    if v:IsA("BasePart") and v.Parent.Name:find("Monster") then
+                        v:Destroy()
+                    end
+                end
+            end
+        end)
+
+        RunService.RenderStepped:Connect(function()
+            if monsterEsp then
+                for _,v in pairs(workspace:GetDescendants()) do
+                    if v:IsA("BasePart") and v.Parent.Name:find("Monster") then
+                        v.Color = Color3.new(0,1,0)
+                        v.Transparency = 0.15
+                    end
+                end
+            end
+            if itemEsp then
+                for _,v in pairs(workspace:GetDescendants()) do
+                    if v:IsA("BasePart") and (v.Name:find("Wood") or v.Name:find("Food")) then
+                        v.Color = Color3.new(1,1,0)
+                        v.Transparency = 0.2
+                    end
+                end
+            end
+        end)
+
+    -- ========== 死铁轨 Dead Rails 专属功能 ==========
+    elseif CurrentGame == "DeadRail" then
+         Title.Text = "死铁轨功能"
+         local ghostEsp, infiniteAmmo, autoCollect, aimbot, godMode = false, false, false, false, false
+         AddToggle("幽灵ESP", 0.12, function(v) ghostEsp = v end)
+         AddToggle("无限弹药", 0.22, function(v) infiniteAmmo = v end)
+         AddToggle("自动捡物资", 0.32, function(v) autoCollect = v end)
+         AddToggle("自瞄", 0.42, function(v) aimbot = v end)
+         AddToggle("无敌", 0.52, function(v)
+             godMode = v
+             Humanoid.Health = math.huge
+         end)
+         RunService.Heartbeat:Connect(function()
+             -- 自动捡物资
+             if autoCollect then
+                 for _,v in pairs(workspace:GetDescendants()) do
+                     if v:IsA("BasePart") and (v.Name:find("Bond") or v.Name:find("Fuel")) then
+                         Humanoid:MoveTo(v.Position)
+                     end
+                 end
+             end
+         end)
+         RunService.RenderStepped:Connect(function()
+             -- 幽灵ESP
+             if ghostEsp then
+                 for _,v in pairs(workspace:GetDescendants()) do
+                     if v:IsA("BasePart") and v.Parent.Name:find("Ghost") then
+                         v.Color = Color3.new(0,0,1)
+                         v.Transparency = 0.2
+                     end
+                 end
+             end
+             -- 自瞄
+             if aimbot and Camera then
+                 for _,v in pairs(workspace:GetDescendants()) do
+                     if v:IsA("BasePart") and v.Parent.Name:find("Ghost") then
+                         Camera.CFrame = CFrame.new(Camera.CFrame.Position, v.Position)
+                         break
+                     end
+                 end
+             end
+         end)
+     -- ========== 僵尸游戏 专属功能 ==========
+     elseif CurrentGame == "Zombie" then
+         Title.Text = "僵尸游戏功能"
+         local zombieEsp, speed, jump, autoHeal, killAll = false, false, false, false, false
+         AddToggle("僵尸ESP", 0.12, function(v) zombieEsp = v end)
+         AddToggle("超级速度", 0.22, function(v)
+             speed = v
+             Humanoid.WalkSpeed = v and 80 or OriginalWalkSpeed
+         end)
+         AddToggle("高跳", 0.32, function(v)
+             jump = v
+             Humanoid.JumpPower = v and 100 or 50
+         end)
+         AddToggle("自动回血", 0.42, function(v) autoHeal = v end)
+         AddToggle("秒杀全部僵尸", 0.52, function(v)
+             killAll = v
+             if v then
+                 for _,v in pairs(workspace:GetDescendants()) do
+                     if v:IsA("BasePart") and v.Parent.Name:find("Zombie") then
+                         v:Destroy()
+                     end
+                 end
+             end
+         end)
+         RunService.Heartbeat:Connect(function()
+             if autoHeal and Humanoid.Health < Humanoid.MaxHealth then
+                 Humanoid.Health = Humanoid.MaxHealth
+             end
+         end)
+         RunService.RenderStepped:Connect(function()
+             if zombieEsp then
+                 for _,v in pairs(workspace:GetDescendants()) do
+                     if v:IsA("BasePart") and v.Parent.Name:find("Zombie") then
+                         v.Color = Color3.new(1,0.5,0)
+                         v.Transparency = 0.15
+                     end
+                 end
+             end
+         end)
+     end
+     -- 返回菜单按钮（所有游戏共用）
+     local BackBtn = Instance.new("TextButton")
+     BackBtn.Size = UDim2.new(0.9,0,0,40)
+     BackBtn.Position = UDim2.new(0.05,0,0.85,0)
+     BackBtn.BackgroundColor3 = Color3.new(0.7,0.2,0.2)
+     BackBtn.Text = "返回菜单"
+     BackBtn.TextColor3 = Color3.new(1,1,1)
+     BackBtn.TextSize = 16
+     BackBtn.Parent = Frame
+     BackBtn.MouseButton1Click:Connect(function()
+         -- 恢复原始属性
+         Humanoid.WalkSpeed = OriginalWalkSpeed
+         Camera.FieldOfView = OriginalFov
+         Camera.Brightness = OriginalBrightness
+         SelectGameUI()
+     end)
+ end
+ -- 角色重生重置
+ LocalPlayer.CharacterAdded:Connect(function(char)
+     Character = char
+     Humanoid = char:FindFirstChildOfClass("Humanoid")
+     HumanoidRootPart = char:FindFirstChild("HumanoidRootPart")
+     Humanoid.WalkSpeed = OriginalWalkSpeed
+ end)
+ -- 启动
+ LoginUI()
