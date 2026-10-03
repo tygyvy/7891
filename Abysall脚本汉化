@@ -1,0 +1,371 @@
+local Translations = {
+    ["Abysall Hub Continued"] = "Abysall Hub Continued『汉化』",
+    ["Search"] = "搜索",
+    ["Info"] = "信息",
+    ["General"] = "通用",
+    ["Exploits"] = "功能",
+    ["Visuals"] = "视觉",
+    ["Floors"] = "楼层",
+    ["New - Archives"] = "新 - 档案室",
+    ["New - Stairwell"] = "新 - 楼梯间",
+    ["Settings"] = "设置",
+
+    -- 信息页
+    ["User Info"] = "用户信息",
+    ["Credits"] = "鸣谢",
+    ["Changelog"] = "更新日志",
+    ["Scripts"] = "脚本",
+    ["Community"] = "社区",
+    ["Executor Info"] = "执行器信息",
+    ["Test Result"] = "测试结果",
+    ["Total Executions"] = "总执行次数",
+    ["Infinite Yield"] = "无限收益",
+    ["Dex"] = "Dex",
+    ["Copy Discord Invite"] = "复制 Discord 邀请",
+    ["Name"] = "名称",
+    ["Version"] = "版本",
+
+    -- 通用页
+    ["Character"] = "角色",
+    ["Automation"] = "自动化",
+    ["Self"] = "自身",
+    ["Miscellaneous"] = "杂项",
+    ["Debug"] = "调试",
+    ["Speed Boost"] = "加速",
+    ["Enable Speed Boost"] = "启用加速",
+    ["Fly"] = "飞行",
+    ["Fly Speed"] = "飞行速度",
+    ["Noclip"] = "穿墙",
+    ["Remove Closet Delay"] = "移除进柜延迟",
+    ["Remove Acceleration"] = "移除加速度",
+    ["Enable Jumping"] = "启用跳跃",
+    ["Enable Sliding"] = "启用滑铲",
+    ["Infinite Jumps"] = "无限跳跃",
+    ["Door Reach"] = "隔门交互",
+    ["Disable Idle Kick"] = "防挂机踢出",
+    ["Prompt Reach Multiplier"] = "交互距离倍数",
+    ["Instant Prompts"] = "瞬间交互",
+    ["Prompt Clip"] = "穿墙交互",
+    ["Auto Breaker Box"] = "自动电闸盒",
+    ["Auto Solve Anchors"] = "自动解锚点",
+    ["Auto Heartbeat Minigame"] = "自动心跳小游戏",
+    ["Auto Unlock Padlock"] = "自动解锁挂锁",
+    ["Unlock Distance"] = "解锁距离",
+    ["Guess Library Code"] = "猜图书馆密码",
+    ["Auto Interact"] = "自动交互",
+    ["Ignore List"] = "忽略列表",
+    ["Auto Closet"] = "自动进柜",
+    ["Spectate Entity"] = "旁观实体",
+    ["Player to Entity"] = "玩家变实体",
+    ["Play Again"] = "再玩一次",
+    ["Return to Lobby"] = "返回大厅",
+    ["Revive"] = "复活",
+    ["Reset Character"] = "重置角色",
+    ["Void"] = "虚空",
+    ["Exit Closet"] = "退出柜子",
+    ["Tp Next Door"] = "传送到下一扇门",
+    ["Auto Tp Next Door"] = "自动传送到下一扇门",
+
+    -- 功能页
+    ["Bypass / Solve"] = "绕过 / 解谜",
+    ["Bypass"] = "绕过",
+    ["Remove"] = "移除",
+    ["Audio"] = "音频",
+    ["Bypass Giggles"] = "绕过 Giggles",
+    ["Bypass Dupe"] = "绕过假门",
+    ["Bypass Eyes"] = "绕过眼睛",
+    ["Bypass Lookman"] = "绕过 Lookman",
+    ["Bypass Gloombat Eggs"] = "绕过 Gloombat 蛋",
+    ["Bypass Seek Obstructions"] = "绕过 Seek 障碍",
+    ["Bypass Vacuum"] = "绕过真空",
+    ["Bypass Killbricks"] = "绕过秒杀砖",
+    ["Bypass Seeking Wall"] = "绕过 Seek 之墙",
+    ["Bypass Snare"] = "绕过陷阱",
+    ["Bypass Banana"] = "绕过香蕉",
+    ["Bypass Jeff"] = "绕过 Jeff",
+    ["Anticheat Bypass"] = "反作弊绕过",
+    ["Velocity Manipulation"] = "速度操控",
+    ["Manipulation Method"] = "操控方式",
+    ["Velocity"] = "速度",
+    ["Infinite Items"] = "无限物品",
+    ["Item List"] = "物品列表",
+    ["Infinite Crucifix"] = "无限十字架",
+    ["Position Spoof"] = "位置伪装",
+    ["Crouch Spoof"] = "蹲下伪装",
+    ["Remove Screech"] = "移除 Screech",
+    ["Remove Halt"] = "移除 Halt",
+    ["Remove A-90"] = "移除 A-90",
+    ["Remove Dread"] = "移除 Dread",
+    ["Remove Surge"] = "移除 Surge",
+    ["No Screech Damage"] = "无 Screech 伤害",
+    ["No Halt Damage"] = "无 Halt 伤害",
+    ["No A-90 Damage"] = "无 A-90 伤害",
+    ["No Surge Damage"] = "无 Surge 伤害",
+    ["Remove Footstep Sounds"] = "移除脚步声",
+    ["Remove Jammin Music"] = "移除 Jammin 音乐",
+    ["Remove Interacting Sounds"] = "移除交互音效",
+
+    -- 视觉页
+    ["Camera"] = "相机",
+    ["Effects"] = "效果",
+    ["Entities"] = "实体",
+    ["Settings"] = "设置",
+    ["Ambient"] = "环境光",
+    ["Field of View"] = "视野范围",
+    ["Custom FOV"] = "自定义视野",
+    ["Remove Camera Shake"] = "移除镜头摇晃",
+    ["Remove Camera Bobbing"] = "移除镜头晃动",
+    ["Remove Cutscenes"] = "移除过场动画",
+    ["Remove Fog"] = "移除雾气",
+    ["Third Person"] = "第三人称",
+    ["X Offset"] = "X 偏移",
+    ["Y Offset"] = "Y 偏移",
+    ["Z Offset"] = "Z 偏移",
+    ["Wall Check"] = "墙体检测",
+    ["Viewmodel Offset"] = "视角模型偏移",
+    ["Transparent Hiding Spots"] = "透明躲藏点",
+    ["Transparency"] = "透明度",
+    ["Disable Glitch Jumpscare"] = "禁用 Glitch 跳脸",
+    ["Disable Timothy Jumpscare"] = "禁用 Timothy 跳脸",
+    ["Disable Void Jumpscare"] = "禁用 Void 跳脸",
+    ["Disable Hide Vignette"] = "禁用躲藏暗角",
+    ["Disable Firedamp Effect"] = "禁用沼气效果",
+    ["Disable Entity Jumpscares"] = "禁用实体跳脸",
+    ["Entity List"] = "实体列表",
+    ["Notify Entities"] = "通知实体",
+    ["Notify Items"] = "通知物品",
+    ["Item List"] = "物品列表",
+    ["Sound Volume"] = "音量",
+    ["Play Sound"] = "播放声音",
+    ["Keep Notifications"] = "保留通知",
+    ["Test Notification"] = "测试通知",
+    ["Objectives"] = "目标",
+    ["Doors"] = "门",
+    ["Hiding Spots"] = "躲藏点",
+    ["Players"] = "玩家",
+    ["Chests"] = "箱子",
+    ["Items"] = "物品",
+    ["Currency"] = "货币",
+    ["Ladders"] = "梯子",
+    ["Entities"] = "实体",
+
+    -- 楼层页
+    ["Compatibility Warning"] = "兼容性警告",
+    ["Features highlighted in red do not work in the current floor."] = "红色高亮的功能在当前楼层不可用。",
+    ["Visuals"] = "视觉",
+    ["Automation"] = "自动化",
+    ["Bypass"] = "绕过",
+    ["Farming"] = "刷取",
+    ["Completion"] = "通关",
+    ["Show Seek Path"] = "显示 Seek 路径",
+    ["Show Eyestalk Path"] = "显示 Eyestalk 路径",
+    ["Delete Seek Trigger"] = "删除 Seek 触发器",
+    ["Delete Figure"] = "删除 Figure",
+    ["Infinite Revives"] = "无限复活",
+    ["Figure Godmode"] = "Figure 无敌",
+    ["Remove Basement Gate"] = "移除地下室大门",
+    ["Remove Paintings Door"] = "移除画门",
+    ["Remove Skeleton Door"] = "移除骷髅门",
+    ["Auto Steer Minecart"] = "自动驾驶矿车",
+    ["Turn Distance"] = "转弯距离",
+    ["Crouch Distance"] = "蹲下距离",
+    ["Auto Rooms"] = "自动过房间",
+    ["Pathfind Timeout"] = "寻路超时",
+    ["Ignore A-60"] = "忽略 A-60",
+    ["Show Path"] = "显示路径",
+    ["Spoof Footsteps"] = "伪装脚步",
+    ["Knob Farm"] = "旋钮农场",
+    ["Start Knob Farm"] = "开始旋钮农场",
+    ["Start Death Farm"] = "开始死亡农场",
+    ["Copy Death Farm Loadstring"] = "复制死亡农场脚本",
+    ["Auto Complete Dam Seek"] = "自动完成水坝 Seek",
+    ["Auto Complete Cringle"] = "自动完成 Cringle",
+
+    -- 档案室 / 楼梯间
+    ["Bypasses"] = "绕过",
+    ["Exploits / Anti"] = "功能 / 防御",
+    ["Experimental"] = "实验性功能",
+    ["Bypass Electric Water"] = "绕过电击水流",
+    ["Bypass Alma"] = "绕过 Alma",
+    ["Bypass Drones"] = "绕过无人机",
+    ["Bypass Scribbles"] = "绕过涂鸦",
+    ["Anti Ransom"] = "防 Ransom",
+    ["Anti Closet Trash"] = "防柜子垃圾",
+    ["Forget Me Not Skipper"] = "跳过忘忧花",
+    ["Time Shower"] = "时间展示",
+    ["Stop Time/Anti Stampede"] = "时间停止/防踩踏",
+    ["Honcho Correct Box ESP"] = "透视档案室 Boss 箱子",
+    ["Bring Dropped Items"] = "把掉落物品带过来",
+    ["Enable Interval"] = "启用间隔",
+    ["Interval"] = "间隔",
+    ["Anti Noise"] = "防噪音",
+    ["Noise Tv Breaker"] = "噪音电视破坏",
+
+    -- 设置页
+    ["Menu"] = "菜单",
+    ["Configuration"] = "配置",
+    ["Themes"] = "主题",
+    ["Open Keybind Menu"] = "打开按键菜单",
+    ["Custom Cursor"] = "自定义光标",
+    ["Queue On Teleport"] = "传送时排队",
+    ["UI Style"] = "UI 样式",
+    ["Linoria"] = "Linoria",
+    ["DPI Scale"] = "DPI 缩放",
+    ["Menu bind"] = "菜单快捷键",
+    ["Copy Discord Invite"] = "复制 Discord 邀请",
+    ["Unload"] = "卸载",
+    ["Background color"] = "背景颜色",
+    ["Main color"] = "主色调",
+    ["Accent color"] = "强调色",
+    ["Outline color"] = "描边颜色",
+    ["Font color"] = "字体颜色",
+    ["Contrast check: good (17.0:1)"] = "对比度检查：良好 (17.0:1)",
+    ["Font Face"] = "字体",
+    ["Code"] = "Code",
+    ["Background Image"] = "背景图片",
+    ["Theme list"] = "主题列表",
+    ["Default"] = "默认",
+    ["Set as default"] = "设为默认",
+    ["Custom theme name"] = "自定义主题名称",
+    ["Create theme"] = "创建主题",
+    ["Custom themes"] = "自定义主题",
+    ["Load theme"] = "加载主题",
+    ["Overwrite theme"] = "覆盖主题",
+    ["Delete theme"] = "删除主题",
+    ["Refresh list"] = "刷新列表",
+    ["Reset default"] = "重置默认",
+    ["Current default theme: Default"] = "当前默认主题：默认",
+    ["Theme JSON"] = "主题 JSON",
+    ["Import theme"] = "导入主题",
+    ["Export current theme"] = "导出当前主题",
+    ["Config name"] = "配置名称",
+    ["Create config"] = "创建配置",
+    ["Config list"] = "配置列表",
+    ["Load config"] = "加载配置",
+    ["Overwrite config"] = "覆盖配置",
+    ["Delete config"] = "删除配置",
+    ["Set as autoload"] = "设为自动加载",
+    ["Reset autoload"] = "重置自动加载",
+    ["Current autoload config: none"] = "当前自动加载配置：无",
+    ["Config JSON"] = "配置 JSON",
+    ["Import config"] = "导入配置",
+    ["Export current config"] = "导出当前配置",
+}
+
+local function translateText(text)
+    if not text or type(text) ~= "string" then return text end
+
+    if Translations[text] then
+        return Translations[text]
+    end
+
+    local sortedKeys = {}
+    for en, cn in pairs(Translations) do
+        table.insert(sortedKeys, {en = en, cn = cn})
+    end
+    table.sort(sortedKeys, function(a, b) return #a.en > #b.en end)
+
+    for _, pair in ipairs(sortedKeys) do
+        if text:find(pair.en, 1, true) then
+            return text:gsub(pair.en:gsub("(%W)", "%%%1"), pair.cn)
+        end
+    end
+
+    return text
+end
+
+local function setupTranslationEngine()
+    local success, err = pcall(function()
+        local oldIndex = getrawmetatable(game).__newindex
+        setreadonly(getrawmetatable(game), false)
+
+        getrawmetatable(game).__newindex = newcclosure(function(t, k, v)
+            if (t:IsA("TextLabel") or t:IsA("TextButton") or t:IsA("TextBox")) and k == "Text" then
+                v = translateText(tostring(v))
+            end
+            return oldIndex(t, k, v)
+        end)
+
+        setreadonly(getrawmetatable(game), true)
+    end)
+
+    if not success then
+        warn("元表劫持失败:", err)
+
+        local translated = setmetatable({}, {__mode = "k"})
+        local function scanAndTranslate()
+            for _, gui in ipairs(game:GetService("CoreGui"):GetDescendants()) do
+                if (gui:IsA("TextLabel") or gui:IsA("TextButton") or gui:IsA("TextBox")) and not translated[gui] then
+                    pcall(function()
+                        local text = gui.Text
+                        if text and text ~= "" then
+                            local translatedText = translateText(text)
+                            if translatedText ~= text then
+                                gui.Text = translatedText
+                                translated[gui] = true
+                            end
+                        end
+                    end)
+                end
+            end
+
+            local player = game:GetService("Players").LocalPlayer
+            if player and player:FindFirstChild("PlayerGui") then
+                for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
+                    if (gui:IsA("TextLabel") or gui:IsA("TextButton") or gui:IsA("TextBox")) and not translated[gui] then
+                        pcall(function()
+                            local text = gui.Text
+                            if text and text ~= "" then
+                                local translatedText = translateText(text)
+                                if translatedText ~= text then
+                                    gui.Text = translatedText
+                                    translated[gui] = true
+                                end
+                            end
+                        end)
+                    end
+                end
+            end
+        end
+
+        local function setupDescendantListener(parent)
+            parent.DescendantAdded:Connect(function(descendant)
+                if descendant:IsA("TextLabel") or descendant:IsA("TextButton") or descendant:IsA("TextBox") then
+                    task.wait(0.1)
+                    pcall(function()
+                        local text = descendant.Text
+                        if text and text ~= "" then
+                            local translatedText = translateText(text)
+                            if translatedText ~= text then
+                                descendant.Text = translatedText
+                            end
+                        end
+                    end)
+                end
+            end)
+        end
+
+        pcall(setupDescendantListener, game:GetService("CoreGui"))
+        local player = game:GetService("Players").LocalPlayer
+        if player and player:FindFirstChild("PlayerGui") then
+            pcall(setupDescendantListener, player.PlayerGui)
+        end
+
+        while true do
+            scanAndTranslate()
+            task.wait(3)
+        end
+    end
+end
+
+task.wait(2)
+
+setupTranslationEngine()
+
+local success, err = pcall(function()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/therealcookiemonsterof1966/AbysallContinued/main/Games/Doors/Main.luau"))()
+end)
+
+if not success then
+    warn("加载失败:", err)
+end
