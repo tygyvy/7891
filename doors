@@ -1,6 +1,6 @@
 local Translations = {
-    ["Twinkhook"] = "Twinkhook『汉化』",
-    ["Toggle"] = "开/关",
+    ["Twinkhook"] = "Twinkhook『汉化一些未汉化功能已汉化』",
+    ["Toggle"] = "开关",
     ["Lock"] = "锁定",
     ["Unlock"] = "解锁",
     ["Home"] = "主页",
@@ -50,6 +50,15 @@ local Translations = {
     ["Auto Look At Creak"] = "自动看 Creak",
     ["Auto Smash Stem"] = "自动砸茎干",
     ["Crusher"] = "粉碎机",
+    ["Anti Crusher"] = "防粉碎机",
+    ["Auto Look At Creaking"] = "自动看 Creaking",
+    ["Auto Deposit Items"] = "自动存物品",
+    ["Auto Unscrew Vents"] = "自动拧开通风口",
+    ["Puzzles"] = "解谜",
+    ["Auto Emergency Terminal Door"] = "自动紧急终端门",
+
+    -- 户外页
+    ["Auto Look At Monument"] = "自动看 Monument",
 
     -- 设置页
     ["Menu"] = "菜单",
@@ -121,10 +130,10 @@ local Translations = {
     ["Anything that appears on more than one floor is in General."] = "出现在多个楼层的功能都在「通用」里。",
 
     -- 绕过区完整词条
-    ["Anti-Cheat Bypass: not this floor"] = "反作弊绕过：当前楼层不可用(仅支持矿山/档案室/楼梯间)",
+    ["Anti-Cheat Bypass: not this floor"] = "反作弊绕过：当前楼层不可用",
     ["Speed Bypass: off"] = "速度绕过：关",
     ["Noclip Bypass: off"] = "穿墙绕过：关",
-    ["Anti-Cheat Bypass"] = "反作弊绕过",
+    ["Anti-Cheat Bypass"] = "反作弊绕过(仅支持矿山，档案室，楼梯间)",
     ["Speed Bypass"] = "速度绕过",
     ["Noclip Bypass"] = "穿墙绕过",
     ["Crouch Spoof"] = "蹲下伪装",
@@ -230,7 +239,7 @@ local Translations = {
     ["Hiding Spots"] = "躲藏点",
     ["Ladders"] = "梯子",
     ["Star Rifts"] = "星裂",
-    ["Node Paths"] = "节点路径(告诉你地板路径在哪)",
+    ["Node Paths"] = "节点路径",
 
     ["No Jumpscares"] = "无跳脸",
     ["No Timothy Jumpscare"] = "无 Timothy 跳脸",
@@ -323,7 +332,7 @@ local Translations = {
     ["Disable Surge"] = "禁用 Surge",
     ["No Surge Damage"] = "无 Surge 伤害",
     ["Eyestalk Path"] = "Eyestalk 路径",
-    ["Auto Clear Closet"] = "自动清理柜子(柜子垃圾太多，清理)",
+    ["Auto Clear Closet"] = "自动清理柜子",
     ["Auto Look At Flowers"] = "自动看花",
     ["Auto Water Cooler"] = "自动饮水机",
     ["Auto Teller Ticket"] = "自动 Teller 票",
@@ -331,7 +340,7 @@ local Translations = {
     ["Auto Deposit Packages"] = "自动存包裹",
     ["Stall Drone Stampede"] = "卡住 Drone Stampede",
     ["Disable Ransom"] = "禁用 Ransom",
-    ["Anti Ransom"] = "防 Ransom他老是要你钱，他不再问你要了",
+    ["Anti Ransom"] = "防 Ransom",
     ["Anti Alma"] = "防 Alma",
     ["Anti Drones"] = "防 Drones",
     ["Anti Scribble"] = "防 Scribble",
@@ -501,12 +510,12 @@ local Translations = {
     ["Alarm Clock"] = "闹钟",
     ["Spotlight"] = "聚光灯",
 
-    ["Screech"] = "Screech(小黑球?)",
+    ["Screech"] = "Screech",
     ["Scribbles"] = "涂鸦",
     ["Seek"] = "Seek",
     ["Stem"] = "茎干",
     ["Surge"] = "Surge",
-    ["Teller"] = "Teller(死人机器人)",
+    ["Teller"] = "Teller",
     ["Timothy"] = "Timothy",
     ["World Lotus"] = "世界莲花",
     ["Gloombat"] = "Gloombat",
@@ -521,7 +530,7 @@ local Translations = {
     ["Drones"] = "无人机",
     ["Eyes"] = "眼睛",
     ["Eyestalk"] = "Eyestalk",
-    ["Figure"] = "Figure大瞎子",
+    ["Figure"] = "Figure",
     ["Fire Arm"] = "火焰手臂",
     ["Firedamp"] = "沼气",
     ["Giggle"] = "Giggle",
