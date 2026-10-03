@@ -1,5 +1,5 @@
 local Translations = {
-    ["Twinkhook"] = "Twinkhook『汉化1』",
+    ["Twinkhook"] = "Twinkhook『汉化』",
     ["Toggle"] = "开关",
     ["Lock"] = "锁定",
     ["Home"] = "主页",
@@ -40,6 +40,41 @@ local Translations = {
     ["ESP Settings"] = "透视设置",
     ["Server"] = "服务器",
     ["Audio"] = "音频",
+
+    -- 设置页
+    ["Menu"] = "菜单",
+    ["Keybind Menu"] = "按键菜单",
+    ["Show Watermark"] = "显示水印",
+    ["Menu Keybind"] = "菜单快捷键",
+    ["RightShift"] = "右Shift",
+    ["Notifications"] = "通知",
+    ["Notification Sound"] = "通知音效",
+    ["Script"] = "脚本",
+    ["Execute On Teleport"] = "传送时执行",
+    ["Panic"] = "紧急停止",
+    ["Unload"] = "卸载",
+    ["Configuration"] = "配置",
+    ["Config name"] = "配置名称",
+    ["Create config"] = "创建配置",
+    ["Config list"] = "配置列表",
+    ["Load config"] = "加载配置",
+    ["Overwrite config"] = "覆盖配置",
+    ["Delete config"] = "删除配置",
+    ["Refresh list"] = "刷新列表",
+    ["Custom theme name"] = "自定义主题名称",
+    ["Create theme"] = "创建主题",
+    ["Custom themes"] = "自定义主题",
+    ["Load theme"] = "加载主题",
+    ["Overwrite theme"] = "覆盖主题",
+    ["Delete theme"] = "删除主题",
+    ["Set as default"] = "设为默认",
+    ["Reset default"] = "重置默认",
+    ["Current default theme: none"] = "当前默认主题：无",
+    ["Theme JSON"] = "主题 JSON",
+    ["Import theme"] = "导入主题",
+    ["Export current theme"] = "导出当前主题",
+    ["Right"] = "右",
+    ["Left"] = "左",
 
     -- 交互页 / 忽略列表
     ["Ignore List"] = "忽略列表",
@@ -147,6 +182,7 @@ local Translations = {
     ["No Surge Vignette"] = "无 Surge 暗角",
     ["No Hiding Vignette"] = "无躲藏暗角",
     ["No Gween Soda Effect"] = "无绿汽水效果",
+    ["No Oxygen Vignette"] = "无氧气暗角",
     ["Custom Viewmodel Offset"] = "自定义视角模型偏移",
     ["Viewmodel X"] = "视角模型 X",
     ["Viewmodel Y"] = "视角模型 Y",
@@ -344,20 +380,15 @@ local Translations = {
     ["Share code"] = "分享代码",
     ["Copy my code"] = "复制我的代码",
     ["Use code"] = "使用代码",
-    ["Keybind Menu"] = "按键菜单",
     ["Custom Cursor"] = "自定义光标",
     ["Watermark"] = "水印",
     ["Notification Side"] = "通知位置",
-    ["Menu Keybind"] = "菜单快捷键",
-    ["Unload"] = "卸载",
     ["Themes"] = "主题",
     ["Background color"] = "背景颜色",
     ["Accent color"] = "强调色",
     ["Outline color"] = "描边颜色",
     ["Font color"] = "字体颜色",
     ["Contrast check: good (17.6:1)"] = "对比度检查：良好 (17.6:1)",
-    ["Left"] = "左",
-    ["Right"] = "右",
     ["name..."] = "名称...",
     ["paste a code..."] = "粘贴代码...",
     ["coming soon"] = "即将推出",
@@ -447,6 +478,7 @@ local Translations = {
     ["Smoothie"] = "冰沙",
     ["Aloe Vera"] = "芦荟",
     ["Alarm Clock"] = "闹钟",
+    ["Spotlight"] = "聚光灯",
 
     ["Screech"] = "Screech(小黑球?)",
     ["Scribbles"] = "涂鸦",
@@ -499,27 +531,19 @@ local function translateText(text)
     if not text or type(text) ~= "string" then return text end
 
     local doorsNum = text:match("^Doors%s+(%d+)$")
-    if doorsNum then
-        return "门 " .. doorsNum
-    end
+    if doorsNum then return "门 " .. doorsNum end
 
     local doorNum = text:match("^Door%s+(%d+)$")
-    if doorNum then
-        return "门 " .. doorNum
-    end
+    if doorNum then return "门 " .. doorNum end
 
     if text == "Key" or text:match("^Key%s*%[") then
         return (text:gsub("^Key", "钥匙"))
     end
 
     local dist = text:match("^%[(%d+)m%]$")
-    if dist then
-        return "[" .. dist .. "米]"
-    end
+    if dist then return "[" .. dist .. "米]" end
 
-    if Translations[text] then
-        return Translations[text]
-    end
+    if Translations[text] then return Translations[text] end
 
     local sortedKeys = {}
     for en, cn in pairs(Translations) do
