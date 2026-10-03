@@ -1,0 +1,621 @@
+local Translations = {
+    ["Twinkhook"] = "Twinkhook『汉化』",
+    ["Toggle"] = "开关",
+    ["Lock"] = "锁定",
+    ["Home"] = "主页",
+    ["Main"] = "主要",
+    ["Exploits"] = "功能",
+    ["Visuals"] = "视觉",
+    ["Misc"] = "杂项",
+    ["Settings"] = "设置",
+    ["Search..."] = "搜索...",
+    ["General"] = "通用",
+    ["Hotel"] = "酒店",
+    ["Mines"] = "矿山",
+    ["Outdoor"] = "户外",
+    ["Backdoor"] = "后门",
+    ["Archives"] = "档案室",
+    ["Stairwell"] = "楼梯间",
+    ["Others"] = "其他",
+    ["Entities"] = "实体",
+    ["Hazards"] = "危险",
+    ["Automation"] = "自动化",
+    ["Actions"] = "操作",
+    ["Items"] = "物品",
+    ["Players"] = "玩家",
+    ["Anti"] = "防御",
+    ["Bypasses"] = "绕过",
+    ["Hiding"] = "躲藏",
+    ["Character"] = "角色",
+    ["Interaction"] = "交互",
+    ["Interactions"] = "交互",
+    ["Alerts"] = "提醒",
+    ["Chat"] = "聊天",
+    ["Lighting"] = "光照",
+    ["Removals"] = "移除",
+    ["Camera"] = "相机",
+    ["Viewmodel"] = "视角模型",
+    ["Third Person"] = "第三人称",
+    ["ESP"] = "透视",
+    ["ESP Settings"] = "透视设置",
+    ["Server"] = "服务器",
+    ["Audio"] = "音频",
+
+    -- 交互页 / 忽略列表
+    ["Ignore List"] = "忽略列表",
+    ["Ignore Items"] = "忽略物品",
+    ["Notifications are turned on in the Settings tab."] = "通知已在「设置」标签中开启。",
+    ["Batteries"] = "电池",
+    ["Books"] = "书籍",
+    ["Chests"] = "箱子",
+    ["Cobbler Shop"] = "鞋匠商店",
+    ["Drawers"] = "抽屉",
+    ["Dropped Items"] = "掉落物品",
+    ["Fuses"] = "保险丝",
+    ["Furniture"] = "家具",
+    ["Keys"] = "钥匙",
+    ["Levers"] = "拉杆",
+    ["Light Sources"] = "光源",
+    ["Lockpick Door"] = "开锁器门",
+    ["Lockpick Other"] = "开锁器其他",
+    ["Locks"] = "锁",
+    ["Paintings"] = "画作",
+    ["Shopping Carts"] = "购物车",
+    ["Skull Door"] = "骷髅门",
+
+    ["Anything that appears on more than one floor is in General."] = "出现在多个楼层的功能都在「通用」里。",
+
+    -- 绕过区完整词条
+    ["Anti-Cheat Bypass: not this floor"] = "反作弊绕过：当前楼层不可用",
+    ["Speed Bypass: off"] = "速度绕过：关",
+    ["Noclip Bypass: off"] = "穿墙绕过：关",
+    ["Anti-Cheat Bypass"] = "反作弊绕过",
+    ["Speed Bypass"] = "速度绕过",
+    ["Noclip Bypass"] = "穿墙绕过",
+    ["Crouch Spoof"] = "蹲下伪装",
+    ["Anti-Cheat Manipulation"] = "反作弊操控",
+    ["Position Manipulation"] = "位置操控(无敌模式)",
+    ["Position Manipulation Range"] = "位置操控范围",
+    ["No Roblox Void"] = "无 Roblox 虚空",
+
+    ["Speed Modifier"] = "速度修改",
+    ["Walk Speed"] = "行走速度",
+    ["Ladder Boost"] = "梯子加速",
+    ["No Acceleration"] = "无加速度",
+    ["No Water Slowness"] = "水中不减速",
+    ["Enable Sliding"] = "启用滑铲",
+    ["Enable Jump"] = "启用跳跃",
+    ["Jump Power"] = "跳跃力",
+    ["Infinite Jump"] = "无限跳",
+    ["Noclip"] = "穿墙",
+    ["Fly"] = "飞行",
+    ["Fly Speed"] = "飞行速度",
+    ["Auto Interact"] = "自动交互(这玩意儿有bug没用)",
+    ["Interact Ignore"] = "交互忽略",
+    ["Custom Interact Range"] = "自定义交互距离",
+    ["Interact Range"] = "交互距离",
+    ["Increased Door Reach"] = "增加隔门交互",
+    ["Door Reach"] = "隔门交互",
+    ["Instant Prompts"] = "瞬间交互",
+    ["Bypass Line Of Sight"] = "穿墙交互",
+    ["Use Items Anywhere"] = "随处使用物品",
+    ["Auto Hide"] = "自动躲藏",
+    ["Hide Blacklist"] = "躲藏黑名单",
+    ["Only When Visible"] = "仅可见时",
+    ["Prediction Time"] = "预测时间",
+    ["Hide Range"] = "躲藏范围",
+    ["Fast Closet Exit"] = "快速出柜",
+    ["Enable Notifications"] = "启用通知",
+    ["Play Sound"] = "播放声音",
+    ["Sound Volume"] = "音量",
+    ["Notification Time"] = "通知时长",
+    ["Entity Spawns"] = "实体生成",
+    ["Entity List"] = "实体列表",
+    ["Item Spawns"] = "物品生成",
+    ["Item List"] = "物品列表",
+    ["Library Padlock Code"] = "图书馆挂锁密码",
+    ["Mines Anchor Solved"] = "矿山锚点已解",
+    ["Low Oxygen"] = "低氧气",
+    ["Haste Time"] = "Haste 时间",
+    ["Chat Entity Spawns"] = "聊天实体生成",
+    ["Chat Item Spawns"] = "聊天物品生成",
+    ["Chat Padlock Code"] = "聊天挂锁密码",
+    ["Entity Message"] = "实体消息",
+    ["Item Message"] = "物品消息",
+    ["Padlock Message"] = "挂锁消息",
+    ["Padlock Code: none"] = "挂锁密码：无",
+    ["Anchor Code: none"] = "锚点密码：无",
+
+    ["Text Transparency"] = "文字透明度",
+    ["Text Outline Transparency"] = "文字描边透明度",
+    ["Fill Transparency"] = "填充透明度",
+    ["Outline Transparency"] = "描边透明度",
+    ["Render Distance"] = "渲染距离",
+    ["Fade Time"] = "淡入时间",
+    ["No Animations"] = "无动画",
+    ["See Through Hiding Spots"] = "透视躲藏点",
+    ["Hiding Transparency"] = "躲藏透明度",
+    ["No Fog"] = "无雾",
+    ["Fullbright"] = "全亮",
+    ["Brightness"] = "亮度",
+    ["Ambience"] = "环境光",
+    ["No Haste Effects"] = "无 Haste 效果",
+    ["No Surge Vignette"] = "无 Surge 暗角",
+    ["No Hiding Vignette"] = "无躲藏暗角",
+    ["Custom Viewmodel Offset"] = "自定义视角模型偏移",
+    ["Viewmodel X"] = "视角模型 X",
+    ["Viewmodel Y"] = "视角模型 Y",
+    ["Viewmodel Z"] = "视角模型 Z",
+    ["Custom Field Of View"] = "自定义视野",
+    ["Field Of View"] = "视野范围",
+    ["No Camera Shake"] = "无镜头摇晃",
+    ["No Camera Bobbing"] = "无镜头晃动",
+    ["No Camera Tilt"] = "无镜头倾斜",
+    ["Freecam"] = "自由相机",
+    ["Freecam Speed"] = "自由相机速度",
+    ["Third Person Distance"] = "第三人称距离",
+    ["Third Person X"] = "第三人称 X",
+    ["Third Person Y"] = "第三人称 Y",
+    ["Wall Collision"] = "墙体碰撞",
+
+    ["Doors"] = "门",
+    ["Door"] = "门",
+    ["Key"] = "钥匙",
+    ["Gold"] = "金币",
+    ["Stardust"] = "星尘",
+    ["Objectives"] = "目标",
+    ["Hiding Spots"] = "躲藏点",
+    ["Ladders"] = "梯子",
+    ["Star Rifts"] = "星裂",
+    ["Node Paths"] = "节点路径(告诉你地板路径在哪)",
+
+    ["No Jumpscares"] = "无跳脸",
+    ["No Timothy Jumpscare"] = "无 Timothy 跳脸",
+    ["No Glitch Jumpscare"] = "无 Glitch 跳脸",
+    ["No Void Jumpscare"] = "无 Void 跳脸",
+    ["No Revive Cutscene"] = "无复活动画",
+    ["No Lights Shattering"] = "无灯光碎裂",
+    ["No Seek Effects"] = "无 Seek 效果",
+    ["No Firedamp Effects"] = "无沼气效果",
+    ["No Halt Effects"] = "无 Halt 效果",
+
+    ["Enable ESP"] = "启用透视",
+    ["Hazard List"] = "危险列表",
+    ["ESP Type"] = "透视类型",
+    ["ESP Font"] = "透视字体",
+    ["Show Names"] = "显示名称",
+    ["Show Distances"] = "显示距离",
+    ["Highlights"] = "高亮",
+    ["Highlight Entities"] = "高亮实体",
+    ["Tracers"] = "追踪线",
+    ["Tracer Origin"] = "追踪线起点",
+    ["Tracer Thickness"] = "追踪线粗细",
+    ["Text Size"] = "文字大小",
+    ["Select All"] = "全选",
+    ["Deselect All"] = "取消全选",
+
+    ["Anti AFK"] = "防挂机",
+    ["Rejoin"] = "重进",
+    ["Server Hop"] = "换服",
+    ["Copy Job ID"] = "复制 Job ID",
+    ["Revive"] = "复活",
+    ["Play Again"] = "再玩一次",
+    ["Return To Lobby"] = "返回大厅",
+    ["Suicide"] = "自杀",
+    ["No Jammin Music"] = "无 Jammin 音乐",
+    ["No Interaction Sound"] = "无交互音效",
+    ["No Haste Sound"] = "无 Haste 音效",
+    ["No Random Ambience"] = "无随机环境音",
+    ["No Footstep Sounds"] = "无脚步声",
+
+    ["Silent Gloombats"] = "静音 Gloombat",
+    ["Anti Giggle"] = "防 Giggle",
+    ["Anti Gloom Egg"] = "防 Gloom 蛋",
+    ["Anti Bridge Fall"] = "防桥坠落",
+    ["Anti Pipe Gap"] = "防管道间隙",
+    ["Anti Seek Flood"] = "防 Seek 洪水",
+    ["Anti Chandelier"] = "防吊灯",
+    ["Anti Seek Arms"] = "防 Seek 手臂",
+    ["Auto Anchor Solver"] = "自动解锚点",
+    ["Anchor Reach"] = "锚点交互距离",
+    ["Auto Dam Pumps"] = "自动水坝水泵",
+    ["Auto Kick Seek Doors"] = "自动踢 Seek 门",
+    ["Auto Steer Minecart"] = "自动驾驶矿车",
+    ["Turn Distance"] = "转弯距离",
+    ["Crouch Distance"] = "蹲下距离",
+    ["Beat Door 200"] = "打完 200 门",
+
+    ["Disable Screech"] = "禁用 Screech",
+    ["No Screech Damage"] = "无 Screech 伤害",
+    ["Disable Halt"] = "禁用 Halt",
+    ["No Halt Damage"] = "无 Halt 伤害",
+    ["Anti Dread"] = "防 Dread",
+    ["Anti Dupe"] = "防 Dupe",
+    ["Anti Eyes"] = "防 Eyes",
+    ["Anti Snare"] = "防 Snare",
+    ["Anti Figure Hearing"] = "防 Figure 听觉",
+    ["Infinite Items"] = "无限物品",
+    ["Infinite Item List"] = "无限物品列表",
+    ["Fast Throw"] = "快速投掷",
+    ["No Spread"] = "无扩散",
+    ["Spam Other Tools"] = "刷其他工具",
+    ["Auto Breaker Box"] = "自动电闸盒",
+    ["Breaker Mode"] = "电闸模式",
+    ["Instant"] = "瞬间",
+    ["Auto Padlock"] = "自动挂锁",
+    ["Padlock Reach"] = "挂锁交互距离",
+    ["Bruteforce Padlock"] = "暴力破解挂锁",
+    ["Auto Heartbeat Minigame"] = "自动心跳小游戏",
+
+    ["Anti Lookman"] = "防 Lookman",
+    ["Anti Sideroom Vacuum"] = "防侧房真空",
+    ["Auto Haste Levers"] = "自动 Haste 拉杆",
+    ["Auto Mandrake"] = "自动 Mandrake",
+    ["Auto Cut Vines"] = "自动砍藤蔓",
+    ["Auto Garden Gate"] = "自动花园大门",
+    ["Auto Lotus Petals"] = "自动莲花瓣",
+    ["Disable Mandrake"] = "禁用 Mandrake",
+    ["Anti Groundskeeper"] = "防 Groundskeeper",
+    ["Disable Surge"] = "禁用 Surge",
+    ["No Surge Damage"] = "无 Surge 伤害",
+    ["Eyestalk Path"] = "Eyestalk 路径",
+    ["Auto Clear Closet"] = "自动清理柜子(柜子垃圾太多，清理)",
+    ["Auto Look At Flowers"] = "自动看花",
+    ["Auto Water Cooler"] = "自动饮水机",
+    ["Auto Teller Ticket"] = "自动 Teller 票",
+    ["Auto Skip Forget Me Not"] = "自动跳过 Forget Me Not",
+    ["Auto Deposit Packages"] = "自动存包裹",
+    ["Stall Drone Stampede"] = "卡住 Drone Stampede",
+    ["Disable Ransom"] = "禁用 Ransom",
+    ["Anti Ransom"] = "防 Ransom他老是要你钱，他不再问你要了",
+    ["Anti Alma"] = "防 Alma",
+    ["Anti Drones"] = "防 Drones",
+    ["Anti Scribble"] = "防 Scribble",
+    ["No Puddle Damage"] = "无水坑伤害",
+
+    ["Old Hotel"] = "旧酒店",
+    ["Retro"] = "复古",
+    ["Fools"] = "愚人",
+    ["There is no anti cheat in this version."] = "此版本没有反作弊。",
+    ["Remove Seek Trigger"] = "移除 Seek 触发器",
+    ["Remove Basement Gate"] = "移除地下室大门",
+    ["Remove Paintings Door"] = "移除画门",
+    ["Remove Skeleton Door"] = "移除骷髅门",
+    ["Anti Lava"] = "防岩浆",
+    ["Anti Wall"] = "防墙",
+    ["Real Bridge"] = "真实桥梁",
+    ["Anti Banana"] = "防香蕉",
+    ["Anti Jeff"] = "防 Jeff",
+    ["Jeff Mode"] = "Jeff 模式",
+    ["Client"] = "客户端",
+    ["Rooms"] = "一千门",
+    ["Anti A-90"] = "防 A-90",
+    ["Auto Rooms"] = "自动过房间",
+    ["Stuck Timeout"] = "卡住超时",
+    ["Show Path"] = "显示路径",
+    ["Revives"] = "复活",
+    ["Infinite Revives"] = "无限复活",
+
+    ["Game"] = "游戏",
+    ["Game:"] = "游戏：",
+    ["Executor:"] = "执行器：",
+    ["Build:"] = "版本号：",
+    ["Version:"] = "版本：",
+    ["Place ID:"] = "地点 ID：",
+    ["Floor:"] = "楼层：",
+    ["Room:"] = "房间：",
+    ["Room"] = "房间",
+    ["Floor"] = "楼层",
+    ["Credits"] = "鸣谢",
+    ["Script:"] = "脚本：",
+    ["Library:"] = "库：",
+    ["Discord:"] = "Discord：",
+    ["Copy Discord"] = "复制 Discord",
+    ["Show Invite"] = "显示邀请",
+    ["Games Supported"] = "支持的游戏",
+    ["DOORS this script"] = "DOORS 本脚本",
+    ["Jailbreak coming soon"] = "Jailbreak 即将推出",
+    ["Murder Mystery 2 coming soon"] = "Murder Mystery 2 即将推出",
+    ["This Place: supported"] = "此地点：已支持",
+    ["Version"] = "版本",
+    ["Loaded In:"] = "加载时间：",
+    ["Features:"] = "功能数：",
+    ["Profiles"] = "配置",
+    ["Profile name"] = "配置名称",
+    ["Save as new profile"] = "保存为新配置",
+    ["Saved profiles"] = "已保存配置",
+    ["Load"] = "加载",
+    ["Update"] = "更新",
+    ["Delete"] = "删除",
+    ["Load on start"] = "启动时加载",
+    ["Loads on start: none"] = "启动时加载：无",
+    ["Don't load on start"] = "启动时不加载",
+    ["Refresh"] = "刷新",
+    ["Load on start for"] = "启动时加载到",
+    ["This account only"] = "仅此账号",
+    ["Save changes automatically"] = "自动保存更改",
+    ["Share code"] = "分享代码",
+    ["Copy my code"] = "复制我的代码",
+    ["Use code"] = "使用代码",
+    ["Keybind Menu"] = "按键菜单",
+    ["Custom Cursor"] = "自定义光标",
+    ["Watermark"] = "水印",
+    ["Notification Side"] = "通知位置",
+    ["Menu Keybind"] = "菜单快捷键",
+    ["Unload"] = "卸载",
+    ["Themes"] = "主题",
+    ["Background color"] = "背景颜色",
+    ["Accent color"] = "强调色",
+    ["Outline color"] = "描边颜色",
+    ["Font color"] = "字体颜色",
+    ["Contrast check: good (17.6:1)"] = "对比度检查：良好 (17.6:1)",
+    ["Left"] = "左",
+    ["Right"] = "右",
+    ["name..."] = "名称...",
+    ["paste a code..."] = "粘贴代码...",
+    ["coming soon"] = "即将推出",
+    ["this script"] = "本脚本",
+    ["supported"] = "已支持",
+
+    ["Kill Brick"] = "秒杀砖",
+    ["Kill Part"] = "秒杀部件",
+    ["Knockbomb"] = "击退炸弹",
+    ["Pool Shock"] = "水池电击",
+    ["Seek Arm"] = "Seek 手臂",
+    ["Snare"] = "陷阱",
+    ["Vacuum Room"] = "真空房间",
+    ["Banana Peel"] = "香蕉皮",
+    ["Chandelier Obstruction"] = "吊灯障碍",
+    ["Currents Puddle"] = "水流坑",
+    ["Dupe"] = "假门",
+    ["Gloom Egg"] = "Gloom 蛋",
+
+    ["CD Disc"] = "CD 光盘",
+    ["Coin Roll"] = "金币卷",
+    ["Fih Food"] = "鱼食",
+    ["Herb of Viridis"] = "翠绿草药",
+    ["Holy Hand Grenade"] = "神圣手雷",
+    ["Lunch Box"] = "午餐盒",
+    ["Mini Shield Potion"] = "小护盾药水",
+    ["Nanner"] = "香蕉",
+    ["Object Scanner"] = "物品扫描仪",
+    ["Padlock"] = "挂锁",
+    ["Paper Plane"] = "纸飞机",
+    ["Peach Cobbler"] = "桃子派",
+    ["Pocket Mirror"] = "口袋镜",
+    ["Sally Toy"] = "Sally 玩具",
+    ["Scrap"] = "废料",
+    ["Starlight Barrel"] = "星光桶",
+    ["Starlight Bottle"] = "星光瓶",
+    ["Starlight Vial"] = "星光瓶",
+    ["Stop Sign"] = "停止标志",
+    ["Tablet"] = "平板",
+    ["Tip Jar"] = "小费罐",
+    ["Broken Monitor"] = "坏显示器",
+    ["Big Bomb"] = "大炸弹",
+    ["Bomb"] = "炸弹",
+    ["Bottle Crate"] = "瓶子箱",
+    ["Boxing Gloves"] = "拳击手套",
+    ["Jerry Can"] = "油桶",
+    ["Lamp"] = "台灯",
+    ["Lotus"] = "莲花",
+    ["Lockpicks"] = "开锁器",
+    ["Gummy Flashlight"] = "软糖手电",
+    ["Gween Soda"] = "绿汽水",
+    ["Gween Soda Pack"] = "绿汽水包",
+    ["Glitch Fragment"] = "故障碎片",
+    ["Glowstick"] = "荧光棒",
+    ["Golden Gun"] = "金枪",
+    ["Candle"] = "蜡烛",
+    ["Candy"] = "糖果",
+    ["Cheese"] = "奶酪",
+    ["Compass"] = "指南针",
+    ["Crucifix"] = "十字架",
+    ["Donut"] = "甜甜圈",
+    ["Iron Key"] = "铁钥匙",
+    ["Lantern"] = "灯笼",
+    ["Laser Pointer"] = "激光笔",
+    ["Lighter"] = "打火机",
+    ["Multitool"] = "多功能工具",
+    ["Rift Candle"] = "裂缝蜡烛",
+    ["Rift Jar"] = "裂缝罐",
+    ["Straplight"] = "绑带手电",
+    ["Vitamins"] = "维生素",
+    ["Water Cup"] = "水杯",
+    ["Battery"] = "电池",
+    ["Battery Pack"] = "电池包",
+    ["Bandage"] = "绷带",
+    ["Bandage Pack"] = "绷带包",
+    ["Bread"] = "面包",
+    ["Flashlight"] = "手电筒",
+    ["Green Herb"] = "绿色草药",
+    ["Hint Paper"] = "提示纸",
+    ["Shears"] = "剪刀",
+    ["Skeleton Key"] = "万能钥匙",
+    ["Smoothie"] = "冰沙",
+    ["Aloe Vera"] = "芦荟",
+    ["Alarm Clock"] = "闹钟",
+
+    ["Screech"] = "Screech(小黑球?)",
+    ["Scribbles"] = "涂鸦",
+    ["Seek"] = "Seek老寒腿🤔",
+    ["Stem"] = "茎干",
+    ["Surge"] = "Surge",
+    ["Teller"] = "Teller(死人机器人)",
+    ["Timothy"] = "Timothy",
+    ["World Lotus"] = "世界莲花",
+    ["Gloombat"] = "Gloombat",
+    ["Gloombat Swarm"] = "Gloombat 群",
+    ["Grampy"] = "Grampy",
+    ["Groundskeeper"] = "Groundskeeper",
+    ["Grumble"] = "Grumble",
+    ["Halt"] = "Halt",
+    ["Haste"] = "Haste",
+    ["Hijack"] = "Hijack",
+    ["Honcho"] = "Honcho",
+    ["Drones"] = "无人机(快要到6点的时候一堆疯子冲了过来了",
+    ["Eyes"] = "眼睛(看他的眼睛包治百病😎",
+    ["Eyestalk"] = "Eyestalk",
+    ["Figure"] = "Figure大瞎子",
+    ["Fire Arm"] = "火焰手臂",
+    ["Firedamp"] = "沼气",
+    ["Giggle"] = "Giggle",
+    ["Glitch"] = "Glitch",
+    ["Ransom"] = "Ransom",
+    ["Rush"] = "Rush",
+    ["Sally"] = "Sally",
+    ["Jeff The Killer"] = "Jeff the Killer",
+    ["Lookman"] = "Lookman",
+    ["Louie"] = "Louie",
+    ["Mandrake"] = "Mandrake",
+    ["Monument"] = "Monument",
+    ["Noise"] = "Noise",
+    ["Noise Television"] = "噪音电视",
+    ["Portrait"] = "肖像",
+    ["Queen Grumble"] = "Grumble 女王",
+    ["Alma"] = "Alma",
+    ["Ambush"] = "Ambush",
+    ["Bash"] = "Bash",
+    ["Blitz"] = "Blitz",
+    ["Bramble"] = "Bramble",
+    ["Creak"] = "Creak这个老傻子老喜欢在背后偷袭而且还不能看他看他会打我们",
+    ["Dread"] = "Dread会站立的人影😱",
+    ["Drone Stampede"] = "无人机冲撞",
+}
+
+local function translateText(text)
+    if not text or type(text) ~= "string" then return text end
+
+    local doorsNum = text:match("^Doors%s+(%d+)$")
+    if doorsNum then
+        return "门 " .. doorsNum
+    end
+
+    local doorNum = text:match("^Door%s+(%d+)$")
+    if doorNum then
+        return "门 " .. doorNum
+    end
+
+    if text == "Key" or text:match("^Key%s*%[") then
+        return (text:gsub("^Key", "钥匙"))
+    end
+
+    local dist = text:match("^%[(%d+)m%]$")
+    if dist then
+        return "[" .. dist .. "米]"
+    end
+
+    if Translations[text] then
+        return Translations[text]
+    end
+
+    local sortedKeys = {}
+    for en, cn in pairs(Translations) do
+        table.insert(sortedKeys, {en = en, cn = cn})
+    end
+    table.sort(sortedKeys, function(a, b) return #a.en > #b.en end)
+
+    for _, pair in ipairs(sortedKeys) do
+        if text:find(pair.en, 1, true) then
+            return text:gsub(pair.en:gsub("(%W)", "%%%1"), pair.cn)
+        end
+    end
+
+    return text
+end
+
+local function setupTranslationEngine()
+    local success, err = pcall(function()
+        local oldIndex = getrawmetatable(game).__newindex
+        setreadonly(getrawmetatable(game), false)
+
+        getrawmetatable(game).__newindex = newcclosure(function(t, k, v)
+            if (t:IsA("TextLabel") or t:IsA("TextButton") or t:IsA("TextBox")) and k == "Text" then
+                v = translateText(tostring(v))
+            end
+            return oldIndex(t, k, v)
+        end)
+
+        setreadonly(getrawmetatable(game), true)
+    end)
+
+    if not success then
+        warn("元表劫持失败:", err)
+
+        local translated = setmetatable({}, {__mode = "k"})
+        local function scanAndTranslate()
+            for _, gui in ipairs(game:GetService("CoreGui"):GetDescendants()) do
+                if (gui:IsA("TextLabel") or gui:IsA("TextButton") or gui:IsA("TextBox")) and not translated[gui] then
+                    pcall(function()
+                        local text = gui.Text
+                        if text and text ~= "" then
+                            local translatedText = translateText(text)
+                            if translatedText ~= text then
+                                gui.Text = translatedText
+                                translated[gui] = true
+                            end
+                        end
+                    end)
+                end
+            end
+
+            local player = game:GetService("Players").LocalPlayer
+            if player and player:FindFirstChild("PlayerGui") then
+                for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
+                    if (gui:IsA("TextLabel") or gui:IsA("TextButton") or gui:IsA("TextBox")) and not translated[gui] then
+                        pcall(function()
+                            local text = gui.Text
+                            if text and text ~= "" then
+                                local translatedText = translateText(text)
+                                if translatedText ~= text then
+                                    gui.Text = translatedText
+                                    translated[gui] = true
+                                end
+                            end
+                        end)
+                    end
+                end
+            end
+        end
+
+        local function setupDescendantListener(parent)
+            parent.DescendantAdded:Connect(function(descendant)
+                if descendant:IsA("TextLabel") or descendant:IsA("TextButton") or descendant:IsA("TextBox") then
+                    task.wait(0.1)
+                    pcall(function()
+                        local text = descendant.Text
+                        if text and text ~= "" then
+                            local translatedText = translateText(text)
+                            if translatedText ~= text then
+                                descendant.Text = translatedText
+                            end
+                        end
+                    end)
+                end
+            end)
+        end
+
+        pcall(setupDescendantListener, game:GetService("CoreGui"))
+        local player = game:GetService("Players").LocalPlayer
+        if player and player:FindFirstChild("PlayerGui") then
+            pcall(setupDescendantListener, player.PlayerGui)
+        end
+
+        while true do
+            scanAndTranslate()
+            task.wait(3)
+        end
+    end
+end
+
+task.wait(2)
+
+setupTranslationEngine()
+
+local success, err = pcall(function()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/sillyleo67/doors/refs/heads/main/Twinkhook.lua"))()
+end)
+
+if not success then
+    warn("加载失败:", err)
+end
