@@ -1,6 +1,6 @@
 local Translations = {
     ["Twinkhook"] = "Twinkhook『汉化』",
-    ["Toggle"] = "开关",
+    ["Toggle"] = "开/关",
     ["Lock"] = "锁定",
     ["Unlock"] = "解锁",
     ["Home"] = "主页",
@@ -121,7 +121,7 @@ local Translations = {
     ["Anything that appears on more than one floor is in General."] = "出现在多个楼层的功能都在「通用」里。",
 
     -- 绕过区完整词条
-    ["Anti-Cheat Bypass: not this floor"] = "反作弊绕过：当前楼层不可用",
+    ["Anti-Cheat Bypass: not this floor"] = "反作弊绕过：当前楼层不可用(仅支持矿山/档案室/楼梯间)",
     ["Speed Bypass: off"] = "速度绕过：关",
     ["Noclip Bypass: off"] = "穿墙绕过：关",
     ["Anti-Cheat Bypass"] = "反作弊绕过",
@@ -503,7 +503,7 @@ local Translations = {
 
     ["Screech"] = "Screech(小黑球?)",
     ["Scribbles"] = "涂鸦",
-    ["Seek"] = "Seek老寒腿🤔",
+    ["Seek"] = "Seek",
     ["Stem"] = "茎干",
     ["Surge"] = "Surge",
     ["Teller"] = "Teller(死人机器人)",
@@ -518,8 +518,8 @@ local Translations = {
     ["Haste"] = "Haste",
     ["Hijack"] = "Hijack",
     ["Honcho"] = "Honcho",
-    ["Drones"] = "无人机(快要到6点的时候一堆疯子冲了过来了",
-    ["Eyes"] = "眼睛(看他的眼睛包治百病😎",
+    ["Drones"] = "无人机",
+    ["Eyes"] = "眼睛",
     ["Eyestalk"] = "Eyestalk",
     ["Figure"] = "Figure大瞎子",
     ["Fire Arm"] = "火焰手臂",
@@ -543,8 +543,8 @@ local Translations = {
     ["Bash"] = "Bash",
     ["Blitz"] = "Blitz",
     ["Bramble"] = "Bramble",
-    ["Creak"] = "Creak这个老傻子老喜欢在背后偷袭而且还不能看他看他会打我们",
-    ["Dread"] = "Dread会站立的人影😱",
+    ["Creak"] = "Creak",
+    ["Dread"] = "Dread",
     ["Drone Stampede"] = "无人机冲撞",
 }
 
