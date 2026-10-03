@@ -1,6 +1,6 @@
 local Translations = {
-    ["Twinkhook"] = "Twinkhook『汉化』",
-    ["Toggle"] = "开/关",
+    ["Twinkhook"] = "Twinkhook『汉化』",
+    ["Toggle"] = "开关",
     ["Lock"] = "锁定",
     ["Unlock"] = "解锁",
     ["Home"] = "主页",
@@ -42,6 +42,14 @@ local Translations = {
     ["Server"] = "服务器",
     ["Audio"] = "音频",
     ["Movement"] = "移动",
+
+    -- 楼梯间页
+    ["Auto Pull Fire Alarms"] = "自动拉火警",
+    ["Anti Noise"] = "防噪音",
+    ["Auto Break Noise TV"] = "自动破坏噪音电视",
+    ["Auto Look At Creak"] = "自动看 Creak",
+    ["Auto Smash Stem"] = "自动砸茎干",
+    ["Crusher"] = "粉碎机",
 
     -- 设置页
     ["Menu"] = "菜单",
@@ -113,7 +121,7 @@ local Translations = {
     ["Anything that appears on more than one floor is in General."] = "出现在多个楼层的功能都在「通用」里。",
 
     -- 绕过区完整词条
-    ["Anti-Cheat Bypass: not this floor"] = "反作弊绕过：当前楼层不可用(支持矿山，档案室，楼梯间)",
+    ["Anti-Cheat Bypass: not this floor"] = "反作弊绕过：当前楼层不可用",
     ["Speed Bypass: off"] = "速度绕过：关",
     ["Noclip Bypass: off"] = "穿墙绕过：关",
     ["Anti-Cheat Bypass"] = "反作弊绕过",
@@ -495,7 +503,7 @@ local Translations = {
 
     ["Screech"] = "Screech(小黑球?)",
     ["Scribbles"] = "涂鸦",
-    ["Seek"] = "Seek",
+    ["Seek"] = "Seek老寒腿🤔",
     ["Stem"] = "茎干",
     ["Surge"] = "Surge",
     ["Teller"] = "Teller(死人机器人)",
@@ -510,12 +518,12 @@ local Translations = {
     ["Haste"] = "Haste",
     ["Hijack"] = "Hijack",
     ["Honcho"] = "Honcho",
-    ["Drones"] = "Drones",
-    ["Eyes"] = "Eyes",
+    ["Drones"] = "无人机(快要到6点的时候一堆疯子冲了过来了",
+    ["Eyes"] = "眼睛(看他的眼睛包治百病😎",
     ["Eyestalk"] = "Eyestalk",
-    ["Figure"] = "Figure",
-    ["Fire Arm"] = "Fire Arm",
-    ["Firedamp"] = "Firedamp",
+    ["Figure"] = "Figure大瞎子",
+    ["Fire Arm"] = "火焰手臂",
+    ["Firedamp"] = "沼气",
     ["Giggle"] = "Giggle",
     ["Glitch"] = "Glitch",
     ["Ransom"] = "Ransom",
@@ -527,16 +535,16 @@ local Translations = {
     ["Mandrake"] = "Mandrake",
     ["Monument"] = "Monument",
     ["Noise"] = "Noise",
-    ["Noise Television"] = "Noise Television",
-    ["Portrait"] = "Portrait",
-    ["Queen Grumble"] = "Grumble",
+    ["Noise Television"] = "噪音电视",
+    ["Portrait"] = "肖像",
+    ["Queen Grumble"] = "Grumble 女王",
     ["Alma"] = "Alma",
     ["Ambush"] = "Ambush",
     ["Bash"] = "Bash",
     ["Blitz"] = "Blitz",
     ["Bramble"] = "Bramble",
-    ["Creak"] = "Creak",
-    ["Dread"] = "Dread",
+    ["Creak"] = "Creak这个老傻子老喜欢在背后偷袭而且还不能看他看他会打我们",
+    ["Dread"] = "Dread会站立的人影😱",
     ["Drone Stampede"] = "无人机冲撞",
 }
 
