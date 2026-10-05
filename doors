@@ -1,6 +1,6 @@
 local Translations = {
     ["Twinkhook V3"] = "Twinkhook V3",
-    ["Twinkhook"] = "一一一MSTwinkhook",
+    ["Twinkhook"] = "----Twinkhook V3",
     ["Toggle"] = "开关", ["Lock"] = "锁定", ["Unlock"] = "解锁",
     ["Enabled"] = "开启", ["Disabled"] = "关闭",
     ["On"] = "开", ["Off"] = "关",
@@ -73,11 +73,10 @@ local Translations = {
     ["Terminal"] = "终端",
     ["Depot"] = "仓库",
     ["Noise TV"] = "噪音电视",
-    ["The key is free and takes about thirty seconds to get."] = "钥匙是免费的，大概三十秒就能拿到(钥匙为:DOORSMV)。",
+    ["The key is free and takes about thirty seconds to get."] = "钥匙是免费的，大概三十秒就能拿到(钥匙DOORSMV)。",
     ["1. Press Join Discord and open the invite."] = "1. 点击“加入 Discord”并打开邀请。",
-    ["2. Copy the key pinned in the key channel."] = "2. 复制钥匙频道里置顶的钥匙。",
-    ["3. Paste it below and press Execute."] = "3. 粘贴到下面，然后点击“执行
-4.反冷川_roblox他以为脚本是他自己一个想得到的就圈别人三连”。",
+    ["2. Copy the key pinned in the key channel."] = "2. 复制钥匙频道里置顶的钥匙(反冷川_roblox他以为脚本是他自己一个想得到的就圈别人三连)。",
+    ["3. Paste it below and press Execute."] = "3. 粘贴到下面，然后点击“执行”。",
     ["Join Discord"] = "加入 Discord",
     ["Copy Link"] = "复制链接",
     ["Remember Key For 24 Hours"] = "记住钥匙 24 小时",
