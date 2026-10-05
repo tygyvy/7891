@@ -1,6 +1,6 @@
 local Translations = {
     ["Twinkhook V3"] = "Twinkhook V3",
-    ["Twinkhook"] = "Twinkhook",
+    ["Twinkhook"] = "一一一MSTwinkhook",
     ["Toggle"] = "开关", ["Lock"] = "锁定", ["Unlock"] = "解锁",
     ["Enabled"] = "开启", ["Disabled"] = "关闭",
     ["On"] = "开", ["Off"] = "关",
