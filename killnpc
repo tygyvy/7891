@@ -1,0 +1,1272 @@
+-- 修改版：刀戳僵尸 + 近距离判定 + 冲刺 + 旋转 + 突刺（可调数量）+ 直刺冲锋（可调数量 + 插刀刃中间）+ 踢腿 + 设置面板
+plr = game.Players.LocalPlayer
+char = plr.Character
+hum = char.Humanoid
+hrp = char.HumanoidRootPart
+
+rs = game.RunService
+
+ToolEnabled = true
+ToolUsing = false
+Grab = false
+GrabConnections = {}
+GrabCharacters = {}
+bullshitvariable = false
+Grabbed = false
+Dashing = false
+Spinning = false
+Charging = false
+Kicking = false
+StabCharging = false
+
+local SETTINGS = {
+    CHARGE_MAX_GRAB = 3,
+    STAB_MAX_GRAB = 1,             -- ★ 直刺冲锋最多插几个（可调到 12）
+    DASH_SPEED = 22,
+    CHARGE_SPEED = 30,
+    CHARGE_DURATION = 2,
+    ATTACK_RANGE = 6,
+    CHARGE_RANGE = 12,
+    GRAB_DEATH_DELAY = 3,
+
+    BLOOD_BURST_ENABLED = true,
+    BLOOD_REDUCED = false,
+    SOUND_ENABLED = true,
+
+    CHARGE_MAX_GRAB_DEFAULT = 3,
+    STAB_MAX_GRAB_DEFAULT = 1,
+    DASH_SPEED_DEFAULT = 22,
+    CHARGE_SPEED_DEFAULT = 30,
+    CHARGE_DURATION_DEFAULT = 2,
+    ATTACK_RANGE_DEFAULT = 6,
+    CHARGE_RANGE_DEFAULT = 12,
+    GRAB_DEATH_DELAY_DEFAULT = 3,
+}
+
+local BUTTON_VISIBLE = {
+    Impale = true, Dash = true, Spin = true,
+    Charge = true, Kick = true, Stab = true,
+}
+
+function checknotr15()
+    return hum.RigType ~= Enum.HumanoidRigType.R15
+end
+
+if not checknotr15() then
+    msg = Instance.new("Hint", workspace)
+    msg.Text = "you're not r6"
+    game.Debris:AddItem(msg, 2)
+    return
+end
+
+Mesh = "http://www.roblox.com/asset/?id=11442510"
+Texture = "http://www.roblox.com/asset/?id=11442524"
+NpcKill = "https://github.com/InnocentViru/Black-Knife/raw/refs/heads/main/Thorn%20Ring%20(ominous_stab_harsh.ogg)%20-%20DELTARUNE%20Chapters%203+4%20OST%20-%20Aventuras%20Demais%20(youtube).mp3"
+Slash = "rbxassetid://4958430453"
+Impale = "rbxassetid://5754301788"
+Bleed = "rbxassetid://71884701777530"
+
+if not isfile("ThornRing.mp3") then
+    writefile("ThornRing.mp3", game:HttpGet(NpcKill))
+end
+
+anims = {
+    [1] = "rbxassetid://74897796",
+    [2] = "rbxassetid://54432537",
+    [3] = "rbxassetid://203876950",
+    [4] = "rbxassetid://186934910",
+    [5] = "rbxassetid://203875401"
+}
+
+pcall(function() plr.Backpack["Black Knife"]:Destroy() end)
+pcall(function() getgenv().roaringknight:Disconnect() end)
+
+plr.ReplicationFocus = workspace
+getgenv().roaringknight = rs.Heartbeat:Connect(function()
+    sethiddenproperty(plr, "MaximumSimulationRadius", math.huge)
+    sethiddenproperty(plr, "SimulationRadius", math.huge)
+end)
+
+Tool = Instance.new("Tool", plr.Backpack)
+Tool.ToolTip = "niche reference"
+Tool.Name = "Black Knife"
+Tool.Grip = CFrame.new(0, 0, -2) * CFrame.Angles(math.rad(90), math.rad(90), 0)
+
+Handle = Instance.new("Part", Tool)
+Handle.Name = "Handle"
+Handle.Size = Vector3.new(1, 0.6, 6)
+Handle.CanTouch = false
+
+Highlight = Instance.new("Highlight", Handle)
+Highlight.FillTransparency = 0
+Highlight.FillColor = Color3.new(0,0,0)
+Highlight.DepthMode = "Occluded"
+
+ImpaleAtt = Instance.new("Attachment", Handle)
+ImpaleAtt.Position = Vector3.new(0, 0, Handle.Size.Z / 3)
+ImpaleAtt.CFrame = ImpaleAtt.CFrame * CFrame.Angles(math.rad(90), 0, 0)
+
+-- ★ 新增：刀身中间的位置（用来钉僵尸）
+HandleMiddleAtt = Instance.new("Attachment", Handle)
+HandleMiddleAtt.Position = Vector3.new(0, 0, 0)
+
+SpecialMesh = Instance.new("SpecialMesh", Handle)
+SpecialMesh.MeshId = Mesh
+SpecialMesh.VertexColor = Vector3.new(0,0,0)
+SpecialMesh.TextureId = Texture
+SpecialMesh.Scale = Vector3.new(2.2,2.2,2.2)
+
+vfx = Instance.new("ParticleEmitter", Handle)
+vfx.Rate = 500
+vfx.Speed = NumberRange.new(0,0)
+vfx.Brightness = 10
+vfx.Lifetime = NumberRange.new(.5, .5)
+vfx.Color = ColorSequence.new(Color3.new(0,0,0))
+vfx.Size = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 0),
+    NumberSequenceKeypoint.new(0.5, 1.2),
+    NumberSequenceKeypoint.new(1, 0),
+})
+vfx.Transparency = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 1),
+    NumberSequenceKeypoint.new(0.5, 0),
+    NumberSequenceKeypoint.new(1, 1),
+})
+vfx.Rotation = NumberRange.new(-360, 360)
+
+att1 = Instance.new("Attachment", Handle)
+att2 = Instance.new("Attachment", Handle)
+att1.Position = Vector3.new(0, 0, Handle.Size.Z / 1.75)
+att2.Position = Vector3.new(0, 0, -(Handle.Size.Z / 4))
+
+trail = Instance.new("Trail", Handle)
+trail.Attachment0 = att1
+trail.Attachment1 = att2
+trail.Lifetime = .35
+trail.Enabled = false
+trail.Color = ColorSequence.new(Color3.new(0,0,0))
+trail.Transparency = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 0),
+    NumberSequenceKeypoint.new(1, 1),
+})
+
+pcall(function() gethui()["Grab_Ability"]:Destroy() end)
+
+ScreenGui = Instance.new("ScreenGui", gethui())
+ScreenGui.Name = "Grab_Ability"
+
+TextButton = Instance.new("TextButton", ScreenGui)
+UIAspectRatioConstraint = Instance.new("UIAspectRatioConstraint", TextButton)
+UIStroke = Instance.new("UIStroke", TextButton)
+TextButton.Text = "Impale (Grab)"
+TextButton.Size = UDim2.fromScale(.12, .12)
+TextButton.AnchorPoint = Vector2.new(.5,.5)
+TextButton.Position = UDim2.fromScale(.8, .5)
+TextButton.Font = "Arcade"
+TextButton.TextScaled = true
+TextButton.TextColor3 = Color3.new(1,1,1)
+TextButton.BackgroundColor3 = Color3.new(0,0,0)
+UIStroke.Thickness = 3
+UIStroke.ApplyStrokeMode = "Border"
+UIStroke.Color = Color3.new(1,1,1)
+
+DashButton = Instance.new("TextButton", ScreenGui)
+DashRatio = Instance.new("UIAspectRatioConstraint", DashButton)
+DashStroke = Instance.new("UIStroke", DashButton)
+DashButton.Text = "冲刺斩杀"
+DashButton.Size = UDim2.fromScale(.12, .12)
+DashButton.AnchorPoint = Vector2.new(.5,.5)
+DashButton.Position = UDim2.fromScale(.8, .65)
+DashButton.Font = "Arcade"
+DashButton.TextScaled = true
+DashButton.TextColor3 = Color3.new(1,1,1)
+DashButton.BackgroundColor3 = Color3.new(0.4,0,0)
+DashStroke.Thickness = 3
+DashStroke.ApplyStrokeMode = "Border"
+DashStroke.Color = Color3.new(1,0.3,0.3)
+
+SpinButton = Instance.new("TextButton", ScreenGui)
+SpinRatio = Instance.new("UIAspectRatioConstraint", SpinButton)
+SpinStroke = Instance.new("UIStroke", SpinButton)
+SpinButton.Text = "旋转杀"
+SpinButton.Size = UDim2.fromScale(.12, .12)
+SpinButton.AnchorPoint = Vector2.new(.5,.5)
+SpinButton.Position = UDim2.fromScale(.8, .35)
+SpinButton.Font = "Arcade"
+SpinButton.TextScaled = true
+SpinButton.TextColor3 = Color3.new(1,1,1)
+SpinButton.BackgroundColor3 = Color3.new(0.3,0,0.4)
+SpinStroke.Thickness = 3
+SpinStroke.ApplyStrokeMode = "Border"
+SpinStroke.Color = Color3.new(0.8,0.3,1)
+
+ChargeButton = Instance.new("TextButton", ScreenGui)
+ChargeRatio = Instance.new("UIAspectRatioConstraint", ChargeButton)
+ChargeStroke = Instance.new("UIStroke", ChargeButton)
+ChargeButton.Text = "突刺冲锋"
+ChargeButton.Size = UDim2.fromScale(.12, .12)
+ChargeButton.AnchorPoint = Vector2.new(.5,.5)
+ChargeButton.Position = UDim2.fromScale(.8, .2)
+ChargeButton.Font = "Arcade"
+ChargeButton.TextScaled = true
+ChargeButton.TextColor3 = Color3.new(1,1,1)
+ChargeButton.BackgroundColor3 = Color3.new(0.4,0.3,0)
+ChargeStroke.Thickness = 3
+ChargeStroke.ApplyStrokeMode = "Border"
+ChargeStroke.Color = Color3.new(1,0.8,0.2)
+
+KickButton = Instance.new("TextButton", ScreenGui)
+KickRatio = Instance.new("UIAspectRatioConstraint", KickButton)
+KickStroke = Instance.new("UIStroke", KickButton)
+KickButton.Text = "踢腿"
+KickButton.Size = UDim2.fromScale(.12, .12)
+KickButton.AnchorPoint = Vector2.new(.5,.5)
+KickButton.Position = UDim2.fromScale(.8, .05)
+KickButton.Font = "Arcade"
+KickButton.TextScaled = true
+KickButton.TextColor3 = Color3.new(1,1,1)
+KickButton.BackgroundColor3 = Color3.new(0,0.3,0.4)
+KickStroke.Thickness = 3
+KickStroke.ApplyStrokeMode = "Border"
+KickStroke.Color = Color3.new(0.3,0.9,1)
+
+StabButton = Instance.new("TextButton", ScreenGui)
+StabRatio = Instance.new("UIAspectRatioConstraint", StabButton)
+StabStroke = Instance.new("UIStroke", StabButton)
+StabButton.Text = "直刺冲锋"
+StabButton.Size = UDim2.fromScale(.12, .12)
+StabButton.AnchorPoint = Vector2.new(.5,.5)
+StabButton.Position = UDim2.fromScale(.8, .9)
+StabButton.Font = "Arcade"
+StabButton.TextScaled = true
+StabButton.TextColor3 = Color3.new(1,1,1)
+StabButton.BackgroundColor3 = Color3.new(0.5,0,0.5)
+StabStroke.Thickness = 3
+StabStroke.ApplyStrokeMode = "Border"
+StabStroke.Color = Color3.new(1,0.4,1)
+
+SettingsButton = Instance.new("TextButton", ScreenGui)
+SettingsButton.Text = "⚙ 设置"
+SettingsButton.Size = UDim2.fromScale(.14, .06)
+SettingsButton.AnchorPoint = Vector2.new(.5, 0)
+SettingsButton.Position = UDim2.fromScale(.5, .02)
+SettingsButton.Font = "Arcade"
+SettingsButton.TextScaled = true
+SettingsButton.TextColor3 = Color3.new(1,1,1)
+SettingsButton.BackgroundColor3 = Color3.new(0.15, 0.15, 0.2)
+SettingsButton.ZIndex = 999
+
+SettingsStroke = Instance.new("UIStroke", SettingsButton)
+SettingsStroke.Thickness = 2
+SettingsStroke.Color = Color3.new(0.6, 0.6, 0.8)
+
+SettingsPanel = Instance.new("Frame", ScreenGui)
+SettingsPanel.Size = UDim2.fromScale(0, 0)
+SettingsPanel.AnchorPoint = Vector2.new(.5, .5)
+SettingsPanel.Position = UDim2.fromScale(.5, .5)
+SettingsPanel.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+SettingsPanel.BorderSizePixel = 0
+SettingsPanel.Visible = false
+SettingsPanel.ZIndex = 1000
+SettingsPanel.Active = true
+
+SettingsCorner = Instance.new("UICorner", SettingsPanel)
+SettingsCorner.CornerRadius = UDim.new(0, 12)
+
+SettingsStroke2 = Instance.new("UIStroke", SettingsPanel)
+SettingsStroke2.Thickness = 2
+SettingsStroke2.Color = Color3.fromRGB(100, 100, 140)
+
+SettingsTitle = Instance.new("TextLabel", SettingsPanel)
+SettingsTitle.Size = UDim2.new(1, 0, 0, 36)
+SettingsTitle.BackgroundTransparency = 1
+SettingsTitle.Text = "设置"
+SettingsTitle.Font = Enum.Font.GothamBold
+SettingsTitle.TextSize = 18
+SettingsTitle.TextColor3 = Color3.new(1,1,1)
+SettingsTitle.ZIndex = 1001
+
+SettingsClose = Instance.new("TextButton", SettingsPanel)
+SettingsClose.Size = UDim2.new(0, 30, 0, 30)
+SettingsClose.Position = UDim2.new(1, -36, 0, 3)
+SettingsClose.BackgroundColor3 = Color3.fromRGB(80, 30, 30)
+SettingsClose.Text = "×"
+SettingsClose.Font = Enum.Font.GothamBold
+SettingsClose.TextSize = 20
+SettingsClose.TextColor3 = Color3.new(1,1,1)
+SettingsClose.ZIndex = 1002
+
+SettingsCloseCorner = Instance.new("UICorner", SettingsClose)
+SettingsCloseCorner.CornerRadius = UDim.new(0, 6)
+
+SettingsScroll = Instance.new("ScrollingFrame", SettingsPanel)
+SettingsScroll.Size = UDim2.new(1, -20, 1, -50)
+SettingsScroll.Position = UDim2.new(0, 10, 0, 44)
+SettingsScroll.BackgroundTransparency = 1
+SettingsScroll.BorderSizePixel = 0
+SettingsScroll.ScrollBarThickness = 4
+SettingsScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+SettingsScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+SettingsScroll.ZIndex = 1001
+
+SettingsList = Instance.new("UIListLayout", SettingsScroll)
+SettingsList.Padding = UDim.new(0, 6)
+SettingsList.SortOrder = Enum.SortOrder.LayoutOrder
+
+local settingsOpen = false
+local function OpenSettings()
+    if settingsOpen then return end
+    settingsOpen = true
+    SettingsPanel.Visible = true
+    SettingsPanel.Size = UDim2.fromScale(0, 0)
+    game:GetService("TweenService"):Create(
+        SettingsPanel,
+        TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+        { Size = UDim2.fromScale(0.7, 0.7) }
+    ):Play()
+end
+
+local function CloseSettings()
+    if not settingsOpen then return end
+    settingsOpen = false
+    local tw = game:GetService("TweenService"):Create(
+        SettingsPanel,
+        TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+        { Size = UDim2.fromScale(0, 0) }
+    )
+    tw:Play()
+    tw.Completed:Connect(function()
+        SettingsPanel.Visible = false
+    end)
+end
+
+SettingsButton.MouseButton1Click:Connect(function()
+    if settingsOpen then CloseSettings() else OpenSettings() end
+end)
+
+SettingsClose.MouseButton1Click:Connect(CloseSettings)
+
+local function makeSectionLabel(text)
+    local lbl = Instance.new("TextLabel", SettingsScroll)
+    lbl.Size = UDim2.new(1, 0, 0, 28)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = text
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextSize = 16
+    lbl.TextColor3 = Color3.fromRGB(120, 200, 255)
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.ZIndex = 1002
+    return lbl
+end
+
+local function makeRow()
+    local row = Instance.new("Frame", SettingsScroll)
+    row.Size = UDim2.new(1, 0, 0, 40)
+    row.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    row.BorderSizePixel = 0
+    row.ZIndex = 1001
+    local c = Instance.new("UICorner", row)
+    c.CornerRadius = UDim.new(0, 8)
+    return row
+end
+
+local function makeRowLabel(row, text)
+    local lbl = Instance.new("TextLabel", row)
+    lbl.Size = UDim2.new(1, -200, 1, 0)
+    lbl.Position = UDim2.new(0, 12, 0, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = text
+    lbl.Font = Enum.Font.Gotham
+    lbl.TextSize = 14
+    lbl.TextColor3 = Color3.fromRGB(230, 230, 230)
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.ZIndex = 1002
+    return lbl
+end
+
+local function makeSmallBtn(row, text, xOffset, color, callback)
+    local btn = Instance.new("TextButton", row)
+    btn.Size = UDim2.new(0, 32, 0, 30)
+    btn.Position = UDim2.new(1, xOffset, 0.5, -15)
+    btn.BackgroundColor3 = color
+    btn.Text = text
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 16
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.ZIndex = 1002
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    btn.MouseButton1Click:Connect(callback)
+    return btn
+end
+
+local function makeWideBtn(row, text, color, callback)
+    local btn = Instance.new("TextButton", row)
+    btn.Size = UDim2.new(0, 90, 0, 30)
+    btn.Position = UDim2.new(1, -100, 0.5, -15)
+    btn.BackgroundColor3 = color
+    btn.Text = text
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 13
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.ZIndex = 1002
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    btn.MouseButton1Click:Connect(callback)
+    return btn
+end
+
+local function makeToggleRow(text, initialState, callback)
+    local row = makeRow()
+    makeRowLabel(row, text)
+    local btn = Instance.new("TextButton", row)
+    btn.Size = UDim2.new(0, 90, 0, 30)
+    btn.Position = UDim2.new(1, -100, 0.5, -15)
+    btn.BackgroundColor3 = initialState and Color3.fromRGB(40, 90, 40) or Color3.fromRGB(90, 40, 40)
+    btn.Text = initialState and "开启" or "关闭"
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 13
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.ZIndex = 1002
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+
+    local state = initialState
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        btn.Text = state and "开启" or "关闭"
+        btn.BackgroundColor3 = state and Color3.fromRGB(40, 90, 40) or Color3.fromRGB(90, 40, 40)
+        callback(state)
+    end)
+    return btn, row
+end
+
+makeSectionLabel("高级功能")
+
+local grabRow = makeRow()
+local grabLabel = makeRowLabel(grabRow, "突刺插僵尸数量: " .. SETTINGS.CHARGE_MAX_GRAB)
+local function updateGrabLabel()
+    grabLabel.Text = "突刺插僵尸数量: " .. SETTINGS.CHARGE_MAX_GRAB
+end
+makeSmallBtn(grabRow, "-", -180, Color3.fromRGB(80, 40, 40), function()
+    SETTINGS.CHARGE_MAX_GRAB = math.max(1, SETTINGS.CHARGE_MAX_GRAB - 1)
+    updateGrabLabel()
+end)
+makeSmallBtn(grabRow, "+", -144, Color3.fromRGB(40, 80, 40), function()
+    SETTINGS.CHARGE_MAX_GRAB = math.min(10, SETTINGS.CHARGE_MAX_GRAB + 1)
+    updateGrabLabel()
+end)
+
+-- ★ 新增：直刺冲锋插僵尸数量（最多 12）
+local stabRow = makeRow()
+local stabLabel = makeRowLabel(stabRow, "直刺插僵尸数量: " .. SETTINGS.STAB_MAX_GRAB)
+local function updateStabLabel()
+    stabLabel.Text = "直刺插僵尸数量: " .. SETTINGS.STAB_MAX_GRAB
+end
+makeSmallBtn(stabRow, "-", -180, Color3.fromRGB(80, 40, 40), function()
+    SETTINGS.STAB_MAX_GRAB = math.max(1, SETTINGS.STAB_MAX_GRAB - 1)
+    updateStabLabel()
+end)
+makeSmallBtn(stabRow, "+", -144, Color3.fromRGB(40, 80, 40), function()
+    SETTINGS.STAB_MAX_GRAB = math.min(12, SETTINGS.STAB_MAX_GRAB + 1)
+    updateStabLabel()
+end)
+
+local delayRow = makeRow()
+local delayLabel = makeRowLabel(delayRow, "插住僵尸死亡延迟: " .. SETTINGS.GRAB_DEATH_DELAY .. "秒")
+local function updateDelayLabel()
+    delayLabel.Text = "插住僵尸死亡延迟: " .. SETTINGS.GRAB_DEATH_DELAY .. "秒"
+end
+makeSmallBtn(delayRow, "-", -180, Color3.fromRGB(80, 40, 40), function()
+    SETTINGS.GRAB_DEATH_DELAY = math.max(0.5, SETTINGS.GRAB_DEATH_DELAY - 0.5)
+    updateDelayLabel()
+end)
+makeSmallBtn(delayRow, "+", -144, Color3.fromRGB(40, 80, 40), function()
+    SETTINGS.GRAB_DEATH_DELAY = math.min(30, SETTINGS.GRAB_DEATH_DELAY + 0.5)
+    updateDelayLabel()
+end)
+
+local dashRow = makeRow()
+local dashLabel = makeRowLabel(dashRow, "冲刺横刀速度: " .. SETTINGS.DASH_SPEED)
+local function updateDashLabel()
+    dashLabel.Text = "冲刺横刀速度: " .. SETTINGS.DASH_SPEED
+end
+makeSmallBtn(dashRow, "-", -180, Color3.fromRGB(80, 40, 40), function()
+    SETTINGS.DASH_SPEED = math.max(1, SETTINGS.DASH_SPEED - 1)
+    updateDashLabel()
+end)
+makeSmallBtn(dashRow, "+", -144, Color3.fromRGB(40, 80, 40), function()
+    SETTINGS.DASH_SPEED = math.min(100, SETTINGS.DASH_SPEED + 1)
+    updateDashLabel()
+end)
+
+local chargeRow = makeRow()
+local chargeLabel = makeRowLabel(chargeRow, "突刺冲锋速度: " .. SETTINGS.CHARGE_SPEED)
+local function updateChargeLabel()
+    chargeLabel.Text = "突刺冲锋速度: " .. SETTINGS.CHARGE_SPEED
+end
+makeSmallBtn(chargeRow, "-", -180, Color3.fromRGB(80, 40, 40), function()
+    SETTINGS.CHARGE_SPEED = math.max(1, SETTINGS.CHARGE_SPEED - 1)
+    updateChargeLabel()
+end)
+makeSmallBtn(chargeRow, "+", -144, Color3.fromRGB(40, 80, 40), function()
+    SETTINGS.CHARGE_SPEED = math.min(100, SETTINGS.CHARGE_SPEED + 1)
+    updateChargeLabel()
+end)
+
+local durRow = makeRow()
+local durLabel = makeRowLabel(durRow, "突刺冲锋持续秒数: " .. SETTINGS.CHARGE_DURATION)
+local function updateDurLabel()
+    durLabel.Text = "突刺冲锋持续秒数: " .. SETTINGS.CHARGE_DURATION
+end
+makeSmallBtn(durRow, "-", -180, Color3.fromRGB(80, 40, 40), function()
+    SETTINGS.CHARGE_DURATION = math.max(0.5, SETTINGS.CHARGE_DURATION - 0.5)
+    updateDurLabel()
+end)
+makeSmallBtn(durRow, "+", -144, Color3.fromRGB(40, 80, 40), function()
+    SETTINGS.CHARGE_DURATION = math.min(10, SETTINGS.CHARGE_DURATION + 0.5)
+    updateDurLabel()
+end)
+
+local atkRangeRow = makeRow()
+local atkRangeLabel = makeRowLabel(atkRangeRow, "攻击范围: " .. SETTINGS.ATTACK_RANGE)
+local function updateAtkRangeLabel()
+    atkRangeLabel.Text = "攻击范围: " .. SETTINGS.ATTACK_RANGE
+end
+makeSmallBtn(atkRangeRow, "-", -180, Color3.fromRGB(80, 40, 40), function()
+    SETTINGS.ATTACK_RANGE = math.max(1, SETTINGS.ATTACK_RANGE - 1)
+    updateAtkRangeLabel()
+end)
+makeSmallBtn(atkRangeRow, "+", -144, Color3.fromRGB(40, 80, 40), function()
+    SETTINGS.ATTACK_RANGE = math.min(50, SETTINGS.ATTACK_RANGE + 1)
+    updateAtkRangeLabel()
+end)
+
+local chgRangeRow = makeRow()
+local chgRangeLabel = makeRowLabel(chgRangeRow, "突刺范围: " .. SETTINGS.CHARGE_RANGE)
+local function updateChgRangeLabel()
+    chgRangeLabel.Text = "突刺范围: " .. SETTINGS.CHARGE_RANGE
+end
+makeSmallBtn(chgRangeRow, "-", -180, Color3.fromRGB(80, 40, 40), function()
+    SETTINGS.CHARGE_RANGE = math.max(1, SETTINGS.CHARGE_RANGE - 1)
+    updateChgRangeLabel()
+end)
+makeSmallBtn(chgRangeRow, "+", -144, Color3.fromRGB(40, 80, 40), function()
+    SETTINGS.CHARGE_RANGE = math.min(50, SETTINGS.CHARGE_RANGE + 1)
+    updateChgRangeLabel()
+end)
+
+local resetRow = makeRow()
+makeRowLabel(resetRow, "重置所有设置")
+makeWideBtn(resetRow, "重置", Color3.fromRGB(80, 60, 30), function()
+    SETTINGS.DASH_SPEED = SETTINGS.DASH_SPEED_DEFAULT
+    SETTINGS.CHARGE_SPEED = SETTINGS.CHARGE_SPEED_DEFAULT
+    SETTINGS.CHARGE_MAX_GRAB = SETTINGS.CHARGE_MAX_GRAB_DEFAULT
+    SETTINGS.STAB_MAX_GRAB = SETTINGS.STAB_MAX_GRAB_DEFAULT
+    SETTINGS.CHARGE_DURATION = SETTINGS.CHARGE_DURATION_DEFAULT
+    SETTINGS.ATTACK_RANGE = SETTINGS.ATTACK_RANGE_DEFAULT
+    SETTINGS.CHARGE_RANGE = SETTINGS.CHARGE_RANGE_DEFAULT
+    SETTINGS.GRAB_DEATH_DELAY = SETTINGS.GRAB_DEATH_DELAY_DEFAULT
+    updateDashLabel() updateChargeLabel() updateGrabLabel()
+    updateStabLabel() updateDurLabel() updateAtkRangeLabel()
+    updateChgRangeLabel() updateDelayLabel()
+end)
+
+makeSectionLabel("图像与音效")
+makeToggleRow("关闭血月效果", not SETTINGS.BLOOD_BURST_ENABLED, function(state)
+    SETTINGS.BLOOD_BURST_ENABLED = not state
+end)
+makeToggleRow("减少血液效果", SETTINGS.BLOOD_REDUCED, function(state)
+    SETTINGS.BLOOD_REDUCED = state
+end)
+makeToggleRow("关闭音效", not SETTINGS.SOUND_ENABLED, function(state)
+    SETTINGS.SOUND_ENABLED = not state
+end)
+
+makeSectionLabel("按钮管理")
+local buttonMap = {
+    { id = "Impale", btn = TextButton, name = "刺刀" },
+    { id = "Dash", btn = DashButton, name = "冲刺斩杀" },
+    { id = "Spin", btn = SpinButton, name = "旋转杀" },
+    { id = "Charge", btn = ChargeButton, name = "突刺冲锋" },
+    { id = "Kick", btn = KickButton, name = "踢腿" },
+    { id = "Stab", btn = StabButton, name = "直刺冲锋" },
+}
+for _, info in ipairs(buttonMap) do
+    local row = makeRow()
+    makeRowLabel(row, info.name .. " 按钮")
+    local toggleBtn
+    toggleBtn = makeWideBtn(row, "移除", Color3.fromRGB(80, 40, 40), function()
+        if BUTTON_VISIBLE[info.id] then
+            BUTTON_VISIBLE[info.id] = false
+            info.btn.Visible = false
+            toggleBtn.Text = "已移除"
+            toggleBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        else
+            if toggleBtn.Text == "已移除" then
+                BUTTON_VISIBLE[info.id] = true
+                info.btn.Visible = true
+                toggleBtn.Text = "移除"
+                toggleBtn.BackgroundColor3 = Color3.fromRGB(80, 40, 40)
+            end
+        end
+    end)
+end
+
+function playanim(booleangrab)
+    local random = anims[math.random(1, #anims)]
+    local anim = Instance.new("Animation")
+    anim.AnimationId = random
+    local tr = hum:LoadAnimation(anim)
+    tr:Play(0, 5, booleangrab and 1.5 or 1)
+    tr.Ended:Wait()
+end
+
+function blood(phrp)
+    if not SETTINGS.BLOOD_BURST_ENABLED then return end
+    local count = SETTINGS.BLOOD_REDUCED and 6 or 12
+    for i = 1, count do
+        local p = Instance.new("Part", workspace)
+        p.Name = "blood" .. i
+        p.Material = "Neon"
+        p.Color = Color3.new(1,0,0)
+        p.CFrame = phrp.CFrame
+        p.Size = Vector3.one
+        p.RotVelocity = Vector3.new(20,20,20)
+        p.Velocity = Vector3.new(math.random(-100, 100), math.random(-200, 200), math.random(-100, 100))
+        local at = Instance.new("Attachment", p)
+        local at2 = Instance.new("Attachment", p)
+        at.Position = Vector3.new(0, p.Size.Y / 2, 0)
+        at2.Position = Vector3.new(0, -(p.Size.Y / 2), 0)
+        local tra = Instance.new("Trail", p)
+        tra.Attachment0 = at
+        tra.Attachment1 = at2
+        tra.Brightness = 10
+        tra.WidthScale = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 1),
+            NumberSequenceKeypoint.new(1, 0),
+        })
+        tra.Color = ColorSequence.new(Color3.new(1,0,0))
+        tra.Lifetime = 1.5
+        tra.FaceCamera = true
+        game.Debris:AddItem(p,6)
+    end
+end
+
+function bleedsfx(p)
+    if not SETTINGS.SOUND_ENABLED then return end
+    local sound = Instance.new("Sound", p)
+    sound.SoundId = Bleed
+    sound.Volume = 5
+    sound.PlayOnRemove = true
+    sound:Destroy()
+    sound = nil
+end
+
+function bleed(phrp, phum)
+    local maxLoops = SETTINGS.BLOOD_REDUCED and 15 or 30
+    for i = 1, maxLoops do
+        if not phum or not phum.Parent or phum.Health <= 0 then break end
+        local p = Instance.new("Part", workspace)
+        p.Name = "blood" .. i
+        p.Material = "Neon"
+        p.Color = Color3.new(1,0,0)
+        p.CFrame = phrp.CFrame * CFrame.new(0,0,-.5)
+        p.Size = Vector3.new(.5,.5,.5)
+        p.RotVelocity = Vector3.new(20,20,20)
+        p.Velocity = Vector3.new(0, 10, 0)
+        bleedsfx(p)
+        local at = Instance.new("Attachment", p)
+        local at2 = Instance.new("Attachment", p)
+        at.Position = Vector3.new(0, p.Size.Y / 2, 0)
+        at2.Position = Vector3.new(0, -(p.Size.Y / 2), 0)
+        local tra = Instance.new("Trail", p)
+        tra.Attachment0 = at
+        tra.Attachment1 = at2
+        tra.Brightness = 10
+        tra.WidthScale = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 1),
+            NumberSequenceKeypoint.new(1, 0),
+        })
+        tra.Color = ColorSequence.new(Color3.new(1,0,0))
+        tra.Lifetime = 1.5
+        tra.FaceCamera = true
+        game.Debris:AddItem(p,6)
+        task.wait(.1)
+    end
+end
+
+function killsfx(p)
+    if not SETTINGS.SOUND_ENABLED then return end
+    local sound = Instance.new("Sound", p)
+    sound.SoundId = getcustomasset("ThornRing.mp3")
+    sound.Volume = 5
+    sound.PlayOnRemove = true
+    sound:Destroy()
+    sound = nil
+end
+
+function killnpc(character)
+    local h = character:FindFirstChild("Humanoid")
+    local p = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso")
+    if not h or not p then return end
+    if game.Players:GetPlayerFromCharacter(character) then return end
+    if h.Health <= 0 then return end
+    if Grab then return end
+    for _, part in ipairs(character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            pcall(function() part:SetNetworkOwner(plr) end)
+        end
+    end
+    pcall(function() h:TakeDamage(9e9) end)
+    pcall(function() h.Health = 0 end)
+    pcall(function() h:ChangeState(Enum.HumanoidStateType.Died) end)
+    pcall(blood, p)
+    pcall(killsfx, p)
+end
+
+function impalesfx()
+    if not SETTINGS.SOUND_ENABLED then return end
+    local sound = Instance.new("Sound", Handle)
+    sound.SoundId = Impale
+    sound.Volume = 5
+    sound.PlayOnRemove = true
+    sound:Destroy()
+    sound = nil
+end
+
+function grabnpc(character)
+    local h = character:FindFirstChild("Humanoid")
+    local p = character:FindFirstChild("HumanoidRootPart")
+    local success = false
+    if h and p and not game.Players:GetPlayerFromCharacter(character)
+    and h.Health > 0 and not GrabCharacters[1] and not GrabConnections[1] then
+        GrabCharacters[1] = character
+        success = true
+        Grabbed = true
+        task.spawn(bleed, p, h)
+        impalesfx()
+        GrabConnections[1] = rs.Heartbeat:Connect(function()
+            if Tool.Parent == char and p.Parent then
+                p.CFrame = CFrame.new(ImpaleAtt.WorldPosition) * CFrame.Angles(math.rad(90), 0, 0)
+                p.Velocity = Vector3.zero
+            end
+        end)
+    end
+    return success
+end
+
+function grab(character)
+    local success = grabnpc(character)
+    if success and Grab then
+        local start = tick()
+        repeat task.wait() until tick() - start > 3 or not Grab or bullshitvariable
+        if GrabConnections[1] then GrabConnections[1]:Disconnect() end
+        GrabCharacters[1] = nil
+        table.clear(GrabCharacters)
+        table.clear(GrabConnections)
+        Grabbed = false
+        local h = character and character:FindFirstChild("Humanoid")
+        local p = character and (character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso"))
+        if h and p and h.Health > 0 then
+            for _, part in ipairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    pcall(function() part:SetNetworkOwner(plr) end)
+                end
+            end
+            pcall(function() h:TakeDamage(9e9) end)
+            pcall(function() h.Health = 0 end)
+            pcall(function() h:ChangeState(Enum.HumanoidStateType.Died) end)
+            pcall(blood, p)
+            pcall(killsfx, p)
+        end
+    end
+end
+
+function slash(booleangrab)
+    if not SETTINGS.SOUND_ENABLED then return end
+    local sound = Instance.new("Sound", Handle)
+    sound.SoundId = Slash
+    sound.Volume = 5
+    sound.PlayOnRemove = true
+    sound.Pitch = booleangrab and 1 or .8
+    Instance.new("ReverbSoundEffect", sound).DecayTime = 2.5
+    sound:Destroy()
+    sound = nil
+end
+
+local function getClosestPart(model, pos)
+    local closest, best = nil, math.huge
+    for _, part in ipairs(model:GetDescendants()) do
+        if part:IsA("BasePart") then
+            local d = (part.Position - pos).Magnitude
+            if d < best then best = d closest = part end
+        end
+    end
+    return closest, best
+end
+
+local function isKillableNPC(model)
+    if model == char then return false end
+    if game.Players:GetPlayerFromCharacter(model) then return false end
+    local h = model:FindFirstChildOfClass("Humanoid")
+    if not h or h.Health <= 0 then return false end
+    return true
+end
+
+local function getKnifeSamplePoints()
+    local pts = {}
+    if Handle and Handle.Parent then
+        table.insert(pts, Handle.Position)
+        local backOffset = -Handle.CFrame.LookVector * (Handle.Size.Z / 3)
+        table.insert(pts, Handle.Position + backOffset)
+        local frontOffset = Handle.CFrame.LookVector * (Handle.Size.Z / 3)
+        table.insert(pts, Handle.Position + frontOffset)
+    end
+    return pts
+end
+
+local function getClosestDistToPoints(model, points)
+    local best = math.huge
+    for _, pt in ipairs(points) do
+        local _, d = getClosestPart(model, pt)
+        if d and d < best then best = d end
+    end
+    return best
+end
+
+local function findClosestNPC(radius)
+    if Tool.Parent ~= char then return nil end
+    local points = getKnifeSamplePoints()
+    local bestModel, bestDist = nil, math.huge
+    for _, model in ipairs(workspace:GetDescendants()) do
+        if model:IsA("Model") and isKillableNPC(model) then
+            local d = getClosestDistToPoints(model, points)
+            if d < bestDist then bestDist = d bestModel = model end
+        end
+    end
+    if bestModel and bestDist <= radius then return bestModel end
+    return nil
+end
+
+local function findAllNPCsInRange(radius, refPos)
+    local list = {}
+    if Tool.Parent ~= char then return list end
+    local points = refPos and {refPos} or getKnifeSamplePoints()
+    for _, model in ipairs(workspace:GetDescendants()) do
+        if model:IsA("Model") and isKillableNPC(model) then
+            local d = getClosestDistToPoints(model, points)
+            if d <= radius then table.insert(list, model) end
+        end
+    end
+    return list
+end
+
+task.spawn(function()
+    while true do
+        task.wait(0.05)
+        if Tool.Parent == char and ToolUsing then
+            local target = findClosestNPC(SETTINGS.ATTACK_RANGE)
+            if target then killnpc(target) end
+        end
+        if Tool.Parent == char and Grab then
+            local target = findClosestNPC(SETTINGS.ATTACK_RANGE)
+            if target and not GrabCharacters[1] then grab(target) end
+        end
+    end
+end)
+
+task.spawn(function()
+    while true do
+        task.wait(0.05)
+        if Dashing and Tool.Parent == char then
+            local targets = findAllNPCsInRange(SETTINGS.ATTACK_RANGE)
+            for _, t in ipairs(targets) do killnpc(t) end
+        end
+    end
+end)
+
+task.spawn(function()
+    while true do
+        task.wait(0.05)
+        if Spinning and Tool.Parent == char then
+            local target = findClosestNPC(SETTINGS.ATTACK_RANGE)
+            if target then killnpc(target) end
+        end
+    end
+end)
+
+-- 突刺冲锋（可调数量）
+task.spawn(function()
+    while true do
+        task.wait(0.05)
+        if Charging and Tool.Parent == char then
+            if #GrabCharacters < SETTINGS.CHARGE_MAX_GRAB then
+                local targets = findAllNPCsInRange(SETTINGS.CHARGE_RANGE)
+                for _, target in ipairs(targets) do
+                    if #GrabCharacters >= SETTINGS.CHARGE_MAX_GRAB then break end
+                    local already = false
+                    for _, c in ipairs(GrabCharacters) do
+                        if c == target then already = true break end
+                    end
+                    if not already then
+                        local h = target:FindFirstChild("Humanoid")
+                        local p = target:FindFirstChild("HumanoidRootPart")
+                        if h and p and h.Health > 0 then
+                            table.insert(GrabCharacters, target)
+                            Grabbed = true
+                            task.spawn(bleed, p, h)
+                            impalesfx()
+                            local slot = #GrabCharacters
+                            local slotOffset = (slot - 2) * 0.9
+                            local conn = rs.Heartbeat:Connect(function()
+                                if Tool.Parent == char and p.Parent then
+                                    local knifeDir = Handle.CFrame.LookVector
+                                    local basePos = Handle.Position
+                                    local offsetCF = CFrame.new(basePos, basePos + knifeDir) + knifeDir * slotOffset
+                                    p.CFrame = CFrame.new(offsetCF.Position, offsetCF.Position + knifeDir)
+                                    p.Velocity = Vector3.zero
+                                end
+                            end)
+                            table.insert(GrabConnections, conn)
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- ★ 直刺冲锋（可调数量 + 钉刀刃中间）
+task.spawn(function()
+    while true do
+        task.wait(0.05)
+        if StabCharging and Tool.Parent == char then
+            if #GrabCharacters < SETTINGS.STAB_MAX_GRAB then
+                local targets = findAllNPCsInRange(SETTINGS.CHARGE_RANGE)
+                for _, target in ipairs(targets) do
+                    if #GrabCharacters >= SETTINGS.STAB_MAX_GRAB then break end
+                    local already = false
+                    for _, c in ipairs(GrabCharacters) do
+                        if c == target then already = true break end
+                    end
+                    if not already then
+                        local h = target:FindFirstChild("Humanoid")
+                        local p = target:FindFirstChild("HumanoidRootPart")
+                        if h and p and h.Health > 0 then
+                            table.insert(GrabCharacters, target)
+                            Grabbed = true
+                            task.spawn(bleed, p, h)
+                            impalesfx()
+                            local slot = #GrabCharacters
+                            local slotOffset = (slot - 2) * 0.9
+                            local conn = rs.Heartbeat:Connect(function()
+                                if Tool.Parent == char and p.Parent then
+                                    local knifeDir = Handle.CFrame.LookVector
+                                    -- ★ 用刀身中间 HandleMiddleAtt，把 NPC 钉在刀刃中间
+                                    local midPos = HandleMiddleAtt.WorldPosition
+                                    local offsetCF = CFrame.new(midPos, midPos + knifeDir) + knifeDir * slotOffset
+                                    p.CFrame = CFrame.new(offsetCF.Position, offsetCF.Position + knifeDir)
+                                    p.Velocity = Vector3.zero
+                                end
+                            end)
+                            table.insert(GrabConnections, conn)
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+local function StartDash()
+    if Dashing or Spinning or Charging or Kicking or StabCharging then return end
+    if Tool.Parent ~= char then return end
+    if db2 or ToolUsing or GrabConnections[1] then return end
+    Dashing = true db2 = true ToolEnabled = false
+    local oldGrip = Tool.Grip
+    local oldWalkSpeed = hum.WalkSpeed
+    local oldJumpPower = hum.JumpPower or 0
+    local oldJumpHeight = hum.JumpHeight or 0
+    Tool.Grip = CFrame.new(0, 0, -2) * CFrame.Angles(math.rad(90), 0, math.rad(90))
+    trail.Enabled = true slash(false) impalesfx()
+    local DASH_SPEED = SETTINGS.DASH_SPEED
+    hum.WalkSpeed = DASH_SPEED hum.JumpPower = 0 hum.JumpHeight = 0
+    local bv = Instance.new("BodyVelocity", hrp)
+    bv.MaxForce = Vector3.new(1e5, 0, 1e5)
+    bv.Velocity = Vector3.zero
+    local dashConn = rs.Heartbeat:Connect(function()
+        if not hrp or not hrp.Parent then return end
+        local dir = hrp.CFrame.LookVector
+        bv.Velocity = Vector3.new(dir.X * DASH_SPEED, 0, dir.Z * DASH_SPEED)
+    end)
+    task.delay(2, function()
+        Dashing = false db2 = false ToolEnabled = true
+        dashConn:Disconnect()
+        if bv and bv.Parent then bv:Destroy() end
+        Tool.Grip = oldGrip
+        hum.WalkSpeed = oldWalkSpeed
+        hum.JumpPower = oldJumpPower
+        hum.JumpHeight = oldJumpHeight
+        trail.Enabled = false
+    end)
+end
+
+DashButton.MouseButton1Click:Connect(StartDash)
+
+local function StartSpin()
+    if Spinning or Dashing or Charging or Kicking or StabCharging then return end
+    if Tool.Parent ~= char then return end
+    if db2 or ToolUsing or GrabConnections[1] then return end
+    Spinning = true db2 = true ToolEnabled = false
+    local oldGrip = Tool.Grip
+    local oldWalkSpeed = hum.WalkSpeed
+    local oldJumpPower = hum.JumpPower or 0
+    local oldJumpHeight = hum.JumpHeight or 0
+    Tool.Grip = CFrame.new(0, 0, -2) * CFrame.Angles(math.rad(90), 0, math.rad(90))
+    trail.Enabled = true slash(false) impalesfx()
+    hum.WalkSpeed = 0 hum.JumpPower = 0 hum.JumpHeight = 0
+    local bav = Instance.new("BodyAngularVelocity", hrp)
+    bav.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+    bav.AngularVelocity = Vector3.new(0, 20, 0)
+    bav.P = 10000
+    task.delay(2, function()
+        Spinning = false db2 = false ToolEnabled = true
+        if bav and bav.Parent then bav:Destroy() end
+        Tool.Grip = oldGrip
+        hum.WalkSpeed = oldWalkSpeed
+        hum.JumpPower = oldJumpPower
+        hum.JumpHeight = oldJumpHeight
+        trail.Enabled = false
+    end)
+end
+
+SpinButton.MouseButton1Click:Connect(StartSpin)
+
+local function StartCharge()
+    if Charging or Dashing or Spinning or Kicking or StabCharging then return end
+    if Tool.Parent ~= char then return end
+    if db2 or ToolUsing or GrabConnections[1] then return end
+    Charging = true db2 = true ToolEnabled = false
+    table.clear(GrabCharacters)
+    table.clear(GrabConnections)
+    local oldGrip = Tool.Grip
+    local oldWalkSpeed = hum.WalkSpeed
+    local oldJumpPower = hum.JumpPower or 0
+    local oldJumpHeight = hum.JumpHeight or 0
+    local oldMaxHealth = hum.MaxHealth
+    hum.MaxHealth = math.huge hum.Health = math.huge
+    Tool.Grip = CFrame.new(0, 0, -2) * CFrame.Angles(math.rad(30), math.rad(90), math.rad(15))
+    trail.Enabled = true slash(false) impalesfx()
+    local CHARGE_SPEED = SETTINGS.CHARGE_SPEED
+    hum.WalkSpeed = CHARGE_SPEED hum.JumpPower = 0 hum.JumpHeight = 0
+    local bv = Instance.new("BodyVelocity", hrp)
+    bv.MaxForce = Vector3.new(1e5, 0, 1e5)
+    bv.Velocity = Vector3.zero
+    local chargeConn = rs.Heartbeat:Connect(function()
+        if not hrp or not hrp.Parent then return end
+        local dir = hrp.CFrame.LookVector
+        bv.Velocity = Vector3.new(dir.X * CHARGE_SPEED, 0, dir.Z * CHARGE_SPEED)
+        if hum and hum.Health < hum.MaxHealth then hum.Health = hum.MaxHealth end
+    end)
+    -- ★ 冲锋时长 = CHARGE_DURATION（不再叠加死亡延迟）
+    task.delay(SETTINGS.CHARGE_DURATION, function()
+        Charging = false db2 = false ToolEnabled = true
+        chargeConn:Disconnect()
+        if bv and bv.Parent then bv:Destroy() end
+        hum.MaxHealth = oldMaxHealth hum.Health = oldMaxHealth
+        for _, conn in ipairs(GrabConnections) do
+            pcall(function() conn:Disconnect() end)
+        end
+        table.clear(GrabConnections)
+        for _, heldChar in ipairs(GrabCharacters) do
+            local h = heldChar:FindFirstChild("Humanoid")
+            local p = heldChar:FindFirstChild("HumanoidRootPart") or heldChar:FindFirstChild("Torso")
+            if h and p and h.Health > 0 then
+                for _, part in ipairs(heldChar:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        pcall(function() part:SetNetworkOwner(plr) end)
+                    end
+                end
+                pcall(function() h:TakeDamage(9e9) end)
+                pcall(function() h.Health = 0 end)
+                pcall(function() h:ChangeState(Enum.HumanoidStateType.Died) end)
+                pcall(blood, p) pcall(killsfx, p)
+            end
+        end
+        table.clear(GrabCharacters)
+        Grabbed = false
+        Tool.Grip = oldGrip
+        hum.WalkSpeed = oldWalkSpeed
+        hum.JumpPower = oldJumpPower
+        hum.JumpHeight = oldJumpHeight
+        trail.Enabled = false
+    end)
+end
+
+ChargeButton.MouseButton1Click:Connect(StartCharge)
+
+local function StartStab()
+    if StabCharging or Charging or Dashing or Spinning or Kicking then return end
+    if Tool.Parent ~= char then return end
+    if db2 or ToolUsing or GrabConnections[1] then return end
+    StabCharging = true db2 = true ToolEnabled = false
+    table.clear(GrabCharacters)
+    table.clear(GrabConnections)
+    local oldGrip = Tool.Grip
+    local oldWalkSpeed = hum.WalkSpeed
+    local oldJumpPower = hum.JumpPower or 0
+    local oldJumpHeight = hum.JumpHeight or 0
+    local oldMaxHealth = hum.MaxHealth
+    hum.MaxHealth = math.huge hum.Health = math.huge
+    -- ★ 直刺刀：刀尖朝前
+    Tool.Grip = CFrame.new(0, 0, -2) * CFrame.Angles(math.rad(0), math.rad(180), math.rad(0))
+    trail.Enabled = true slash(false) impalesfx()
+    local STAB_SPEED = SETTINGS.CHARGE_SPEED
+    hum.WalkSpeed = STAB_SPEED hum.JumpPower = 0 hum.JumpHeight = 0
+    local bv = Instance.new("BodyVelocity", hrp)
+    bv.MaxForce = Vector3.new(1e5, 0, 1e5)
+    bv.Velocity = Vector3.zero
+    local stabConn = rs.Heartbeat:Connect(function()
+        if not hrp or not hrp.Parent then return end
+        local dir = hrp.CFrame.LookVector
+        bv.Velocity = Vector3.new(dir.X * STAB_SPEED, 0, dir.Z * STAB_SPEED)
+        if hum and hum.Health < hum.MaxHealth then hum.Health = hum.MaxHealth end
+    end)
+    -- ★ 冲锋时长 = CHARGE_DURATION（不再叠加死亡延迟）
+    task.delay(SETTINGS.CHARGE_DURATION, function()
+        StabCharging = false db2 = false ToolEnabled = true
+        stabConn:Disconnect()
+        if bv and bv.Parent then bv:Destroy() end
+        hum.MaxHealth = oldMaxHealth hum.Health = oldMaxHealth
+        for _, conn in ipairs(GrabConnections) do
+            pcall(function() conn:Disconnect() end)
+        end
+        table.clear(GrabConnections)
+        for _, heldChar in ipairs(GrabCharacters) do
+            local h = heldChar:FindFirstChild("Humanoid")
+            local p = heldChar:FindFirstChild("HumanoidRootPart") or heldChar:FindFirstChild("Torso")
+            if h and p and h.Health > 0 then
+                for _, part in ipairs(heldChar:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        pcall(function() part:SetNetworkOwner(plr) end)
+                    end
+                end
+                pcall(function() h:TakeDamage(9e9) end)
+                pcall(function() h.Health = 0 end)
+                pcall(function() h:ChangeState(Enum.HumanoidStateType.Died) end)
+                pcall(blood, p) pcall(killsfx, p)
+            end
+        end
+        table.clear(GrabCharacters)
+        Grabbed = false
+        Tool.Grip = oldGrip
+        hum.WalkSpeed = oldWalkSpeed
+        hum.JumpPower = oldJumpPower
+        hum.JumpHeight = oldJumpHeight
+        trail.Enabled = false
+    end)
+end
+
+StabButton.MouseButton1Click:Connect(StartStab)
+
+local function StartKick()
+    if Kicking or Dashing or Spinning or Charging or StabCharging then return end
+    if Tool.Parent ~= char then return end
+    if db2 or ToolUsing or GrabConnections[1] then return end
+    Kicking = true db2 = true ToolEnabled = false
+    local rightLeg = char:FindFirstChild("Right Leg")
+    local hrpPart = char:FindFirstChild("HumanoidRootPart")
+    local rightHip = hrpPart and hrpPart:FindFirstChild("Right Hip")
+    local animateScript = char:FindFirstChild("Animate")
+    local animateWasDisabled = false
+    if animateScript and animateScript.Disabled == false then
+        animateScript.Disabled = true
+        animateWasDisabled = true
+    end
+    if rightHip then
+        local oldC0 = rightHip.C0
+        rightHip.C0 = oldC0 * CFrame.Angles(math.rad(-90), 0, 0)
+        task.wait(0.12)
+        rightHip.C0 = oldC0 * CFrame.Angles(math.rad(-140), 0, 0)
+        task.wait(0.05)
+        local kickOrigin = hrp.CFrame.Position
+        local kickDir = hrp.CFrame.LookVector
+        local targets = findAllNPCsInRange(SETTINGS.ATTACK_RANGE, kickOrigin)
+        for _, model in ipairs(targets) do
+            local h = model:FindFirstChild("Humanoid")
+            local p = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Torso")
+            if h and p and h.Health > 0 then
+                local targetPos = p.Position + kickDir * 3 + Vector3.new(0, 1, 0)
+                p.CFrame = CFrame.new(targetPos)
+                p.Velocity = kickDir * 50 + Vector3.new(0, 20, 0)
+                task.spawn(function()
+                    task.wait(0.3)
+                    killnpc(model)
+                end)
+            end
+        end
+        task.wait(0.15)
+        rightHip.C0 = oldC0
+    end
+    if animateWasDisabled and animateScript then
+        animateScript.Disabled = false
+    end
+    task.wait(0.2)
+    Kicking = false db2 = false ToolEnabled = true
+end
+
+KickButton.MouseButton1Click:Connect(StartKick)
+
+db = false
+db2 = false
+
+Tool.Activated:Connect(function()
+    if db or db2 or not ToolEnabled or Grab then return end
+    db = true
+    trail.Enabled = true
+    Handle.CanTouch = true
+    slash(true)
+    ToolUsing = true
+    task.spawn(function()
+        playanim(true)
+        ToolUsing = false
+        Handle.CanTouch = false
+        trail.Enabled = false
+        db = false
+    end)
+end)
+
+TextButton.MouseButton1Click:Connect(function()
+    if Grab and not GrabConnections[1] then
+        Grab = false db2 = false ToolEnabled = true
+    end
+    if GrabConnections[1] then
+        bullshitvariable = true
+        return
+    end
+    if not db2 and not ToolUsing and not GrabConnections[1]
+    and Tool.Parent == char then
+        db2 = true ToolEnabled = false
+        Grab = true bullshitvariable = false
+        trail.Enabled = true
+        slash(false)
+        playanim(false)
+        trail.Enabled = false
+        local r = tick()
+        spawn(function()
+            repeat task.wait() until tick() - r > (Grabbed and 3 or 1) or bullshitvariable
+            if bullshitvariable then task.wait(.8) end
+            db2 = false Grab = false ToolEnabled = true
+        end)
+    end
+end)
+
+connection = hum.Died:Connect(function()
+    connection:Disconnect() connection = nil
+    getgenv().roaringknight:Disconnect() getgenv().roaringknight = nil
+    pcall(function() Tool:Destroy() end)
+    plr.ReplicationFocus = nil
+    ScreenGui:Destroy() ScreenGui = nil
+end)
+
+msg = Instance.new("Message", workspace)
+msg.Text = "executed, made by VirusSX"
+game.Debris:AddItem(msg, 4)
