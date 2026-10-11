@@ -1,6 +1,6 @@
 local Translations = {
     ["Twinkhook V3"] = "Twinkhook V3",
-    ["Twinkhook"] = "Twinkhook V3",
+    ["Twinkhook"] = "Twinkhook",
     ["Toggle"] = "开关", ["Lock"] = "锁定", ["Unlock"] = "解锁",
     ["Enabled"] = "开启", ["Disabled"] = "关闭",
     ["On"] = "开", ["Off"] = "关",
@@ -68,6 +68,9 @@ local Translations = {
     ["Panel"] = "面板",
     ["Water"] = "水",
     ["Anchor A"] = "锚点 A",
+    ["Anchor B"] = "锚点 B",
+    ["Anchor B (410)"] = "锚点 B (410)",
+    ["Cuttable Vines"] = "可砍伐的藤蔓",
     ["Fire Alarm"] = "火警",
     ["Abraham Hat"] = "Abraham 帽子",
     ["Large Screw"] = "大螺丝",
@@ -77,6 +80,11 @@ local Translations = {
     ["Noise TV"] = "噪音电视",
     ["Broken"] = "已损坏",
     ["Threw the Noise TV down the stairwell."] = "把噪音电视扔下楼梯间。",
+    ["Welcome to Twinkhook"] = "欢迎使用 Twinkhook",
+    ["The key is free. Join the Discord, copy it from the key channel and paste it here."] = "钥匙是免费的。加入 Discord，从钥匙频道复制并粘贴到这里。",
+    ["Paste your key here"] = "在此粘贴你的钥匙",
+    ["Chinese Simplified"] = "简体中文",
+    ["Continue"] = "继续",
     ["The key is free and takes about thirty seconds to get."] = "钥匙是免费的，大概三十秒就能拿到。",
     ["1. Press Join Discord and open the invite."] = "1. 点击“加入 Discord”并打开邀请。",
     ["2. Copy the key pinned in the key channel."] = "2. 复制钥匙频道里置顶的钥匙。",
@@ -384,11 +392,6 @@ local Translations = {
     ["Open UI/Close UI"] = "开启UI/关闭UI",
     ["Lock UI/Unlock UI"] = "锁定UI/解锁UI",
     ["提醒 need notifications on in 设置."] = "提醒：需要在设置中开启通知。",
-    ["Rainbow ESP"] = "彩虹透视",
-    ["Rainbow"] = "彩虹",
-    ["Highlights"] = "高亮",
-    ["Highlight"] = "高亮",
-    ["Void"] = "虚空",
 }
 
 local sortedKeys = {}
