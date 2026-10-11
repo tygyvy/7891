@@ -1,0 +1,259 @@
+local Translations = {
+    -- 顶部/分类
+    ["Misc"] = "杂项", ["Visual"] = "视觉", ["Toys"] = "玩具",
+    ["Server"] = "服务器", ["Combat"] = "战斗", ["Player"] = "玩家",
+    ["Invincibility"] = "无敌", ["Gamepasses"] = "通行证", ["Config"] = "配置",
+    ["Sound Spam"] = "声音刷屏", ["Aim Assist"] = "自瞄辅助", ["Silent Aim"] = "静默自瞄",
+    ["Triggerbot"] = "扳机机器人", ["Auto"] = "自动", ["Plots"] = "地块",
+    ["Cheaters"] = "作弊者", ["Blobman"] = "Blobman", ["Target"] = "目标",
+    ["Settings"] = "设置", ["Apply"] = "应用", ["Effects"] = "效果",
+    ["Explosions"] = "爆炸", ["Barrier"] = "屏障", ["Line"] = "线条",
+    ["Lists"] = "列表", ["Miscellaneous useful dropdowns"] = "杂项实用下拉菜单",
+
+    -- 通用设置
+    ["Toggle"] = "开关", ["Toggle Custom Line"] = "开关自定义线条",
+    ["Grabbed Object Information"] = "抓取物体信息", ["Sky"] = "天空",
+    ["Custom Skybox"] = "自定义天空盒", ["Skybox Link/Image ID"] = "天空盒链接/图片 ID",
+    ["Time Of Day"] = "一天中的时间", ["Sun Size"] = "太阳大小",
+    ["Clouds Color"] = "云颜色", ["Clouds Density"] = "云密度",
+    ["Clouds Cover"] = "云覆盖", ["Enable Clouds"] = "启用云",
+    ["RGB Clouds"] = "RGB 云", ["Camera"] = "相机",
+    ["Disable Ragdoll Blur"] = "禁用布娃娃模糊", ["Third Person"] = "第三人称",
+    ["Camera Noclip"] = "相机穿墙", ["FOV"] = "视野",
+    ["Realistic First Person"] = "真实第一人称", ["Limb Transparency"] = "肢体透明度",
+    ["Graphics"] = "图形", ["Realistic Water"] = "真实水面",
+    ["Shaders"] = "光影", ["Particles"] = "粒子", ["Boost FPS"] = "提升帧率",
+    ["Disable"] = "禁用", ["Character"] = "角色",
+    ["Highlight Your Character"] = "高亮你的角色", ["RGB Highlight"] = "RGB 高亮",
+    ["Affect"] = "影响", ["China Hat"] = "中国帽子", ["RGB China Hat"] = "RGB 中国帽子",
+
+    -- 目标/设置
+    ["Targets"] = "目标", ["Add To List"] = "添加到列表", ["None"] = "无",
+    ["Sounds to spam"] = "刷屏的声音",
+    ["Delay"] = "延迟", ["Configuration"] = "配置", ["Target Part"] = "目标部位",
+    ["Head"] = "头部", ["Always On"] = "始终开启", ["FOV Circle"] = "视野圈",
+    ["Distance"] = "距离", ["Smoothness"] = "平滑度", ["FOV Radius"] = "视野半径",
+    ["Ignore Whitelisted"] = "忽略白名单", ["Selected Targets Only"] = "仅选中目标",
+    ["Show FOV Circle"] = "显示视野圈", ["Method: Game Raycast"] = "方式：游戏射线",
+    ["Aim Radius"] = "瞄准半径", ["Cooldown"] = "冷却", ["Camera Tricks"] = "相机技巧",
+    ["Select Plot"] = "选择地块", ["Auto-Claim Plot"] = "自动占领地块",
+    ["Break Plot Area"] = "破坏地块区域", ["Fix Plot Area"] = "修复地块区域",
+    ["Fling all toys in plot"] = "甩飞地块内所有玩具", ["Find Cheaters"] = "查找作弊者",
+
+    -- 玩具 (Toys)
+    ["Toys Aura"] = "玩具光环", ["Enabled"] = "启用", ["Shape"] = "形状",
+    ["Circle"] = "圆形", ["Grab Type"] = "抓取类型", ["Aura"] = "光环",
+    ["Grab"] = "抓取", ["Limit Toys"] = "限制玩具", ["Only Your Inventory"] = "仅你的库存",
+    ["Grab All Toys"] = "抓取所有玩具", ["Release Toys"] = "释放玩具",
+    ["Face Center"] = "面向中心", ["Shape Movement"] = "形状移动",
+    ["Auto Move"] = "自动移动", ["Move Speed"] = "移动速度",
+    ["Auto Rotate"] = "自动旋转", ["Rotate Speed"] = "旋转速度",
+    ["Bob"] = "上下浮动", ["Bob Height"] = "浮动高度", ["Bob Speed"] = "浮动速度",
+    ["Size"] = "大小", ["Radius"] = "半径", ["Height"] = "高度",
+    ["Spread"] = "扩散", ["Rows"] = "行数", ["Turns"] = "圈数",
+    ["Position Type"] = "位置类型", ["Set Custom Position"] = "设置自定义位置",
+    ["X Offset"] = "X 偏移", ["Y Offset"] = "Y 偏移", ["Z Offset"] = "Z 偏移",
+    ["X Rotation"] = "X 旋转", ["Y Rotation"] = "Y 旋转", ["Z Rotation"] = "Z 旋转",
+    ["Anchor System"] = "锚定系统", ["Fill color"] = "填充颜色",
+    ["Outline Color"] = "描边颜色", ["Release All"] = "释放全部",
+    ["Object Groups"] = "物体分组", ["Group"] = "分组",
+    ["Objects: 0"] = "物体: 0", ["Create Group"] = "创建分组",
+    ["Noclip Toys"] = "穿墙玩具", ["Highlight Group"] = "高亮分组",
+    ["Add Object"] = "添加物体", ["Remove Object"] = "移除物体",
+    ["Anchor / Release Group"] = "锚定 / 释放分组", ["Delete Group"] = "删除分组",
+    ["Forms"] = "形态", ["Coconut Forms"] = "椰子形态",
+    ["0/13 coconuts used"] = "已使用 0/13 个椰子",
+    ["Break all Holdables"] = "破坏所有可持有物", ["Destroy All Toys"] = "销毁所有玩具",
+    ["Disable House Barrier"] = "禁用房屋屏障", ["Current barrier status:"] = "当前屏障状态:",
+    ["Method"] = "方式",
+    ["Loop Apply Method Selected"] = "循环应用所选方式",
+    ["Loop Apply Method Server"] = "循环应用服务器方式",
+    ["Apply Method Selected"] = "应用所选方式", ["Apply Method Server"] = "应用服务器方式",
+    ["Explosion Type"] = "爆炸类型",
+
+    -- 抓取/光环 (Combat)
+    ["Grabs"] = "抓取", ["Toggle Grabs"] = "开关抓取",
+    ["Auras"] = "光环", ["Aura Distance"] = "光环距离",
+    ["Toggle Auras"] = "开关光环", ["Show Aura Radius"] = "显示光环半径",
+    ["Exclude Targets"] = "排除目标", ["Toy Auras"] = "玩具光环",
+    ["Toggle Toy Auras"] = "开关玩具光环", ["Show Toy Aura Radius"] = "显示玩具光环半径",
+    ["Extend speed"] = "延伸速度", ["Toggle Extend Line"] = "开关延伸线条",
+    ["Strength"] = "强度", ["Super Strength"] = "超级强度",
+    ["Lines"] = "线条", ["Packets"] = "数据包", ["Lobotomy"] = "脑叶切除",
+    ["Break Server (Lobotomy)"] = "破坏服务器 (脑叶切除)", ["Length"] = "长度",
+    ["Packet-Lag Server"] = "数据包延迟服务器", ["Send One Packet"] = "发送一个数据包",
+    ["Packet Size"] = "数据包大小", ["Sending Delay"] = "发送延迟",
+    ["Custom Prefix"] = "自定义前缀", ["Line-Lag Server"] = "线条延迟服务器",
+    ["Lag Strength"] = "延迟强度", ["Crazy Line"] = "疯狂线条",
+    ["Speed (seconds)"] = "速度 (秒)",
+
+    -- Blobman
+    ["Blobman Method"] = "Blobman 方式", ["Kick Method"] = "踢出方式",
+    ["Grab-Drop"] = "抓取-丢弃", ["Grab-Release"] = "抓取-释放",
+    ["Remove Anti-Kick [Sticky]"] = "移除防踢 [粘滞]", ["Net Owner Spam"] = "网络所有者刷屏",
+    ["Auto Sit Blobman"] = "自动坐下 Blobman", ["Freeze Blobman"] = "冻结 Blobman",
+
+    -- 设置 (Settings)
+    ["Menu"] = "菜单", ["Menu Keybind"] = "菜单快捷键",
+    ["Watermark"] = "水印", ["Keybind Menu"] = "按键菜单",
+    ["Open Keybind Menu"] = "打开按键菜单", ["Mouse"] = "鼠标",
+    ["Unlock Mouse"] = "解锁鼠标", ["Mouse-Lock"] = "鼠标锁定",
+    ["Display"] = "显示", ["Cursor"] = "光标", ["Custom Cursor"] = "自定义光标",
+    ["Image Link/ID"] = "图片链接/ID", ["Custom Cursor Size"] = "自定义光标大小",
+    ["Reset to Default"] = "重置为默认", ["Scale"] = "缩放",
+    ["UI Scale"] = "界面缩放", ["Network"] = "网络",
+    ["Position Prediction"] = "位置预测", ["Direct Grab CFrame"] = "直接抓取坐标",
+    ["Notifications"] = "通知", ["Master Switch"] = "主开关",
+    ["Event Notifications"] = "事件通知", ["Appearance"] = "外观",
+    ["Presets"] = "预设", ["Default"] = "默认",
+    ["Sound ID/MP3 Link"] = "声音 ID/MP3 链接",
+    ["Notification Side"] = "通知位置", ["Right"] = "右",
+    ["Volume"] = "音量", ["Test Notification"] = "测试通知",
+    ["Event Messages"] = "事件消息",
+
+    -- 玩家 (Player)
+    ["Values"] = "数值", ["Walk Speed"] = "行走速度",
+    ["Jump Power"] = "跳跃力", ["Flight Speed"] = "飞行速度",
+    ["Spin Speed"] = "旋转速度", ["Flight"] = "飞行",
+    ["Walkspeed"] = "行走速度", ["Character Spin"] = "角色旋转",
+    ["Noclip"] = "穿墙", ["Inf Jump"] = "无限跳", ["Jerk Off"] = "撸管",
+    ["Position Desync"] = "位置脱同步",
+    ["Only use this if you have >= 100FPS!"] = "仅在你帧率 >= 100FPS 时使用！",
+    ["Teleporting"] = "传送", ["Location"] = "位置",
+    ["Make Spawn Location"] = "设置出生点", ["Loop TP to Location"] = "循环传送到位置",
+    ["Players"] = "玩家", ["Spectate Player"] = "观战玩家",
+    ["Loop TP to Player"] = "循环传送到玩家",
+    ["Look Event Figures"] = "看向事件人物", ["Figure"] = "人物",
+    ["Sideways"] = "侧身", ["Show Locally"] = "仅本地显示",
+    ["Animations"] = "动画", ["Animation to Play"] = "播放的动画",
+    ["Animation Speed"] = "动画速度", ["Toggle Animation"] = "开关动画",
+
+    -- 白名单/免疫 (Lists)
+    ["Whitelist"] = "白名单", ["Immunity"] = "免疫",
+    ["Give Anti-Grab"] = "给予防抓取", ["Give Anti-Kick"] = "给予防踢",
+    ["Give Anti-Explosion"] = "给予防爆炸", ["Auto Whitelist Friends"] = "自动白名单好友",
+
+    -- 视觉 (Visual)
+    ["Toggles"] = "开关", ["Sticky ESP"] = "粘滞透视",
+    ["Blackhole ESP"] = "黑洞透视", ["Line Texture"] = "线条纹理",
+    ["Non-Gamepass"] = "非通行证", ["Pulse"] = "脉冲",
+    ["Laser"] = "激光", ["Rope"] = "绳索", ["Chain 2"] = "链条 2",
+    ["Chain 3"] = "链条 3", ["Chain 4"] = "链条 4", ["Spring"] = "弹簧",
+    ["Bubbles"] = "气泡", ["Gamepass"] = "通行证", ["Dots"] = "点",
+    ["Chain"] = "链条",
+
+    -- 杂项/无敌 (Misc/Invincibility)
+    ["Further Reach Lines"] = "更远触及线条", ["Gradient Lines"] = "渐变线条",
+    ["Faster Escape"] = "更快逃脱", ["Auto-House Teleport"] = "自动房屋传送",
+    ["Auto-Slots"] = "自动老虎机", ["Anti-Grab Type"] = "防抓取类型",
+    ["Anti Net-Owner"] = "防网络所有者", ["Anti Network Ownership"] = "防网络所有权",
+    ["Anti Explosion"] = "防爆炸", ["Anti Burn"] = "防燃烧",
+    ["Anti Void"] = "防虚空", ["Anti Kick"] = "防踢",
+    ["[Break PCLD] Anti Kick"] = "[破坏 PCLD] 防踢", ["Anti Sticky"] = "防粘滞",
+    ["Anti Snowball"] = "防雪球", ["Anti Banana"] = "防香蕉",
+    ["Anti Paint"] = "防油漆", ["Anti Poison"] = "防中毒", ["Anti Invis"] = "防隐身",
+    ["Water Walk"] = "水上行走", ["Noclip Barrier"] = "穿墙屏障",
+    ["Anti-Fling [Objects Noclip]"] = "防甩飞 [物体穿墙]",
+    ["Last person who grabbed you:"] = "最后抓取你的人：",
+    ["Auto Anti-Lag Sensitivity"] = "自动防延迟灵敏度",
+    ["Auto Leave"] = "自动离开", ["Auto Reset"] = "自动重置",
+    ["Loop TP"] = "循环传送", ["Disable Void"] = "禁用虚空",
+    ["Miscellaneous"] = "杂项", ["Normal"] = "正常",
+    ["GUCCI Type"] = "GUCCI 类型", ["Type"] = "类型",
+    ["Triangle"] = "三角形", ["Square"] = "正方形", ["Pentagon"] = "五边形",
+    ["Hexagon"] = "六边形", ["Octagon"] = "八边形", ["Diamond"] = "菱形",
+    ["Cross"] = "十字", ["Arrow"] = "箭头", ["Crown"] = "皇冠",
+    ["Sphere"] = "球体", ["Dome"] = "圆顶", ["Box"] = "方盒",
+    ["Pyramid"] = "金字塔", ["Cone"] = "圆锥", ["Star"] = "星形",
+    ["Heart"] = "爱心", ["Penis"] = "丁丁", ["Flower"] = "花朵",
+    ["Clover"] = "四叶草", ["Infinity"] = "无限符号", ["Spiral"] = "螺旋",
+    ["Wave"] = "波浪", ["Cylinder"] = "圆柱体", ["Helix"] = "螺旋线",
+    ["Double Helix"] = "双螺旋", ["Torus"] = "圆环", ["Galaxy"] = "星系",
+    ["Grid"] = "网格", ["Wall"] = "墙", ["Ring Stack"] = "圆环堆",
+    ["Invisible"] = "隐身", ["Teleport to Spawn"] = "传送到出生点",
+    ["Unstick"] = "解除卡住", ["Massless"] = "无质量", ["Infinite"] = "无限",
+    ["Server"] = "服务器", ["Spin"] = "旋转", ["Fling"] = "甩飞",
+    ["Ragdoll"] = "布娃娃", ["Kill"] = "击杀", ["Void"] = "虚空",
+    ["Kick"] = "踢出", ["Bring"] = "拉过来", ["Lock"] = "锁定",
+    ["Follow"] = "跟随", ["Remove Gucci"] = "移除 Gucci",
+    ["Torso"] = "躯干", ["HumanoidRootPart"] = "人形根部件",
+    ["Left"] = "左", ["Top"] = "顶部", ["Bottom"] = "底部",
+    ["Custom"] = "自定义",
+}
+
+local sortedKeys = {}
+for en, cn in pairs(Translations) do
+    table.insert(sortedKeys, {en = en, cn = cn})
+end
+table.sort(sortedKeys, function(a, b) return #a.en > #b.en end)
+
+local function translateText(text)
+    if not text or type(text) ~= "string" then return text end
+    local dist = text:match("^%s*%[%s*(%d+)m%s*%]%s*$")
+    if dist then return "[ " .. dist .. "米 ]" end
+    if Translations[text] then return Translations[text] end
+    for _, pair in ipairs(sortedKeys) do
+        if text:find(pair.en, 1, true) then
+            local newText = text:gsub(pair.en:gsub("(%W)", "%%%1"), pair.cn)
+            if newText ~= text and newText:find(pair.en, 1, true) then
+                return text
+            end
+            return newText
+        end
+    end
+    return text
+end
+
+local function getContainers()
+    local list = {}
+    local ok, hui = pcall(function() return gethui() end)
+    if ok and hui then table.insert(list, hui) end
+    pcall(function() table.insert(list, game:GetService("CoreGui")) end)
+    pcall(function()
+        local p = game:GetService("Players").LocalPlayer
+        if p and p:FindFirstChild("PlayerGui") then table.insert(list, p.PlayerGui) end
+    end)
+    pcall(function() table.insert(list, game:GetService("Workspace")) end)
+    return list
+end
+
+local function translateOne(gui)
+    if not gui:IsA("TextLabel") and not gui:IsA("TextButton") and not gui:IsA("TextBox") then return end
+    local t = gui.Text
+    if t and t ~= "" then
+        local nt = translateText(t)
+        if nt ~= t then gui.Text = nt end
+    end
+end
+
+local function bindTextChange(gui)
+    if not gui:IsA("TextLabel") and not gui:IsA("TextButton") and not gui:IsA("TextBox") then return end
+    gui:GetPropertyChangedSignal("Text"):Connect(function()
+        local t = gui.Text
+        if t and t ~= "" then
+            local nt = translateText(t)
+            if nt ~= t then gui.Text = nt end
+        end
+    end)
+end
+
+local function processContainer(container)
+    for _, gui in ipairs(container:GetDescendants()) do
+        translateOne(gui)
+        bindTextChange(gui)
+    end
+    container.DescendantAdded:Connect(function(desc)
+        task.wait(0.05)
+        translateOne(desc)
+        bindTextChange(desc)
+    end)
+end
+
+task.spawn(function()
+    task.wait(3)
+    for _, container in ipairs(getContainers()) do
+        pcall(processContainer, container)
+    end
+end)
+
+loadstring(game:HttpGet("https://raw.githubusercontent.com/LSSOPS/OpenSource/refs/heads/main/PRSHub_FTAP.lua"))()
