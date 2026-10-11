@@ -1,0 +1,14 @@
+if shared.__AntiClosetTrashLoaded then return end
+shared.__AntiClosetTrashLoaded = true
+
+local AntiClosetTrash_Connection = workspace.ChildAdded:Connect(function(Child)
+	local Name = Child.Name
+	if (Name:sub(1, 6) == "Binder"
+		or Name:sub(1, 4) == "Shoe"
+		or Name:sub(1, 5) == "Shelf")
+		then
+		Child:Destroy()
+	end
+end)
+
+print("[Anti Closet Trash] 已启用")
