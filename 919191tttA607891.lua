@@ -1,7 +1,6 @@
 -- ============================================================
---  A-60 客户端脚本 v10
---  星光十字架 + Doors 原版封印 + 预兆红光 + Ambush 穿梭
---  放置：StarterPlayer > StarterPlayerScripts > LocalScript
+--  Rooms 客户端脚本 v17（完整整合版）
+--  A-60 + A-120 + 十字架 + 裂缝罐子 + 手机长按
 -- ============================================================
 
 local Players          = game:GetService("Players")
@@ -10,6 +9,7 @@ local TweenService     = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local Debris           = game:GetService("Debris")
 local Lighting         = game:GetService("Lighting")
+local HttpService      = game:GetService("HttpService")
 
 local player    = Players.LocalPlayer
 local camera    = workspace.CurrentCamera
@@ -19,25 +19,48 @@ local playerGui = player:WaitForChild("PlayerGui")
 --  配置
 -- ============================================================
 local CONFIG = {
-    spawnDistance    = 100,
-    passDistance     = 80,
-    dashSpeed        = 220,
-    minReactionTime  = 1.0,
-    maxReactionTime  = 2.0,
+    a60_spawnDistance    = 100,
+    a60_passDistance     = 80,
+    a60_dashSpeed        = 220,
+    a60_minReactionTime  = 1.0,
+    a60_maxReactionTime  = 2.0,
+    a60_contactRadius    = 6,
+    a60_omenDuration     = 1.6,
+
+    a120_spawnDistance   = 150,
+    a120_passDistance    = 120,
+    a120_dashSpeed       = 140,
+    a120_minReactionTime = 1.5,
+    a120_maxReactionTime = 2.5,
+    a120_contactRadius   = 10,
+    a120_minRebounds     = 5,
+    a120_maxRebounds     = 8,
+    a120_stationaryTime  = 2.0,
+    a120_omenDuration    = 3.5,
+    a120_drumMinVolume   = 0.5,
+    a120_drumMaxVolume   = 8,
+    a120_windDistance    = 60,
+    a120_windMaxVolume   = 5,
+
     shakeIntensity   = 0.35,
     shakeDuration    = 0.22,
     jumpFlashTime    = 1.4,
-    contactRadius    = 6,
-    omenDuration     = 1.6,   -- 预兆时长
 
-    soundStatic      = "rbxassetid://4903742660",
-    soundDash        = "rbxassetid://78206015664727",
-    soundJumpscare   = "rbxassetid://132942725846535",
-    soundSeal        = "rbxassetid://5153775199", -- 神圣封印音
+    soundA60Static      = "rbxassetid://4903742660",
+    soundA60Dash        = "rbxassetid://78206015664727",
+    soundA120Drum       = "rbxassetid://68913572228465",
+    soundA120Wind       = "rbxassetid://90460719591755",
+    soundA120Static     = "rbxassetid://4903742660",
+    soundJumpscare      = "rbxassetid://132942725846535",
+    soundSeal           = "rbxassetid://5153775199",
 }
 
+local CRUCIFIX_ID = "rbxassetid://11480603603"
+local RIFT_FILE = "RoomsRiftStorage_v1.json"
+local RIFT_HOLD_TIME = 0.6
+
 -- ============================================================
---  保存原始 Lighting（用于预兆恢复）
+--  Lighting
 -- ============================================================
 local origLighting = {
     Ambient        = Lighting.Ambient,
@@ -46,7 +69,6 @@ local origLighting = {
     FogEnd         = Lighting.FogEnd,
 }
 
--- 预兆 ColorCorrection
 local omenCC = Instance.new("ColorCorrectionEffect")
 omenCC.Name = "A60_Omen"
 omenCC.TintColor = Color3.fromRGB(255, 255, 255)
@@ -55,21 +77,22 @@ omenCC.Contrast = 0
 omenCC.Brightness = 0
 omenCC.Parent = Lighting
 
--- ============================================================
---  预兆系统
--- ============================================================
-local function startOmen(duration)
+local function startOmen(duration, isA120)
+    local tintColor = isA120 and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(255, 110, 110)
+    local ambientColor = isA120 and Color3.fromRGB(35, 35, 35) or Color3.fromRGB(65, 15, 15)
+    local fogColor = isA120 and Color3.fromRGB(120, 120, 120) or Color3.fromRGB(130, 30, 30)
+
     TweenService:Create(omenCC, TweenInfo.new(duration, Enum.EasingStyle.Quad), {
-        TintColor  = Color3.fromRGB(255, 110, 110),
-        Saturation = 0.25,
+        TintColor  = tintColor,
+        Saturation = isA120 and -0.15 or 0.25,
         Contrast   = 0.15,
         Brightness = -0.08,
     }):Play()
 
     TweenService:Create(Lighting, TweenInfo.new(duration, Enum.EasingStyle.Quad), {
-        Ambient        = Color3.fromRGB(65, 15, 15),
-        OutdoorAmbient = Color3.fromRGB(90, 20, 20),
-        FogColor       = Color3.fromRGB(130, 30, 30),
+        Ambient        = ambientColor,
+        OutdoorAmbient = ambientColor,
+        FogColor       = fogColor,
         FogEnd         = 140,
     }):Play()
 end
@@ -126,7 +149,7 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- ============================================================
---  UI 面板
+--  主面板 UI
 -- ============================================================
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "A60_Panel"
@@ -137,8 +160,8 @@ screenGui.Parent = playerGui
 
 local panel = Instance.new("Frame")
 panel.Name = "Panel"
-panel.Size = UDim2.new(0, 190, 0, 116)
-panel.Position = UDim2.new(1, -205, 1, -135)
+panel.Size = UDim2.new(0, 190, 0, 196)
+panel.Position = UDim2.new(1, -205, 1, -215)
 panel.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
 panel.BackgroundTransparency = 0.1
 panel.BorderSizePixel = 0
@@ -164,7 +187,7 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -30, 1, 0)
 title.Position = UDim2.new(0, 8, 0, 0)
 title.BackgroundTransparency = 1
-title.Text = "A-60"
+title.Text = "Rooms Entities"
 title.TextColor3 = Color3.fromRGB(230, 70, 70)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 14
@@ -186,26 +209,41 @@ local mCorner = Instance.new("UICorner")
 mCorner.CornerRadius = UDim.new(1, 0)
 mCorner.Parent = minimizeBtn
 
-local spawnBtn = Instance.new("TextButton")
-spawnBtn.Size = UDim2.new(1, -20, 0, 32)
-spawnBtn.Position = UDim2.new(0, 10, 0, 30)
-spawnBtn.BackgroundColor3 = Color3.fromRGB(150, 25, 25)
-spawnBtn.Text = "召唤 A-60"
-spawnBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-spawnBtn.Font = Enum.Font.GothamBold
-spawnBtn.TextSize = 14
-spawnBtn.AutoButtonColor = false
-spawnBtn.Parent = panel
+local spawnA60Btn = Instance.new("TextButton")
+spawnA60Btn.Size = UDim2.new(1, -20, 0, 32)
+spawnA60Btn.Position = UDim2.new(0, 10, 0, 30)
+spawnA60Btn.BackgroundColor3 = Color3.fromRGB(150, 25, 25)
+spawnA60Btn.Text = "召唤 A-60"
+spawnA60Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+spawnA60Btn.Font = Enum.Font.GothamBold
+spawnA60Btn.TextSize = 14
+spawnA60Btn.AutoButtonColor = false
+spawnA60Btn.Parent = panel
 
 local sCorner = Instance.new("UICorner")
 sCorner.CornerRadius = UDim.new(0, 8)
-sCorner.Parent = spawnBtn
+sCorner.Parent = spawnA60Btn
+
+local spawnA120Btn = Instance.new("TextButton")
+spawnA120Btn.Size = UDim2.new(1, -20, 0, 32)
+spawnA120Btn.Position = UDim2.new(0, 10, 0, 68)
+spawnA120Btn.BackgroundColor3 = Color3.fromRGB(180, 180, 180)
+spawnA120Btn.Text = "召唤 A-120"
+spawnA120Btn.TextColor3 = Color3.fromRGB(30, 30, 30)
+spawnA120Btn.Font = Enum.Font.GothamBold
+spawnA120Btn.TextSize = 14
+spawnA120Btn.AutoButtonColor = false
+spawnA120Btn.Parent = panel
+
+local s120Corner = Instance.new("UICorner")
+s120Corner.CornerRadius = UDim.new(0, 8)
+s120Corner.Parent = spawnA120Btn
 
 local crossBtn = Instance.new("TextButton")
 crossBtn.Size = UDim2.new(1, -20, 0, 32)
-crossBtn.Position = UDim2.new(0, 10, 0, 68)
+crossBtn.Position = UDim2.new(0, 10, 0, 106)
 crossBtn.BackgroundColor3 = Color3.fromRGB(55, 50, 90)
-crossBtn.Text = "✝ 获取十字架"
+crossBtn.Text = "获取十字架"
 crossBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 crossBtn.Font = Enum.Font.GothamBold
 crossBtn.TextSize = 14
@@ -216,11 +254,26 @@ local cCorner = Instance.new("UICorner")
 cCorner.CornerRadius = UDim.new(0, 8)
 cCorner.Parent = crossBtn
 
+local riftJarBtn = Instance.new("TextButton")
+riftJarBtn.Size = UDim2.new(1, -20, 0, 32)
+riftJarBtn.Position = UDim2.new(0, 10, 0, 144)
+riftJarBtn.BackgroundColor3 = Color3.fromRGB(120, 30, 30)
+riftJarBtn.Text = "获取裂缝罐子"
+riftJarBtn.TextColor3 = Color3.fromRGB(255, 210, 210)
+riftJarBtn.Font = Enum.Font.GothamBold
+riftJarBtn.TextSize = 13
+riftJarBtn.AutoButtonColor = false
+riftJarBtn.Parent = panel
+
+local rjCorner = Instance.new("UICorner")
+rjCorner.CornerRadius = UDim.new(0, 8)
+rjCorner.Parent = riftJarBtn
+
 local miniBall = Instance.new("TextButton")
 miniBall.Size = UDim2.new(0, 44, 0, 44)
 miniBall.Position = UDim2.new(1, -60, 1, -60)
 miniBall.BackgroundColor3 = Color3.fromRGB(140, 25, 25)
-miniBall.Text = "A60"
+miniBall.Text = "Rooms"
 miniBall.TextColor3 = Color3.fromRGB(255, 255, 255)
 miniBall.Font = Enum.Font.GothamBold
 miniBall.TextSize = 13
@@ -271,9 +324,6 @@ end
 makeDraggable(panel, topBar)
 makeDraggable(miniBall, miniBall)
 
--- ============================================================
---  折叠 / 展开
--- ============================================================
 local minimized = false
 
 minimizeBtn.MouseButton1Click:Connect(function()
@@ -300,8 +350,10 @@ local function pressEffect(btn)
             {BackgroundTransparency = 0}):Play()
     end)
 end
-pressEffect(spawnBtn)
+pressEffect(spawnA60Btn)
+pressEffect(spawnA120Btn)
 pressEffect(crossBtn)
+pressEffect(riftJarBtn)
 pressEffect(minimizeBtn)
 
 -- ============================================================
@@ -310,7 +362,6 @@ pressEffect(minimizeBtn)
 local function createA60Model(pos, facingDir)
     local model = Instance.new("Model")
     model.Name = "A60"
-
     local headCF = CFrame.lookAt(pos, pos + facingDir)
 
     local head = Instance.new("Part")
@@ -403,30 +454,151 @@ local function createA60Model(pos, facingDir)
 
     model.PrimaryPart = head
     return {
-        model = model,
-        head = head,
-        fog = fog,
-        eyeL = eyeL,
-        eyeR = eyeR,
-        mouthBlack = mouthBlack,
-        mouthCover = mouthCover,
-        light = light,
-        particle = pe,
+        model = model, head = head, fog = fog, eyeL = eyeL, eyeR = eyeR,
+        mouthBlack = mouthBlack, mouthCover = mouthCover, light = light, particle = pe,
+        entityType = "A60"
     }
 end
 
-local function updateA60Parts(refs, newPos, dir)
+-- ============================================================
+--  A-120 模型
+-- ============================================================
+local function createA120Model(pos, facingDir)
+    local model = Instance.new("Model")
+    model.Name = "A120"
+    local headCF = CFrame.lookAt(pos, pos + facingDir)
+
+    local face = Instance.new("Part")
+    face.Name = "Face"
+    face.Size = Vector3.new(7, 7, 0.3)
+    face.CFrame = headCF
+    face.Anchored = true
+    face.CanCollide = false
+    face.Material = Enum.Material.SmoothPlastic
+    face.Color = Color3.fromRGB(255, 255, 255)
+    face.Transparency = 0.05
+    face.Parent = model
+
+    local sGui = Instance.new("SurfaceGui")
+    sGui.Face = Enum.NormalId.Front
+    sGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+    sGui.PixelsPerStud = 100
+    sGui.Parent = face
+
+    local eyeL = Instance.new("ImageLabel")
+    eyeL.Size = UDim2.new(0.18, 0, 0.22, 0)
+    eyeL.Position = UDim2.new(0.33, 0, 0.28, 0)
+    eyeL.BackgroundTransparency = 1
+    eyeL.Image = "rbxassetid://6031075931"
+    eyeL.ImageColor3 = Color3.fromRGB(0, 0, 0)
+    eyeL.Parent = sGui
+
+    local eyeR = Instance.new("ImageLabel")
+    eyeR.Size = UDim2.new(0.18, 0, 0.22, 0)
+    eyeR.Position = UDim2.new(0.49, 0, 0.28, 0)
+    eyeR.BackgroundTransparency = 1
+    eyeR.Image = "rbxassetid://6031075931"
+    eyeR.ImageColor3 = Color3.fromRGB(0, 0, 0)
+    eyeR.Parent = sGui
+
+    local mouth = Instance.new("ImageLabel")
+    mouth.Size = UDim2.new(0.65, 0, 0.18, 0)
+    mouth.Position = UDim2.new(0.175, 0, 0.52, 0)
+    mouth.BackgroundTransparency = 1
+    mouth.Image = "rbxassetid://6031075931"
+    mouth.ImageColor3 = Color3.fromRGB(0, 0, 0)
+    mouth.Parent = sGui
+
+    local aura = Instance.new("Part")
+    aura.Name = "Aura"
+    aura.Shape = Enum.PartType.Ball
+    aura.Size = Vector3.new(11, 11, 11)
+    aura.CFrame = headCF
+    aura.Anchored = true
+    aura.CanCollide = false
+    aura.Material = Enum.Material.ForceField
+    aura.Color = Color3.fromRGB(255, 255, 255)
+    aura.Transparency = 0.78
+    aura.Parent = model
+
+    local light = Instance.new("PointLight")
+    light.Brightness = 5
+    light.Range = 28
+    light.Color = Color3.fromRGB(255, 255, 255)
+    light.Parent = face
+
+    local att = Instance.new("Attachment")
+    att.Parent = face
+
+    local pe = Instance.new("ParticleEmitter")
+    pe.Texture = "rbxassetid://243660364"
+    pe.Rate = 60
+    pe.Lifetime = NumberRange.new(0.5, 1.2)
+    pe.Speed = NumberRange.new(2, 6)
+    pe.SpreadAngle = Vector2.new(180, 180)
+    pe.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255))
+    pe.Size = NumberSequence.new(1.8, 0)
+    pe.Transparency = NumberSequence.new(0.2, 1)
+    pe.Parent = att
+
+    model.PrimaryPart = face
+    return {
+        model = model, face = face, aura = aura, light = light, particle = pe,
+        sGui = sGui, eyeL = eyeL, eyeR = eyeR, mouth = mouth,
+        entityType = "A120",
+        lastFaceChange = tick()
+    }
+end
+
+local function updateA120Appearance(refs, dt)
+    local now = tick()
+    if now - refs.lastFaceChange > 0.08 then
+        refs.lastFaceChange = now
+        local rnd = math.random()
+        if rnd < 0.25 then
+            refs.eyeL.Rotation = 180
+            refs.eyeR.Rotation = 180
+            refs.mouth.Rotation = 0
+        elseif rnd < 0.5 then
+            refs.eyeL.Position = UDim2.new(0.33 + (math.random() - 0.5) * 0.06, 0, 0.28, 0)
+            refs.eyeR.Position = UDim2.new(0.49 + (math.random() - 0.5) * 0.06, 0, 0.28, 0)
+        elseif rnd < 0.75 then
+            refs.eyeL.Rotation = 0
+            refs.eyeR.Rotation = 0
+            refs.mouth.Rotation = 180
+        else
+            refs.eyeL.Rotation = 0
+            refs.eyeR.Rotation = 0
+            refs.mouth.Rotation = 0
+        end
+    end
+
+    local shakeOffset = Vector3.new(
+        (math.random() - 0.5) * 0.4,
+        (math.random() - 0.5) * 0.4,
+        (math.random() - 0.5) * 0.4
+    )
+    refs.face.CFrame = refs.face.CFrame + shakeOffset
+    refs.aura.CFrame = refs.aura.CFrame + shakeOffset
+end
+
+local function updateEntityParts(refs, newPos, dir)
     local cf = CFrame.lookAt(newPos, newPos + dir)
-    refs.head.CFrame = cf
-    refs.fog.CFrame = cf
-    refs.eyeL.CFrame = cf * CFrame.new(-1.3, 0.9, -2.2)
-    refs.eyeR.CFrame = cf * CFrame.new(1.3, 0.9, -2.2)
-    refs.mouthBlack.CFrame = cf * CFrame.new(0, -1.1, -2.1)
-    refs.mouthCover.CFrame = cf * CFrame.new(0, -0.15, -2.09)
+    if refs.entityType == "A60" then
+        refs.head.CFrame = cf
+        refs.fog.CFrame = cf
+        refs.eyeL.CFrame = cf * CFrame.new(-1.3, 0.9, -2.2)
+        refs.eyeR.CFrame = cf * CFrame.new(1.3, 0.9, -2.2)
+        refs.mouthBlack.CFrame = cf * CFrame.new(0, -1.1, -2.1)
+        refs.mouthCover.CFrame = cf * CFrame.new(0, -0.15, -2.09)
+    elseif refs.entityType == "A120" then
+        refs.face.CFrame = cf
+        refs.aura.CFrame = cf
+    end
 end
 
 -- ============================================================
---  柜子检测（8 种方式）
+--  柜子检测
 -- ============================================================
 local function isHidden()
     local char = player.Character
@@ -490,7 +662,7 @@ local function isHidden()
 end
 
 -- ============================================================
---  跳杀 + 封印闪光
+--  跳杀红屏 + 封印闪光
 -- ============================================================
 local redGui = Instance.new("ScreenGui")
 redGui.Name = "A60_Red"
@@ -506,6 +678,14 @@ redFrame.BackgroundTransparency = 1
 redFrame.BorderSizePixel = 0
 redFrame.Parent = redGui
 
+local scareImg = Instance.new("ImageLabel")
+scareImg.Size = UDim2.new(1, 0, 1, 0)
+scareImg.BackgroundTransparency = 1
+scareImg.Image = ""
+scareImg.ImageTransparency = 1
+scareImg.ZIndex = 3
+scareImg.Parent = redGui
+
 local sealFrame = Instance.new("Frame")
 sealFrame.Size = UDim2.new(1, 0, 1, 0)
 sealFrame.BackgroundColor3 = Color3.fromRGB(255, 250, 220)
@@ -514,7 +694,36 @@ sealFrame.BorderSizePixel = 0
 sealFrame.ZIndex = 2
 sealFrame.Parent = redGui
 
-local function triggerJumpscare()
+local function triggerJumpscareA120()
+    local s = Instance.new("Sound")
+    s.SoundId = CONFIG.soundJumpscare
+    s.Volume = 6
+    s.Parent = playerGui
+    s:Play()
+    Debris:AddItem(s, 3)
+
+    redFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    redFrame.BackgroundTransparency = 0
+    scareImg.Image = "rbxassetid://13319996052"
+    scareImg.ImageTransparency = 0
+
+    playShake(3.0, 0.8)
+
+    task.wait(CONFIG.jumpFlashTime)
+
+    TweenService:Create(redFrame, TweenInfo.new(0.8),
+        {BackgroundTransparency = 1}):Play()
+    TweenService:Create(scareImg, TweenInfo.new(0.8),
+        {ImageTransparency = 1}):Play()
+
+    local char = player.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then hum.Health = 0 end
+    end
+end
+
+local function triggerJumpscareA60()
     local s = Instance.new("Sound")
     s.SoundId = CONFIG.soundJumpscare
     s.Volume = 5
@@ -522,6 +731,7 @@ local function triggerJumpscare()
     s:Play()
     Debris:AddItem(s, 3)
 
+    redFrame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
     redFrame.BackgroundTransparency = 0
     task.wait(CONFIG.jumpFlashTime)
     TweenService:Create(redFrame, TweenInfo.new(0.8),
@@ -534,16 +744,13 @@ local function triggerJumpscare()
     end
 end
 
--- Doors 原版封印闪光：双击金光 → 全屏泛白
 local function triggerSealFlash()
-    -- 双击
     for _ = 1, 2 do
         sealFrame.BackgroundTransparency = 0
         task.wait(0.07)
         sealFrame.BackgroundTransparency = 0.55
         task.wait(0.07)
     end
-    -- 泛白淡化
     sealFrame.BackgroundTransparency = 0
     TweenService:Create(sealFrame, TweenInfo.new(1.1, Enum.EasingStyle.Quad),
         {BackgroundTransparency = 1}):Play()
@@ -557,7 +764,7 @@ local function triggerSealFlash()
 end
 
 -- ============================================================
---  封印阵法（保留）
+--  封印阵法
 -- ============================================================
 local function createSealCircle(position)
     local sealModel = Instance.new("Model")
@@ -676,14 +883,9 @@ local function createSealCircle(position)
     return sealModel, function() spinning = false end
 end
 
--- ============================================================
---  封印 A-60（Doors 原版效果 + 阵法）
--- ============================================================
-local function sealA60(refs)
-    -- 全屏金光双击
+local function sealEntity(refs)
     triggerSealFlash()
 
-    -- 十字架爆发金光
     local char = player.Character
     if char then
         local tool = char:FindFirstChild("Crucifix")
@@ -697,7 +899,7 @@ local function sealA60(refs)
                     }):Play()
                     task.delay(0.9, function()
                         TweenService:Create(light, TweenInfo.new(0.6), {
-                            Brightness = 5, Range = 12
+                            Brightness = 3, Range = 8
                         }):Play()
                     end)
                 end
@@ -722,14 +924,12 @@ local function sealA60(refs)
 
     if refs.particle then refs.particle.Enabled = false end
 
-    -- 阵法
-    local centerPos = refs.head.Position
+    local centerPos = refs.entityType == "A60" and refs.head.Position or refs.face.Position
     local groundPos = Vector3.new(centerPos.X, centerPos.Y - 3, centerPos.Z)
     local sealModel, stopSpin = createSealCircle(groundPos)
 
-    -- A-60 被拉入阵法
     local targetPos = groundPos + Vector3.new(0, 4, 0)
-    local startPos = refs.head.Position
+    local startPos = centerPos
     local startTime = tick()
     local pullDuration = 0.8
 
@@ -744,13 +944,12 @@ local function sealA60(refs)
             else
                 dir = dir.Unit
             end
-            updateA60Parts(refs, newPos, dir)
+            updateEntityParts(refs, newPos, dir)
         end
     end)
 
-    -- A-60 身上金色爆发
     local sealAtt = Instance.new("Attachment")
-    sealAtt.Parent = refs.head
+    sealAtt.Parent = refs.entityType == "A60" and refs.head or refs.face
     local burst = Instance.new("ParticleEmitter")
     burst.Texture = "rbxassetid://243660364"
     burst.Rate = 0
@@ -768,7 +967,7 @@ local function sealA60(refs)
     flashLight.Color = Color3.fromRGB(255, 230, 150)
     flashLight.Brightness = 12
     flashLight.Range = 40
-    flashLight.Parent = refs.head
+    flashLight.Parent = refs.entityType == "A60" and refs.head or refs.face
 
     task.wait(pullDuration)
 
@@ -776,18 +975,30 @@ local function sealA60(refs)
         {Brightness = 0, Range = 5}):Play()
 
     local gold = Color3.fromRGB(255, 230, 150)
-    TweenService:Create(refs.head, TweenInfo.new(0.9),
-        {Color = gold, Transparency = 1, Size = Vector3.new(0.1, 0.1, 0.1)}):Play()
-    TweenService:Create(refs.eyeL, TweenInfo.new(0.9),
-        {Color = gold, Transparency = 1}):Play()
-    TweenService:Create(refs.eyeR, TweenInfo.new(0.9),
-        {Color = gold, Transparency = 1}):Play()
-    TweenService:Create(refs.mouthBlack, TweenInfo.new(0.9),
-        {Color = gold, Transparency = 1}):Play()
-    TweenService:Create(refs.mouthCover, TweenInfo.new(0.9),
-        {Color = gold, Transparency = 1}):Play()
-    TweenService:Create(refs.fog, TweenInfo.new(0.9),
-        {Color = gold, Transparency = 1, Size = Vector3.new(0.1, 0.1, 0.1)}):Play()
+
+    if refs.entityType == "A60" then
+        TweenService:Create(refs.head, TweenInfo.new(0.9),
+            {Color = gold, Transparency = 1, Size = Vector3.new(0.1, 0.1, 0.1)}):Play()
+        TweenService:Create(refs.eyeL, TweenInfo.new(0.9),
+            {Color = gold, Transparency = 1}):Play()
+        TweenService:Create(refs.eyeR, TweenInfo.new(0.9),
+            {Color = gold, Transparency = 1}):Play()
+        TweenService:Create(refs.mouthBlack, TweenInfo.new(0.9),
+            {Color = gold, Transparency = 1}):Play()
+        TweenService:Create(refs.mouthCover, TweenInfo.new(0.9),
+            {Color = gold, Transparency = 1}):Play()
+        TweenService:Create(refs.fog, TweenInfo.new(0.9),
+            {Color = gold, Transparency = 1, Size = Vector3.new(0.1, 0.1, 0.1)}):Play()
+    elseif refs.entityType == "A120" then
+        refs.eyeL.Rotation = 180
+        refs.eyeR.Rotation = 180
+        refs.mouth.Rotation = 0
+        TweenService:Create(refs.face, TweenInfo.new(0.9),
+            {Color = gold, Transparency = 1, Size = Vector3.new(0.1, 0.1, 0.1)}):Play()
+        TweenService:Create(refs.aura, TweenInfo.new(0.9),
+            {Color = gold, Transparency = 1, Size = Vector3.new(0.1, 0.1, 0.1)}):Play()
+    end
+
     if refs.light then
         TweenService:Create(refs.light, TweenInfo.new(0.9),
             {Brightness = 0, Range = 0}):Play()
@@ -813,116 +1024,91 @@ local function sealA60(refs)
 end
 
 -- ============================================================
---  星光十字架 Tool（完整模型）
+--  十字架 Tool
 -- ============================================================
 local function buildCrucifixTool()
-    local tool = Instance.new("Tool")
-    tool.Name = "Crucifix"
-    tool.RequiresHandle = true
-    tool.CanBeDropped = false
+    local tool
 
-    -- 竖杆
-    local handle = Instance.new("Part")
-    handle.Name = "Handle"
-    handle.Size = Vector3.new(0.35, 2.6, 0.35)
-    handle.Color = Color3.fromRGB(88, 52, 24)
-    handle.Material = Enum.Material.Wood
-    handle.CanCollide = false
-    handle.Parent = tool
+    local ok, model = pcall(function()
+        local objs = game:GetObjects(CRUCIFIX_ID)
+        return objs and objs[1]
+    end)
 
-    -- 横杆
-    local bar = Instance.new("Part")
-    bar.Name = "Bar"
-    bar.Size = Vector3.new(1.7, 0.35, 0.35)
-    bar.Color = Color3.fromRGB(88, 52, 24)
-    bar.Material = Enum.Material.Wood
-    bar.CanCollide = false
-    bar.Parent = tool
+    if ok and model then
+        if model:IsA("Tool") then
+            tool = model
+        else
+            tool = Instance.new("Tool")
+            tool.Name = "Crucifix"
+            model.Parent = tool
+        end
+    else
+        tool = Instance.new("Tool")
+        tool.Name = "Crucifix"
+        tool.RequiresHandle = true
 
-    local weldBar = Instance.new("WeldConstraint")
-    weldBar.Part0 = handle
-    weldBar.Part1 = bar
-    weldBar.Parent = handle
-    bar.CFrame = handle.CFrame * CFrame.new(0, 0.6, 0)
+        local handle = Instance.new("Part")
+        handle.Name = "Handle"
+        handle.Size = Vector3.new(0.3, 2, 0.3)
+        handle.BrickColor = BrickColor.new("Brown")
+        handle.Material = Enum.Material.Wood
+        handle.CanCollide = false
+        handle.Parent = tool
 
-    -- 4 个金色端点球
-    local endpoints = {
-        Vector3.new(0, 1.3, 0),
-        Vector3.new(0, -1.3, 0),
-        Vector3.new(-0.85, 0.6, 0),
-        Vector3.new(0.85, 0.6, 0),
-    }
-    for i, off in ipairs(endpoints) do
-        local ball = Instance.new("Part")
-        ball.Name = "Endpoint" .. i
-        ball.Shape = Enum.PartType.Ball
-        ball.Size = Vector3.new(0.45, 0.45, 0.45)
-        ball.Color = Color3.fromRGB(255, 215, 100)
-        ball.Material = Enum.Material.Neon
-        ball.CanCollide = false
-        ball.Transparency = 0.05
-        ball.Parent = tool
-        ball.CFrame = handle.CFrame * CFrame.new(off)
-        local w = Instance.new("WeldConstraint")
-        w.Part0 = handle
-        w.Part1 = ball
-        w.Parent = handle
+        local bar = Instance.new("Part")
+        bar.Name = "Bar"
+        bar.Size = Vector3.new(1.2, 0.3, 0.3)
+        bar.BrickColor = BrickColor.new("Brown")
+        bar.Material = Enum.Material.Wood
+        bar.CanCollide = false
+        bar.Parent = tool
+
+        local weld = Instance.new("WeldConstraint")
+        weld.Part0 = handle
+        weld.Part1 = bar
+        weld.Parent = handle
+        bar.CFrame = handle.CFrame * CFrame.new(0, 0.5, 0)
     end
 
-    -- 中心金星
-    local star = Instance.new("Part")
-    star.Name = "Star"
-    star.Shape = Enum.PartType.Ball
-    star.Size = Vector3.new(0.75, 0.75, 0.75)
-    star.Color = Color3.fromRGB(255, 240, 160)
-    star.Material = Enum.Material.Neon
-    star.CanCollide = false
-    star.Parent = tool
-    star.CFrame = handle.CFrame * CFrame.new(0, 0.6, -0.3)
-    local wStar = Instance.new("WeldConstraint")
-    wStar.Part0 = handle
-    wStar.Part1 = star
-    wStar.Parent = handle
+    tool.Name = "Crucifix"
+    tool.CanBeDropped = false
+    tool.RequiresHandle = true
 
-    -- 金色光环
-    local halo = Instance.new("Part")
-    halo.Name = "Halo"
-    halo.Shape = Enum.PartType.Ball
-    halo.Size = Vector3.new(1.7, 1.7, 1.7)
-    halo.Color = Color3.fromRGB(255, 230, 130)
-    halo.Material = Enum.Material.ForceField
-    halo.Transparency = 0.7
-    halo.CanCollide = false
-    halo.Parent = tool
-    halo.CFrame = handle.CFrame * CFrame.new(0, 0.6, 0)
-    local wHalo = Instance.new("WeldConstraint")
-    wHalo.Part0 = handle
-    wHalo.Part1 = halo
-    wHalo.Parent = handle
+    if not tool:FindFirstChild("Handle") then
+        local basePart = tool:FindFirstChildWhichIsA("BasePart")
+        if basePart then
+            basePart.Name = "Handle"
+        end
+    end
 
-    -- 光
-    local light = Instance.new("PointLight")
-    light.Color = Color3.fromRGB(255, 220, 130)
-    light.Brightness = 5
-    light.Range = 12
-    light.Parent = handle
+    local handle = tool:FindFirstChild("Handle")
+    if handle then
+        local oldLight = handle:FindFirstChildOfClass("PointLight")
+        if oldLight then oldLight:Destroy() end
 
-    -- 粒子
-    local att = Instance.new("Attachment")
-    att.Parent = handle
-    local pe = Instance.new("ParticleEmitter")
-    pe.Texture = "rbxassetid://243660364"
-    pe.Rate = 25
-    pe.Lifetime = NumberRange.new(0.6, 1.2)
-    pe.Speed = NumberRange.new(2, 5)
-    pe.SpreadAngle = Vector2.new(180, 180)
-    pe.Color = ColorSequence.new(Color3.fromRGB(255, 220, 130))
-    pe.Size = NumberSequence.new(0.4, 0)
-    pe.Transparency = NumberSequence.new(0.2, 1)
-    pe.LightEmission = 1
-    pe.Parent = att
+        local light = Instance.new("PointLight")
+        light.Color = Color3.fromRGB(255, 215, 0)
+        light.Brightness = 3
+        light.Range = 8
+        light.Parent = handle
 
-    tool.Grip = CFrame.new(0, -0.3, -1.3) * CFrame.Angles(math.rad(-20), 0, 0)
+        local att = Instance.new("Attachment")
+        att.Name = "CrucifixGlow"
+        att.Parent = handle
+
+        local pe = Instance.new("ParticleEmitter")
+        pe.Texture = "rbxassetid://243660364"
+        pe.Rate = 15
+        pe.Lifetime = NumberRange.new(0.5, 1)
+        pe.Speed = NumberRange.new(1, 3)
+        pe.SpreadAngle = Vector2.new(180, 180)
+        pe.Color = ColorSequence.new(Color3.fromRGB(255, 215, 0))
+        pe.Size = NumberSequence.new(0.3, 0)
+        pe.Transparency = NumberSequence.new(0.2, 1)
+        pe.Parent = att
+    end
+
+    tool.Grip = CFrame.new(0, -0.5, 0)
 
     return tool
 end
@@ -952,9 +1138,6 @@ end
 
 crossBtn.MouseButton1Click:Connect(giveCrucifix)
 
--- ============================================================
---  手持十字架判定
--- ============================================================
 local function isHoldingCrucifix()
     local char = player.Character
     if not char then return false end
@@ -963,104 +1146,150 @@ local function isHoldingCrucifix()
 end
 
 -- ============================================================
---  A-60 主逻辑
+--  实体主逻辑
 -- ============================================================
-local a60Active  = false
-local currentA60 = nil
+local entityActive = false
+local currentEntity = nil
+local currentEntityType = nil
 
-local function stopA60()
-    a60Active = false
-    if currentA60 then
-        currentA60:Destroy()
-        currentA60 = nil
+local function stopEntity()
+    entityActive = false
+    if currentEntity then
+        currentEntity:Destroy()
+        currentEntity = nil
     end
+    currentEntityType = nil
     endOmen(1.2)
 end
 
-local function spawnA60()
-    if a60Active then return end
+local function spawnEntity(entityType)
+    if entityActive then return end
     local char = player.Character
     if not char then return end
     local root = char:FindFirstChild("HumanoidRootPart")
     if not root then return end
 
-    a60Active = true
+    entityActive = true
+    currentEntityType = entityType
 
-    -- ============ 预兆 ============
-    startOmen(CONFIG.omenDuration)
+    local isA120 = entityType == "A120"
+    local omenDuration = isA120 and CONFIG.a120_omenDuration or CONFIG.a60_omenDuration
+
+    startOmen(omenDuration, isA120)
 
     task.spawn(function()
-        -- 等待预兆
-        task.wait(CONFIG.omenDuration + 0.1)
+        task.wait(omenDuration + 0.1)
 
-        if not a60Active then
+        if not entityActive then
             endOmen(1.0)
             return
         end
 
         local pr0 = char:FindFirstChild("HumanoidRootPart")
         if not pr0 then
-            a60Active = false
+            entityActive = false
             endOmen(1.0)
             return
         end
 
-        -- ============ 生成 A-60 ============
         local playerPos = pr0.Position
         local backDir = -pr0.CFrame.LookVector
-        local spawnPos = playerPos + backDir * CONFIG.spawnDistance
+        local spawnPos = playerPos + backDir * (isA120 and CONFIG.a120_spawnDistance or CONFIG.a60_spawnDistance)
         spawnPos = Vector3.new(spawnPos.X, playerPos.Y + 2, spawnPos.Z)
 
         local facingDir = (playerPos - spawnPos)
         facingDir = Vector3.new(facingDir.X, 0, facingDir.Z).Unit
 
-        local refs = createA60Model(spawnPos, facingDir)
+        local refs
+        if isA120 then
+            refs = createA120Model(spawnPos, facingDir)
+        else
+            refs = createA60Model(spawnPos, facingDir)
+        end
         refs.model.Parent = workspace
-        currentA60 = refs.model
+        currentEntity = refs.model
 
-        local staticSound = Instance.new("Sound")
-        staticSound.SoundId = CONFIG.soundStatic
-        staticSound.Volume = 3
-        staticSound.Looped = true
-        staticSound.Parent = refs.head
-        staticSound:Play()
+        local drumSound, staticSound, windSound
 
-        local passCount = math.random(3, 5)
+        if isA120 then
+            drumSound = Instance.new("Sound")
+            drumSound.SoundId = CONFIG.soundA120Drum
+            drumSound.Volume = CONFIG.a120_drumMinVolume
+            drumSound.Looped = true
+            drumSound.Parent = refs.face
+            drumSound:Play()
+
+            staticSound = Instance.new("Sound")
+            staticSound.SoundId = CONFIG.soundA120Static
+            staticSound.Volume = 2.5
+            staticSound.Looped = true
+            staticSound.Parent = refs.face
+            staticSound:Play()
+
+            windSound = Instance.new("Sound")
+            windSound.SoundId = CONFIG.soundA120Wind
+            windSound.Volume = 0
+            windSound.Looped = true
+            windSound.Parent = refs.face
+            windSound:Play()
+        else
+            staticSound = Instance.new("Sound")
+            staticSound.SoundId = CONFIG.soundA60Static
+            staticSound.Volume = 3
+            staticSound.Looped = true
+            staticSound.Parent = refs.head
+            staticSound:Play()
+        end
+
+        local passCount = isA120 and math.random(CONFIG.a120_minRebounds, CONFIG.a120_maxRebounds) or math.random(3, 5)
         local passDir = 1
 
         for i = 1, passCount do
-            if not a60Active then return end
+            if not entityActive then return end
 
             local pr = char:FindFirstChild("HumanoidRootPart")
-            if not pr then stopA60(); return end
+            if not pr then stopEntity(); return end
 
             playShake(CONFIG.shakeIntensity, CONFIG.shakeDuration)
 
-            local dashSound = Instance.new("Sound")
-            dashSound.SoundId = CONFIG.soundDash
-            dashSound.Volume = 2.5
-            dashSound.Parent = playerGui
-            dashSound:Play()
-            Debris:AddItem(dashSound, 2)
+            if isA120 then
+                local drumHit = Instance.new("Sound")
+                drumHit.SoundId = CONFIG.soundA120Drum
+                drumHit.Volume = 5
+                drumHit.Parent = playerGui
+                drumHit:Play()
+                Debris:AddItem(drumHit, 2)
+            else
+                local dashSound = Instance.new("Sound")
+                dashSound.SoundId = CONFIG.soundA60Dash
+                dashSound.Volume = 2.5
+                dashSound.Parent = playerGui
+                dashSound:Play()
+                Debris:AddItem(dashSound, 2)
+            end
 
             local currentPlayerPos = pr.Position
             local forwardDir = pr.CFrame.LookVector
 
             local targetOffset
-            if passDir == 1 then
-                targetOffset = forwardDir * CONFIG.passDistance
+            if isA120 then
+                targetOffset = forwardDir * CONFIG.a120_passDistance
             else
-                targetOffset = -forwardDir * CONFIG.passDistance
+                if passDir == 1 then
+                    targetOffset = forwardDir * CONFIG.a60_passDistance
+                else
+                    targetOffset = -forwardDir * CONFIG.a60_passDistance
+                end
             end
             local targetPos = currentPlayerPos + targetOffset + Vector3.new(0, 2, 0)
 
             local contactTriggered = false
 
-            while a60Active do
+            while entityActive do
                 local pr2 = char:FindFirstChild("HumanoidRootPart")
-                if not pr2 then stopA60(); return end
+                if not pr2 then stopEntity(); return end
 
-                local currentPos = refs.head.Position
+                local currentPos = refs.entityType == "A60" and refs.head.Position or refs.face.Position
                 local delta = targetPos - currentPos
                 local dist = delta.Magnitude
 
@@ -1068,77 +1297,177 @@ local function spawnA60()
 
                 local dir = delta.Unit
                 local dt = RunService.Heartbeat:Wait()
-                local step = math.min(CONFIG.dashSpeed * dt, dist)
+                local speed = isA120 and CONFIG.a120_dashSpeed or CONFIG.a60_dashSpeed
+                local step = math.min(speed * dt, dist)
                 local newPos = currentPos + dir * step
 
-                updateA60Parts(refs, newPos, dir)
+                updateEntityParts(refs, newPos, dir)
+
+                if isA120 then
+                    updateA120Appearance(refs, dt)
+
+                    local distToPlayer = (newPos - pr2.Position).Magnitude
+                    local range = CONFIG.a120_spawnDistance * 1.5
+                    local closeness = math.clamp(1 - (distToPlayer / range), 0, 1)
+                    local drumVolume = CONFIG.a120_drumMinVolume
+                        + (CONFIG.a120_drumMaxVolume - CONFIG.a120_drumMinVolume) * closeness
+                    if drumSound and drumSound.Parent then
+                        drumSound.Volume = drumVolume
+                    end
+
+                    if windSound and windSound.Parent then
+                        if distToPlayer < CONFIG.a120_windDistance then
+                            local windCloseness = 1 - (distToPlayer / CONFIG.a120_windDistance)
+                            windSound.Volume = CONFIG.a120_windMaxVolume * windCloseness
+                        else
+                            windSound.Volume = 0
+                        end
+                    end
+                end
 
                 if not contactTriggered then
                     local distToPlayer = (newPos - pr2.Position).Magnitude
-                    if distToPlayer < CONFIG.contactRadius then
+                    local contactRadius = isA120 and CONFIG.a120_contactRadius or CONFIG.a60_contactRadius
+                    if distToPlayer < contactRadius then
                         contactTriggered = true
 
                         if isHidden() then
-                            -- 安全
                         elseif isHoldingCrucifix() then
-                            -- 封印
                             local c = char:FindFirstChild("Crucifix")
                             if c then c:Destroy() end
                             local bpC = player.Backpack:FindFirstChild("Crucifix")
                             if bpC then bpC:Destroy() end
                             hasCrucifix = false
 
-                            a60Active = false
-                            currentA60 = nil
-                            sealA60(refs)
+                            entityActive = false
+                            currentEntity = nil
+                            sealEntity(refs)
                             endOmen(1.2)
                             return
                         else
-                            triggerJumpscare()
-                            stopA60()
+                            if isA120 then
+                                triggerJumpscareA120()
+                            else
+                                triggerJumpscareA60()
+                            end
+                            stopEntity()
                             return
                         end
                     end
                 end
             end
 
-            passDir = -passDir
+            if not isA120 then
+                passDir = -passDir
+            end
 
-            if i < passCount and a60Active then
-                task.wait(
-                    math.random() * (CONFIG.maxReactionTime - CONFIG.minReactionTime)
-                    + CONFIG.minReactionTime
-                )
+            if isA120 and entityActive and i < passCount then
+                task.wait(CONFIG.a120_stationaryTime)
+
+                local reboundSound = Instance.new("Sound")
+                reboundSound.SoundId = CONFIG.soundA120Drum
+                reboundSound.Volume = 4
+                reboundSound.Parent = playerGui
+                reboundSound:Play()
+                Debris:AddItem(reboundSound, 2)
+            end
+
+            if i < passCount and entityActive then
+                local minTime = isA120 and CONFIG.a120_minReactionTime or CONFIG.a60_minReactionTime
+                local maxTime = isA120 and CONFIG.a120_maxReactionTime or CONFIG.a60_maxReactionTime
+                task.wait(math.random() * (maxTime - minTime) + minTime)
             end
         end
 
-        if a60Active then
-            a60Active = false
+        if entityActive then
+            entityActive = false
             task.wait(0.6)
-            if currentA60 then
-                currentA60:Destroy()
-                currentA60 = nil
+            if currentEntity then
+                currentEntity:Destroy()
+                currentEntity = nil
             end
             endOmen(1.2)
         end
     end)
 end
 
-spawnBtn.MouseButton1Click:Connect(spawnA60)
+spawnA60Btn.MouseButton1Click:Connect(function() spawnEntity("A60") end)
+spawnA120Btn.MouseButton1Click:Connect(function() spawnEntity("A120") end)
 
 -- ============================================================
---  重生自动给十字架
+--  裂缝罐子系统
 -- ============================================================
-player.CharacterAdded:Connect(function()
-    task.wait(1)
-    if hasCrucifix
-        and not player.Backpack:FindFirstChild("Crucifix")
-        and not player.Character:FindFirstChild("Crucifix")
-    then
-        local tool = buildCrucifixTool()
-        bindCrucifixEvents(tool)
-        tool.Parent = player.Backpack
+local riftStorage = { entries = {} }
+
+local function saveRiftStorage()
+    if not writefile then return end
+    local ok, encoded = pcall(function()
+        return HttpService:JSONEncode(riftStorage)
+    end)
+    if ok and encoded then
+        pcall(writefile, RIFT_FILE, encoded)
     end
-end)
+end
 
-print("[A-60] 客户端脚本 v10 已加载（星光十字架 + Doors 封印 + 预兆）")
+local function loadRiftStorage()
+    if not (readfile and isfile) then return end
+    if not isfile(RIFT_FILE) then return end
+    local ok, content = pcall(readfile, RIFT_FILE)
+    if not ok or not content then return end
+    local ok2, decoded = pcall(function()
+        return HttpService:JSONDecode(content)
+    end)
+    if ok2 and decoded and type(decoded) == "table" then
+        riftStorage = decoded
+        if type(riftStorage.entries) ~= "table" then
+            riftStorage.entries = {}
+        end
+    end
+end
+
+loadRiftStorage()
+
+local function serializeValue(v)
+    local t = typeof(v)
+    if t == "Vector3" then
+        return {__t = "Vector3", x = v.X, y = v.Y, z = v.Z}
+    elseif t == "CFrame" then
+        return {__t = "CFrame", c = {v:GetComponents()}}
+    elseif t == "Color3" then
+        return {__t = "Color3", r = v.R, g = v.G, b = v.B}
+    elseif t == "BrickColor" then
+        return {__t = "BrickColor", n = v.Name}
+    elseif t == "EnumItem" then
+        return {__t = "Enum", enumType = tostring(v.EnumType), name = v.Name}
+    elseif t == "UDim2" then
+        return {__t = "UDim2", xs = v.X.Scale, xo = v.X.Offset, ys = v.Y.Scale, yo = v.Y.Offset}
+    elseif t == "number" or t == "string" or t == "boolean" then
+        return v
+    end
+    return nil
+end
+
+local function deserializeValue(d)
+    if type(d) ~= "table" then return d end
+    local t = d.__t
+    if t == "Vector3" then
+        return Vector3.new(d.x, d.y, d.z)
+    elseif t == "CFrame" then
+        return CFrame.new(unpack(d.c))
+    elseif t == "Color3" then
+        return Color3.new(d.r, d.g, d.b)
+    elseif t == "BrickColor" then
+        return BrickColor.new(d.n)
+    elseif t == "Enum" then
+        local ok, e = pcall(function() return Enum[d.enumType][d.name] end)
+        return ok and e or nil
+    elseif t == "UDim2" then
+        return UDim2.new(d.xs, d.xo, d.ys, d.yo)
+    end
+    return nil
+end
+
+local SERIALIZE_PROPS = {
+    "Size", "CFrame", "Color", "BrickColor", "Material", "Transparency",
+    "Anchored", "CanCollide", "CanQuery", "CanTouch", "Shape",
+    "
