@@ -1,1884 +1,1144 @@
--- 森林中的99夜 - Obsidian UI 版本（精简版）
--- 分类：主要 | 自动 | 传送 | 物品召唤 | 玩家 | 视觉 | 种植 | 设置
+-- ============================================================
+--  A-60 客户端脚本 v10
+--  星光十字架 + Doors 原版封印 + 预兆红光 + Ambush 穿梭
+--  放置：StarterPlayer > StarterPlayerScripts > LocalScript
+-- ============================================================
 
---================================================================
---[ 加载 Obsidian UI 库 ]
---================================================================
+local Players          = game:GetService("Players")
+local RunService       = game:GetService("RunService")
+local TweenService     = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local Debris           = game:GetService("Debris")
+local Lighting         = game:GetService("Lighting")
 
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/mstudio45/Obsidian/main/Library.lua"))()
-local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/mstudio45/Obsidian/main/addons/ThemeManager.lua"))()
-local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/mstudio45/Obsidian/main/addons/SaveManager.lua"))()
+local player    = Players.LocalPlayer
+local camera    = workspace.CurrentCamera
+local playerGui = player:WaitForChild("PlayerGui")
 
--- 设置颜色
-Library.AccentColor = Color3.fromRGB(0, 120, 255)
-Library.MainColor = Color3.fromRGB(20, 25, 40)
-Library.BackgroundColor = Color3.fromRGB(15, 18, 30)
-Library.OutlineColor = Color3.fromRGB(40, 90, 180)
-Library.FontColor = Color3.fromRGB(220, 235, 255)
+-- ============================================================
+--  配置
+-- ============================================================
+local CONFIG = {
+    spawnDistance    = 100,
+    passDistance     = 80,
+    dashSpeed        = 220,
+    minReactionTime  = 1.0,
+    maxReactionTime  = 2.0,
+    shakeIntensity   = 0.35,
+    shakeDuration    = 0.22,
+    jumpFlashTime    = 1.4,
+    contactRadius    = 6,
+    omenDuration     = 1.6,   -- 预兆时长
 
---================================================================
---[ 游戏服务与变量 ]
---================================================================
-
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
-local UIS = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local Lighting = game:GetService("Lighting")
-local CoreGui = game:GetService("CoreGui")
-
-local LP = Players.LocalPlayer
-local Character = LP.Character or LP.CharacterAdded:Wait()
-local Humanoid = Character:WaitForChild("Humanoid")
-local HRP = Character:WaitForChild("HumanoidRootPart")
-
-local Connections = {}
-local Toggles = Library.Toggles
-local Options = Library.Options
-
---================================================================
---[ 功能变量 ]
---================================================================
-
-local KillAura = {Enabled = false, Range = 50, Method = "范围"}
-local ChopAura = {Enabled = false, Range = 200}
-local AutoFeed = {Enabled = false, Foods = {}, Threshold = 75}
-local AutoCook = {Enabled = false, Items = {}}
-local AutoCraft = {Enabled = false, ItemName = "Shelf", Interval = 5}
-local AutoPlant = {Enabled = false, Shape = "square", Size = 80, Height = 3, Spacing = 1, Delay = 1}
-local FunPattern = {Enabled = false, Pattern = "sphere", Speed = 5, Radius = 75}
-local CollisionBox = {Show = false, Wolf = false, Bunny = false, Cultist = false, All = false, Size = 10}
-local Fishing = {Auto = false, NoDelay = false, Instant = false}
-local AutoStunDeer = false
-local GodMode = false
-local AutoPullRawMeat = false
-local AutoSaveChild = false
-local AutoOpenChest = false
-local ChestAura = false
-local ChestAuraRange = 50
-local AutoEquipBest = false
-local AutoEquipSelected = false
-local SelectedWeapon = "Strong Axe"
-local AutoToolSwitch = false
-local BearTrapEnabled = false
-local BearTrapTarget = "无"
-local InstantInteract = false
-local AntiAFKEnabled = false
-local InfiniteJumpEnabled = false
-local NightVisionEnabled = false
-local FullbrightEnabled = false
-local DisableFogEnabled = false
-local DisableCampfireEffect = false
-local mapLoadRunning = false
-local SpeedEnabled = false
-local SpeedValue = 16
-local NoclipEnabled = false
-local FlySpeed = 1
-local IgnoreMobs = false
-local godModeSpamActive = false
-
-local PullConfig = {
-    Enabled = false,
-    Speed = 0.5,
-    Target = "自己",
-    SelectedFuel = {},
-    SelectedScrap = {},
-    SelectedEquip = {},
-    SelectedFood = {},
-    SelectedMed = {},
+    soundStatic      = "rbxassetid://4903742660",
+    soundDash        = "rbxassetid://78206015664727",
+    soundJumpscare   = "rbxassetid://132942725846535",
+    soundSeal        = "rbxassetid://5153775199", -- 神圣封印音
 }
 
-local ESP = {ItemsEnabled = false, MobsEnabled = false, SelectedItems = {}, SelectedMobs = {}}
-local originalSizes = {}
-local kidESPData = {}
-local originalCharParent = nil
-
-local ItemCN = {
-    ["木头"]="Log", ["煤"]="Coal", ["油桶"]="Fuel Canister", ["椅子"]="Chair", ["生物燃料"]="Biofuel",
-    ["螺栓"]="Bolt", ["破风扇"]="Broken Fan", ["坏微波炉"]="Broken Microwave", ["旧收音机"]="Old Radio",
-    ["洗衣机"]="Washing Machine", ["旧汽车引擎"]="Old Car Engine", ["轮胎"]="Tyre", ["金属板"]="Sheet Metal",
-    ["左轮手枪"]="Revolver", ["步枪"]="Rifle", ["皮革背心"]="Leather Body", ["铁甲"]="Iron Body",
-    ["左轮弹药"]="Revolver Ammo", ["步枪弹药"]="Rifle Ammo", ["巨袋"]="Giant Sack", ["好的背包"]="Good Sack",
-    ["强力斧头"]="Strong Axe", ["好的斧头"]="Good Axe", ["老斧头"]="Old Axe", ["电锯"]="Chainsaw", ["长矛"]="Spear",
-    ["苹果"]="Apple", ["浆果"]="Berry", ["胡萝卜"]="Carrot", ["蛋糕"]="Cake", ["辣椒"]="Chili",
-    ["熟肉块"]="Cooked Morsel", ["熟牛排"]="Cooked Steak", ["生肉块"]="Morsel", ["生牛排"]="Steak",
-    ["绷带"]="Bandage", ["医疗包"]="MedKit", ["肋骨"]="Ribs", ["三文鱼"]="Salmon", ["鲭鱼"]="Mackerel",
+-- ============================================================
+--  保存原始 Lighting（用于预兆恢复）
+-- ============================================================
+local origLighting = {
+    Ambient        = Lighting.Ambient,
+    OutdoorAmbient = Lighting.OutdoorAmbient,
+    FogColor       = Lighting.FogColor,
+    FogEnd         = Lighting.FogEnd,
 }
 
-local ToolsDamageIDs = {
-    ["Old Axe"]="3_7367831688", ["Good Axe"]="112_7367831688", ["Strong Axe"]="116_7367831688",
-    ["Chainsaw"]="647_8992824875", ["Infernal Sword"]="2_4340578793", ["Spear"]="196_8999010016"
-}
+-- 预兆 ColorCorrection
+local omenCC = Instance.new("ColorCorrectionEffect")
+omenCC.Name = "A60_Omen"
+omenCC.TintColor = Color3.fromRGB(255, 255, 255)
+omenCC.Saturation = 0
+omenCC.Contrast = 0
+omenCC.Brightness = 0
+omenCC.Parent = Lighting
 
-local PlantShapeMap = {["正方形"]="square", ["圆形"]="circle", ["原地"]="original"}
-local PatternMap = {["球形"]="sphere", ["项链"]="star", ["流星"]="meteor"}
+-- ============================================================
+--  预兆系统
+-- ============================================================
+local function startOmen(duration)
+    TweenService:Create(omenCC, TweenInfo.new(duration, Enum.EasingStyle.Quad), {
+        TintColor  = Color3.fromRGB(255, 110, 110),
+        Saturation = 0.25,
+        Contrast   = 0.15,
+        Brightness = -0.08,
+    }):Play()
 
---================================================================
---[ 通知函数 ]
---================================================================
-
-local function Notify(text, duration)
-    Library:Notify({
-        Title = "亊彩脚本V2",
-        Description = text,
-        Time = duration or 3,
-    })
+    TweenService:Create(Lighting, TweenInfo.new(duration, Enum.EasingStyle.Quad), {
+        Ambient        = Color3.fromRGB(65, 15, 15),
+        OutdoorAmbient = Color3.fromRGB(90, 20, 20),
+        FogColor       = Color3.fromRGB(130, 30, 30),
+        FogEnd         = 140,
+    }):Play()
 end
 
-Notify("加载中 | 亊彩脚本V2", 2)
+local function endOmen(duration)
+    TweenService:Create(omenCC, TweenInfo.new(duration, Enum.EasingStyle.Quad), {
+        TintColor  = Color3.fromRGB(255, 255, 255),
+        Saturation = 0,
+        Contrast   = 0,
+        Brightness = 0,
+    }):Play()
 
---================================================================
---[ 辅助函数 ]
---================================================================
-
-local function getHRP()
-    local c = LP.Character
-    return c and c:FindFirstChild("HumanoidRootPart")
+    TweenService:Create(Lighting, TweenInfo.new(duration, Enum.EasingStyle.Quad), {
+        Ambient        = origLighting.Ambient,
+        OutdoorAmbient = origLighting.OutdoorAmbient,
+        FogColor       = origLighting.FogColor,
+        FogEnd         = origLighting.FogEnd,
+    }):Play()
 end
 
-local function getAnyTool(isChop)
-    for name, _ in pairs(ToolsDamageIDs) do
-        if isChop and name ~= "Old Axe" and name ~= "Good Axe" and name ~= "Strong Axe" and name ~= "Chainsaw" then continue end
-        local inv = LP:FindFirstChild("Inventory")
-        if inv and inv:FindFirstChild(name) then return inv[name] end
-        local bp = LP:FindFirstChild("Backpack")
-        if bp and bp:FindFirstChild(name) then return bp[name] end
-        local char = LP.Character
-        if char then
-            local t = char:FindFirstChild(name)
-            if t and t:IsA("Tool") then return t end
+-- ============================================================
+--  屏幕震动
+-- ============================================================
+local shakeActive = false
+local shakeOffset = CFrame.new()
+
+local function playShake(intensity, duration)
+    if shakeActive then return end
+    shakeActive = true
+    local t = 0
+    local conn
+    conn = RunService.RenderStepped:Connect(function(dt)
+        t = t + dt
+        if t >= duration then
+            shakeActive = false
+            shakeOffset = CFrame.new()
+            conn:Disconnect()
+            return
         end
-    end
-    return nil
-end
-
-local function equipTool(tool)
-    if tool then
-        pcall(function()
-            ReplicatedStorage.RemoteEvents.EquipItemHandle:FireServer("FireAllClients", tool)
-        end)
-    end
-end
-
-local function unequipTool(tool)
-    if tool then
-        pcall(function()
-            ReplicatedStorage.RemoteEvents.UnequipItemHandle:FireServer("FireAllClients", tool)
-        end)
-    end
-end
-
-local function moveItemToPos(item, pos)
-    if not item or not item:IsDescendantOf(Workspace) then return end
-    pcall(function()
-        local hrp = getHRP()
-        if hrp then
-            if item:IsA("Model") then
-                item:PivotTo(hrp.CFrame * CFrame.new(0, 0, -3))
-            elseif item:IsA("BasePart") then
-                item.CFrame = hrp.CFrame * CFrame.new(0, 0, -3)
-            end
-            task.wait(0.1)
-        end
-        ReplicatedStorage.RemoteEvents.RequestStartDraggingItem:FireServer(item)
-        task.wait(0.1)
-        if item:IsA("Model") then
-            item:PivotTo(CFrame.new(pos))
-        elseif item:IsA("BasePart") then
-            item.CFrame = CFrame.new(pos)
-        end
-        task.wait(0.05)
-        ReplicatedStorage.RemoteEvents.StopDraggingItem:FireServer(item)
+        local decay = 1 - (t / duration)
+        local rnd = Vector3.new(
+            (math.random() - 0.5) * 2,
+            (math.random() - 0.5) * 2,
+            0
+        )
+        shakeOffset = CFrame.new(rnd * intensity * decay)
     end)
 end
 
-local function getPullPos()
-    if PullConfig.Target == "篝火" then
-        return Vector3.new(-0.0967, 7.937, -0.178)
-    elseif PullConfig.Target == "建造台" then
-        return Vector3.new(21.67, 6.34, -4.05)
-    else
-        local hrp = getHRP()
-        return hrp and (hrp.Position + Vector3.new(0, 2, 0)) or Vector3.new(0, 20, 0)
-    end
-end
-
-local function getChildrenList()
-    local list, names = {}, {}
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("Model") and (obj.Name:match("^Lost Child") or obj.Name:match("Dino Kid") or obj.Name:match("kraken kid") or obj.Name:match("Squid kid") or obj.Name:match("Koala")) then
-            table.insert(list, obj)
-            table.insert(names, obj.Name)
-        end
-    end
-    return list, names
-end
-
-local function getChests()
-    local c, n = {}, {}
-    local idx = 1
-    for _, item in ipairs(Workspace:WaitForChild("Items"):GetChildren()) do
-        if item.Name:match("^Item Chest") and not item:GetAttribute("Opened") then
-            table.insert(c, item)
-            table.insert(n, "宝箱 " .. idx)
-            idx += 1
-        end
-    end
-    return c, n
-end
-
-local function chestPrompts(model)
-    local t = {}
-    for _, d in ipairs(model:GetDescendants()) do
-        if d:IsA("ProximityPrompt") then table.insert(t, d) end
-    end
-    return t
-end
-
-local function loadLuGuan()
-    pcall(function()
-        local name = "撸管（R15）"
-        for _, c in ipairs({LP.Backpack, LP.Character}) do
-            if c then
-                local old = c:FindFirstChild(name)
-                if old then old:Destroy() end
-            end
-        end
-        if Workspace:FindFirstChild("animationContainer") then Workspace.animationContainer:Destroy() end
-        local anim = Instance.new("Animation")
-        anim.Name = "animationContainer"
-        anim.AnimationId = "rbxassetid://507770453"
-        anim.Parent = Workspace
-        local tool = Instance.new("Tool")
-        tool.Name = name
-        tool.RequiresHandle = false
-        tool.Parent = LP:WaitForChild("Backpack")
-        task.delay(0.5, function()
-            local c = LP.Character
-            if c and c:FindFirstChild("Humanoid") then
-                pcall(function() c.Humanoid:EquipTool(tool) end)
-            end
-        end)
-        local active, track = false, nil
-        tool.Equipped:Connect(function()
-            local c = LP.Character
-            local hum = c and c:FindFirstChild("Humanoid")
-            local animator = hum and (hum:FindFirstChildOfClass("Animator") or hum:WaitForChild("Animator"))
-            if not animator then return end
-            active = true
-            while active do
-                if not track then track = animator:LoadAnimation(anim) end
-                track:Play()
-                track:AdjustSpeed(0.7)
-                track.TimePosition = 0.6
-                task.wait(0.1)
-                while active and track and track.TimePosition < 0.7 do task.wait(0.05) end
-                if track then track:Stop(); track:Destroy(); track = nil end
-            end
-        end)
-        tool.Unequipped:Connect(function()
-            active = false
-            if track then track:Stop(); track:Destroy(); track = nil end
-        end)
-    end)
-end
-
-local saplingPositions = {}
-local currentSaplingIndex = 1
-local isPlanting = false
-
-local function genPlantPos()
-    local t = {}
-    local half = AutoPlant.Size / 2
-    local hrp = getHRP()
-    local center = hrp and hrp.Position or Vector3.new(0, AutoPlant.Height, 0)
-    local y = center.Y + AutoPlant.Height
-    if AutoPlant.Shape == "square" then
-        for x = -half, half, AutoPlant.Spacing do
-            table.insert(t, Vector3.new(center.X + x, y, center.Z + half))
-        end
-        for z = half, -half, -AutoPlant.Spacing do
-            table.insert(t, Vector3.new(center.X + half, y, center.Z + z))
-        end
-        for x = half, -half, -AutoPlant.Spacing do
-            table.insert(t, Vector3.new(center.X + x, y, center.Z - half))
-        end
-        for z = -half, half, AutoPlant.Spacing do
-            table.insert(t, Vector3.new(center.X - half, y, center.Z + z))
-        end
-    elseif AutoPlant.Shape == "circle" then
-        local r = half
-        local n = math.floor(2 * math.pi * r / AutoPlant.Spacing)
-        for i = 1, n do
-            local a = (i / n) * 2 * math.pi
-            table.insert(t, Vector3.new(center.X + r * math.cos(a), y, center.Z + r * math.sin(a)))
-        end
-    else
-        table.insert(t, Vector3.new(center.X, y, center.Z))
-    end
-    return t
-end
-
-local function doPlant()
-    if isPlanting then return false end
-    isPlanting = true
-    local ok = false
-    local sap = ReplicatedStorage:FindFirstChild("TempStorage") and ReplicatedStorage.TempStorage:FindFirstChild("Sapling")
-    if not sap then
-        sap = Workspace:FindFirstChild("Items") and Workspace.Items:FindFirstChild("Sapling")
-    end
-    if sap then
-        local pos = saplingPositions[currentSaplingIndex]
-        pcall(function()
-            ReplicatedStorage.RemoteEvents.StopDraggingItem:FireServer(sap)
-            task.wait(0.1)
-            ReplicatedStorage.RemoteEvents.RequestPlantItem:InvokeServer(sap, pos)
-            ok = true
-        end)
-        currentSaplingIndex += 1
-        if currentSaplingIndex > #saplingPositions then currentSaplingIndex = 1 end
-    end
-    isPlanting = false
-    return ok
-end
-
-local patternAngle = 0
-
-local function genPattern(count)
-    local t = {}
-    patternAngle += FunPattern.Speed * 0.01
-    local c = Vector3.new(0.649, 100, -3.8)
-    local r = FunPattern.Radius
-    if FunPattern.Pattern == "sphere" then
-        for i = 1, count do
-            local phi = math.acos(-1 + (2 * i - 1) / count)
-            local theta = math.sqrt(count * math.pi) * phi
-            t[i] = c + Vector3.new(
-                r * math.cos(theta + patternAngle) * math.sin(phi),
-                r * math.sin(theta + patternAngle) * math.sin(phi),
-                r * math.cos(phi)
-            )
-        end
-    elseif FunPattern.Pattern == "star" then
-        for i = 1, count do
-            local a = (i / count) * math.pi * 2 * 5 + patternAngle
-            local rad = r * (i % 2 == 0 and 0.5 or 1)
-            t[i] = c + Vector3.new(rad * math.cos(a), 0, rad * math.sin(a))
-        end
-    elseif FunPattern.Pattern == "meteor" then
-        for i = 1, count do
-            local a = (i / count) * math.pi * 2 + patternAngle
-            t[i] = c + Vector3.new(
-                r * math.cos(a),
-                r * 0.5 * math.sin(a * 2),
-                r * math.sin(a)
-            )
-        end
-    end
-    return t
-end
-
-local function updateHitbox(model)
-    local root = model:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-    local n = model.Name:lower()
-    if not originalSizes[model] then originalSizes[model] = root.Size end
-    local should = CollisionBox.All or
-        (CollisionBox.Wolf and (n:find("wolf") or n:find("alpha"))) or
-        (CollisionBox.Bunny and n:find("bunny")) or
-        (CollisionBox.Cultist and (n:find("cultist") or n:find("cross")))
-    if should and CollisionBox.Show then
-        root.Size = Vector3.new(CollisionBox.Size, CollisionBox.Size, CollisionBox.Size)
-        root.Transparency = 0.5
-        root.Color = Color3.new(1, 1, 1)
-        root.Material = Enum.Material.Neon
-        root.CanCollide = false
-    else
-        if originalSizes[model] then root.Size = originalSizes[model] end
-        root.Transparency = 1
-        root.Material = Enum.Material.Plastic
-        root.CanCollide = true
-    end
-end
-
-local function updateKidESP()
-    local hrp = getHRP()
-    if not hrp then return end
-    local pos = hrp.Position
-    for _, child in ipairs(Workspace:GetDescendants()) do
-        if child:IsA("Model") and (child.Name:match("^Lost Child") or child.Name:match("Dino Kid") or child.Name:match("kraken") or child.Name:match("Squid") or child.Name:match("Koala")) then
-            local part = child:FindFirstChild("HumanoidRootPart") or child.PrimaryPart
-            if part and not kidESPData[child] then
-                local gui = Instance.new("BillboardGui")
-                gui.Name = "KidESP"
-                gui.Adornee = part
-                gui.Size = UDim2.new(0, 120, 0, 40)
-                gui.AlwaysOnTop = true
-                gui.MaxDistance = 10000
-                local lbl = Instance.new("TextLabel", gui)
-                lbl.Size = UDim2.new(1, 0, 1, 0)
-                lbl.BackgroundTransparency = 1
-                lbl.TextColor3 = Color3.fromRGB(0, 255, 255)
-                lbl.Font = Enum.Font.GothamBold
-                lbl.TextSize = 16
-                lbl.TextStrokeTransparency = 0.2
-                gui.Parent = part
-                kidESPData[child] = gui
-                child.AncestryChanged:Connect(function(_, p)
-                    if not p then
-                        local g = part:FindFirstChild("KidESP")
-                        if g then g:Destroy() end
-                        kidESPData[child] = nil
-                    end
-                end)
-            end
-            if kidESPData[child] and part then
-                local dist = math.floor((pos - part.Position).Magnitude)
-                kidESPData[child].TextLabel.Text = "小孩 " .. dist .. "m"
-            end
-        end
-    end
-end
-
-local function mapLoadLoop()
-    task.spawn(function()
-        local hrp = getHRP()
-        if not hrp then return end
-        local center = Vector3.new(-0.0967, 7.937, -0.178)
-        local angle, radius, height = 0, 10, 400
-        while mapLoadRunning do
-            angle += 0.15
-            radius = math.min(radius + 2, 4000)
-            local p = Vector3.new(
-                center.X + math.cos(angle) * radius,
-                height + math.sin(angle * 0.3) * 60,
-                center.Z + math.sin(angle) * radius
-            )
-            hrp.CFrame = CFrame.new(p)
-            hrp.Velocity = Vector3.zero
-            task.wait(0.03)
-        end
-        hrp.CFrame = CFrame.new(center + Vector3.new(0, 5, 0))
-    end)
-end
-
-local function autoFishingLoop()
-    task.spawn(function()
-        while Fishing.Auto do
-            local gui = LP:FindFirstChild("PlayerGui") and LP.PlayerGui:FindFirstChild("Interface") and LP.PlayerGui.Interface:FindFirstChild("FishingCatchFrame")
-            if gui and gui.Visible then
-                local bar = gui:FindFirstChild("TimingBar") and gui.TimingBar:FindFirstChild("SuccessArea")
-                local cur = gui.TimingBar and gui.TimingBar:FindFirstChild("Bar")
-                local btn = LP.PlayerGui:FindFirstChild("MobileButtons") and LP.PlayerGui.MobileButtons:FindFirstChild("Frame") and LP.PlayerGui.MobileButtons.Frame:FindFirstChild("Button3")
-                if bar and cur and btn then
-                    local function overlap(f1, f2)
-                        local p1, s1 = f1.AbsolutePosition, f1.AbsoluteSize
-                        local p2, s2 = f2.AbsolutePosition, f2.AbsoluteSize
-                        return not (p1.X + s1.X < p2.X or p2.X + s2.X < p1.X or p1.Y + s1.Y < p2.Y or p2.Y + s2.Y < p1.Y)
-                    end
-                    if overlap(bar, cur) then
-                        for _, c in ipairs(getconnections(btn.MouseButton1Down)) do
-                            pcall(function() c:Fire() end)
-                        end
-                    end
-                end
-            end
-            task.wait(0.05)
-        end
-    end)
-end
-
-local function noDelayFishingLoop()
-    task.spawn(function()
-        while Fishing.NoDelay do
-            local btn = LP.PlayerGui:FindFirstChild("MobileButtons") and LP.PlayerGui.MobileButtons:FindFirstChild("Frame") and LP.PlayerGui.MobileButtons.Frame:FindFirstChild("Button3")
-            local gui = LP.PlayerGui:FindFirstChild("Interface") and LP.PlayerGui.Interface:FindFirstChild("FishingCatchFrame")
-            if gui and gui.Visible and btn then
-                for _, c in ipairs(getconnections(btn.MouseButton1Down)) do
-                    pcall(function() c:Fire() end)
-                end
-            end
-            task.wait(0)
-        end
-    end)
-end
-
-local function instantFishingLoop()
-    task.spawn(function()
-        while Fishing.Instant do
-            pcall(function()
-                local r = ReplicatedStorage:FindFirstChild("RemoteEvents") and ReplicatedStorage.RemoteEvents:FindFirstChild("FinishFishing")
-                if r then r:FireServer(true) end
-            end)
-            task.wait(0.1)
-        end
-    end)
-end
-
---================================================================
---[ 后台循环 ]
---================================================================
-
-task.spawn(function()
-    while true do
-        if KillAura.Enabled then
-            local char = LP.Character
-            if char then
-                local hrp = char:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    local tool = nil
-                    for _, child in ipairs(char:GetChildren()) do
-                        if child:IsA("Tool") then
-                            tool = child
-                            break
-                        end
-                    end
-                    if not tool then
-                        tool = getAnyTool(false)
-                        if tool then
-                            equipTool(tool)
-                            task.wait(0.15)
-                        end
-                    end
-                    if tool then
-                        for _, target in ipairs(Workspace.Characters:GetChildren()) do
-                            if target:IsA("Model") and target:FindFirstChild("HumanoidRootPart") and target:FindFirstChild("HitRegisters") and target ~= char then
-                                local dist = (hrp.Position - target.HumanoidRootPart.Position).Magnitude
-                                if KillAura.Method == "全图" or dist <= KillAura.Range then
-                                    pcall(function()
-                                        ReplicatedStorage.RemoteEvents.ToolDamageObject:InvokeServer(target, tool, true, hrp.CFrame)
-                                    end)
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-        task.wait(0.1)
+RunService.RenderStepped:Connect(function()
+    if shakeActive then
+        camera.CFrame = camera.CFrame * shakeOffset
     end
 end)
 
-task.spawn(function()
-    while true do
-        if ChopAura.Enabled then
-            local char = LP.Character
-            if char then
-                local hrp = char:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    local tool = nil
-                    for _, child in ipairs(char:GetChildren()) do
-                        if child:IsA("Tool") and (child.Name:find("Axe") or child.Name:find("Chainsaw")) then
-                            tool = child
-                            break
-                        end
-                    end
-                    if not tool then
-                        tool = getAnyTool(true)
-                        if tool then
-                            equipTool(tool)
-                            task.wait(0.15)
-                        end
-                    end
-                    if tool then
-                        local map = Workspace:FindFirstChild("Map")
-                        if map then
-                            local function chopFolder(folder)
-                                if not folder then return end
-                                for _, obj in ipairs(folder:GetChildren()) do
-                                    if obj:IsA("Model") and (obj.Name == "Small Tree" or obj.Name == "TreeBig1" or obj.Name == "TreeBig2" or obj.Name == "TreeBig3") then
-                                        local primary = obj.PrimaryPart or obj:FindFirstChild("Trunk") or obj:FindFirstChildWhichIsA("BasePart")
-                                        if primary then
-                                            local dist = (primary.Position - hrp.Position).Magnitude
-                                            if dist <= ChopAura.Range then
-                                                pcall(function()
-                                                    ReplicatedStorage.RemoteEvents.ToolDamageObject:InvokeServer(obj, tool, 999, hrp.CFrame)
-                                                end)
-                                            end
-                                        end
-                                    end
-                                end
-                            end
-                            chopFolder(map:FindFirstChild("Foliage"))
-                            chopFolder(map:FindFirstChild("Landmarks"))
-                        end
-                    end
-                end
-            end
+-- ============================================================
+--  UI 面板
+-- ============================================================
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "A60_Panel"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = playerGui
+
+local panel = Instance.new("Frame")
+panel.Name = "Panel"
+panel.Size = UDim2.new(0, 190, 0, 116)
+panel.Position = UDim2.new(1, -205, 1, -135)
+panel.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
+panel.BackgroundTransparency = 0.1
+panel.BorderSizePixel = 0
+panel.Active = true
+panel.Parent = screenGui
+
+local pCorner = Instance.new("UICorner")
+pCorner.CornerRadius = UDim.new(0, 12)
+pCorner.Parent = panel
+
+local pStroke = Instance.new("UIStroke")
+pStroke.Color = Color3.fromRGB(140, 30, 30)
+pStroke.Thickness = 1.5
+pStroke.Transparency = 0.2
+pStroke.Parent = panel
+
+local topBar = Instance.new("Frame")
+topBar.Size = UDim2.new(1, 0, 0, 26)
+topBar.BackgroundTransparency = 1
+topBar.Parent = panel
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -30, 1, 0)
+title.Position = UDim2.new(0, 8, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "A-60"
+title.TextColor3 = Color3.fromRGB(230, 70, 70)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 14
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = topBar
+
+local minimizeBtn = Instance.new("TextButton")
+minimizeBtn.Size = UDim2.new(0, 22, 0, 22)
+minimizeBtn.Position = UDim2.new(1, -26, 0, 2)
+minimizeBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+minimizeBtn.Text = "—"
+minimizeBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
+minimizeBtn.Font = Enum.Font.GothamBold
+minimizeBtn.TextSize = 14
+minimizeBtn.AutoButtonColor = false
+minimizeBtn.Parent = topBar
+
+local mCorner = Instance.new("UICorner")
+mCorner.CornerRadius = UDim.new(1, 0)
+mCorner.Parent = minimizeBtn
+
+local spawnBtn = Instance.new("TextButton")
+spawnBtn.Size = UDim2.new(1, -20, 0, 32)
+spawnBtn.Position = UDim2.new(0, 10, 0, 30)
+spawnBtn.BackgroundColor3 = Color3.fromRGB(150, 25, 25)
+spawnBtn.Text = "召唤 A-60"
+spawnBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+spawnBtn.Font = Enum.Font.GothamBold
+spawnBtn.TextSize = 14
+spawnBtn.AutoButtonColor = false
+spawnBtn.Parent = panel
+
+local sCorner = Instance.new("UICorner")
+sCorner.CornerRadius = UDim.new(0, 8)
+sCorner.Parent = spawnBtn
+
+local crossBtn = Instance.new("TextButton")
+crossBtn.Size = UDim2.new(1, -20, 0, 32)
+crossBtn.Position = UDim2.new(0, 10, 0, 68)
+crossBtn.BackgroundColor3 = Color3.fromRGB(55, 50, 90)
+crossBtn.Text = "✝ 获取十字架"
+crossBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+crossBtn.Font = Enum.Font.GothamBold
+crossBtn.TextSize = 14
+crossBtn.AutoButtonColor = false
+crossBtn.Parent = panel
+
+local cCorner = Instance.new("UICorner")
+cCorner.CornerRadius = UDim.new(0, 8)
+cCorner.Parent = crossBtn
+
+local miniBall = Instance.new("TextButton")
+miniBall.Size = UDim2.new(0, 44, 0, 44)
+miniBall.Position = UDim2.new(1, -60, 1, -60)
+miniBall.BackgroundColor3 = Color3.fromRGB(140, 25, 25)
+miniBall.Text = "A60"
+miniBall.TextColor3 = Color3.fromRGB(255, 255, 255)
+miniBall.Font = Enum.Font.GothamBold
+miniBall.TextSize = 13
+miniBall.Visible = false
+miniBall.AutoButtonColor = false
+miniBall.Parent = screenGui
+
+local bCorner = Instance.new("UICorner")
+bCorner.CornerRadius = UDim.new(1, 0)
+bCorner.Parent = miniBall
+
+-- ============================================================
+--  拖动
+-- ============================================================
+local function makeDraggable(frame, dragHandle)
+    local dragging = false
+    local dragStart, startPos
+
+    dragHandle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
         end
-        task.wait(0.1)
-    end
+    end)
+
+    dragHandle.InputChanged:Connect(function(input)
+        if not dragging then return end
+        if input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(
+                startPos.X.Scale, startPos.X.Offset + delta.X,
+                startPos.Y.Scale, startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+end
+
+makeDraggable(panel, topBar)
+makeDraggable(miniBall, miniBall)
+
+-- ============================================================
+--  折叠 / 展开
+-- ============================================================
+local minimized = false
+
+minimizeBtn.MouseButton1Click:Connect(function()
+    minimized = true
+    miniBall.Position = panel.Position
+    panel.Visible = false
+    miniBall.Visible = true
 end)
 
-RunService.Heartbeat:Connect(function()
-    if SpeedEnabled and Humanoid and Humanoid.Parent then Humanoid.WalkSpeed = SpeedValue end
-    if GodMode then
-        pcall(function()
-            ReplicatedStorage.RemoteEvents.DamagePlayer:FireServer(-math.huge)
-        end)
-    end
-    if CollisionBox.Show then
-        for _, m in ipairs(Workspace:GetDescendants()) do
-            if m:IsA("Model") and m:FindFirstChild("HumanoidRootPart") then updateHitbox(m) end
-        end
-    end
-    if ESP.MobsEnabled then updateKidESP() end
+miniBall.MouseButton1Click:Connect(function()
+    if not minimized then return end
+    minimized = false
+    panel.Visible = true
+    miniBall.Visible = false
 end)
 
-task.spawn(function()
-    while true do
-        if AutoFeed.Enabled then
-            local function getHunger()
-                local gui = LP:FindFirstChild("PlayerGui") and LP.PlayerGui:FindFirstChild("Interface") and LP.PlayerGui.Interface:FindFirstChild("StatBars") and LP.PlayerGui.Interface.StatBars:FindFirstChild("HungerBar")
-                return gui and math.floor(gui.Bar.Size.X.Scale * 100) or 100
-            end
-            if getHunger() <= AutoFeed.Threshold then
-                for _, food in ipairs(AutoFeed.Foods) do
-                    for _, item in ipairs(Workspace.Items:GetChildren()) do
-                        if item.Name == food then
-                            pcall(function()
-                                ReplicatedStorage.RemoteEvents.RequestConsumeItem:InvokeServer(item)
-                            end)
-                            break
+local function pressEffect(btn)
+    btn.MouseButton1Down:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.08),
+            {BackgroundTransparency = 0.3}):Play()
+    end)
+    btn.MouseButton1Up:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.12),
+            {BackgroundTransparency = 0}):Play()
+    end)
+end
+pressEffect(spawnBtn)
+pressEffect(crossBtn)
+pressEffect(minimizeBtn)
+
+-- ============================================================
+--  A-60 模型
+-- ============================================================
+local function createA60Model(pos, facingDir)
+    local model = Instance.new("Model")
+    model.Name = "A60"
+
+    local headCF = CFrame.lookAt(pos, pos + facingDir)
+
+    local head = Instance.new("Part")
+    head.Name = "Head"
+    head.Shape = Enum.PartType.Ball
+    head.Size = Vector3.new(5.5, 5.5, 5)
+    head.CFrame = headCF
+    head.Anchored = true
+    head.CanCollide = false
+    head.Material = Enum.Material.Neon
+    head.Color = Color3.fromRGB(215, 30, 30)
+    head.Transparency = 0.25
+    head.Parent = model
+
+    local fog = Instance.new("Part")
+    fog.Name = "Fog"
+    fog.Shape = Enum.PartType.Ball
+    fog.Size = Vector3.new(7.5, 7.5, 7.5)
+    fog.CFrame = headCF
+    fog.Anchored = true
+    fog.CanCollide = false
+    fog.Material = Enum.Material.ForceField
+    fog.Color = Color3.fromRGB(255, 0, 0)
+    fog.Transparency = 0.75
+    fog.Parent = model
+
+    local eyeL = Instance.new("Part")
+    eyeL.Name = "EyeL"
+    eyeL.Shape = Enum.PartType.Ball
+    eyeL.Size = Vector3.new(1.7, 1.5, 0.8)
+    eyeL.CFrame = headCF * CFrame.new(-1.3, 0.9, -2.2)
+    eyeL.Anchored = true
+    eyeL.CanCollide = false
+    eyeL.Material = Enum.Material.SmoothPlastic
+    eyeL.Color = Color3.fromRGB(0, 0, 0)
+    eyeL.Parent = model
+
+    local eyeR = Instance.new("Part")
+    eyeR.Name = "EyeR"
+    eyeR.Shape = Enum.PartType.Ball
+    eyeR.Size = Vector3.new(1.7, 1.5, 0.8)
+    eyeR.CFrame = headCF * CFrame.new(1.3, 0.9, -2.2)
+    eyeR.Anchored = true
+    eyeR.CanCollide = false
+    eyeR.Material = Enum.Material.SmoothPlastic
+    eyeR.Color = Color3.fromRGB(0, 0, 0)
+    eyeR.Parent = model
+
+    local mouthBlack = Instance.new("Part")
+    mouthBlack.Name = "MouthBlack"
+    mouthBlack.Shape = Enum.PartType.Ball
+    mouthBlack.Size = Vector3.new(4.4, 2.6, 0.7)
+    mouthBlack.CFrame = headCF * CFrame.new(0, -1.1, -2.1)
+    mouthBlack.Anchored = true
+    mouthBlack.CanCollide = false
+    mouthBlack.Material = Enum.Material.SmoothPlastic
+    mouthBlack.Color = Color3.fromRGB(0, 0, 0)
+    mouthBlack.Parent = model
+
+    local mouthCover = Instance.new("Part")
+    mouthCover.Name = "MouthCover"
+    mouthCover.Shape = Enum.PartType.Ball
+    mouthCover.Size = Vector3.new(4.6, 2.2, 0.75)
+    mouthCover.CFrame = headCF * CFrame.new(0, -0.15, -2.09)
+    mouthCover.Anchored = true
+    mouthCover.CanCollide = false
+    mouthCover.Material = Enum.Material.Neon
+    mouthCover.Color = Color3.fromRGB(215, 30, 30)
+    mouthCover.Parent = model
+
+    local light = Instance.new("PointLight")
+    light.Brightness = 7
+    light.Range = 28
+    light.Color = Color3.fromRGB(255, 30, 30)
+    light.Parent = head
+
+    local att = Instance.new("Attachment")
+    att.Parent = head
+
+    local pe = Instance.new("ParticleEmitter")
+    pe.Texture = "rbxassetid://243660364"
+    pe.Rate = 70
+    pe.Lifetime = NumberRange.new(0.6, 1.3)
+    pe.Speed = NumberRange.new(4, 9)
+    pe.SpreadAngle = Vector2.new(180, 180)
+    pe.Color = ColorSequence.new(Color3.fromRGB(255, 20, 20))
+    pe.Size = NumberSequence.new(1, 0)
+    pe.Transparency = NumberSequence.new(0.15, 1)
+    pe.Parent = att
+
+    model.PrimaryPart = head
+    return {
+        model = model,
+        head = head,
+        fog = fog,
+        eyeL = eyeL,
+        eyeR = eyeR,
+        mouthBlack = mouthBlack,
+        mouthCover = mouthCover,
+        light = light,
+        particle = pe,
+    }
+end
+
+local function updateA60Parts(refs, newPos, dir)
+    local cf = CFrame.lookAt(newPos, newPos + dir)
+    refs.head.CFrame = cf
+    refs.fog.CFrame = cf
+    refs.eyeL.CFrame = cf * CFrame.new(-1.3, 0.9, -2.2)
+    refs.eyeR.CFrame = cf * CFrame.new(1.3, 0.9, -2.2)
+    refs.mouthBlack.CFrame = cf * CFrame.new(0, -1.1, -2.1)
+    refs.mouthCover.CFrame = cf * CFrame.new(0, -0.15, -2.09)
+end
+
+-- ============================================================
+--  柜子检测（8 种方式）
+-- ============================================================
+local function isHidden()
+    local char = player.Character
+    if not char then return false end
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return false end
+
+    local ok1, v1 = pcall(function() return humanoid:GetAttribute("InLocker") end)
+    if ok1 and v1 then return true end
+
+    local ok2, v2 = pcall(function() return humanoid:GetAttribute("Hiding") end)
+    if ok2 and v2 then return true end
+
+    local ok3, v3 = pcall(function() return char:GetAttribute("InLocker") end)
+    if ok3 and v3 then return true end
+
+    if char:FindFirstChild("InLocker") or char:FindFirstChild("Hiding") then
+        return true
+    end
+
+    local okTag1 = pcall(function()
+        if char:HasTag("InLocker") or char:HasTag("Hiding") then
+            error("hidden")
+        end
+    end)
+    if not okTag1 then return true end
+
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return false end
+
+    local parts = workspace:GetPartBoundsInRadius(root.Position, 15)
+    for _, p in ipairs(parts) do
+        local n = p.Name:lower()
+        if n:find("locker") or n:find("closet")
+            or n:find("wardrobe") or n:find("cabinet") then
+            return true
+        end
+        local okTag2, has = pcall(function() return p:HasTag("Locker") end)
+        if okTag2 and has then return true end
+    end
+
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj ~= char then
+            local n = obj.Name:lower()
+            if n:find("locker") or n:find("closet") or n:find("wardrobe") then
+                for _, d in ipairs(obj:GetDescendants()) do
+                    if d:IsA("BasePart") then
+                        local rel = d.CFrame:PointToObjectSpace(root.Position)
+                        if math.abs(rel.X) < d.Size.X/2 + 1
+                            and math.abs(rel.Y) < d.Size.Y/2 + 1
+                            and math.abs(rel.Z) < d.Size.Z/2 + 1 then
+                            return true
                         end
                     end
                 end
             end
         end
-        if AutoCook.Enabled then
-            for _, item in ipairs(Workspace.Items:GetChildren()) do
-                if table.find(AutoCook.Items, item.Name) then
-                    moveItemToPos(item, Vector3.new(1.4, 25.9, -0.9))
+    end
+
+    return false
+end
+
+-- ============================================================
+--  跳杀 + 封印闪光
+-- ============================================================
+local redGui = Instance.new("ScreenGui")
+redGui.Name = "A60_Red"
+redGui.ResetOnSpawn = false
+redGui.IgnoreGuiInset = true
+redGui.DisplayOrder = 999
+redGui.Parent = playerGui
+
+local redFrame = Instance.new("Frame")
+redFrame.Size = UDim2.new(1, 0, 1, 0)
+redFrame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+redFrame.BackgroundTransparency = 1
+redFrame.BorderSizePixel = 0
+redFrame.Parent = redGui
+
+local sealFrame = Instance.new("Frame")
+sealFrame.Size = UDim2.new(1, 0, 1, 0)
+sealFrame.BackgroundColor3 = Color3.fromRGB(255, 250, 220)
+sealFrame.BackgroundTransparency = 1
+sealFrame.BorderSizePixel = 0
+sealFrame.ZIndex = 2
+sealFrame.Parent = redGui
+
+local function triggerJumpscare()
+    local s = Instance.new("Sound")
+    s.SoundId = CONFIG.soundJumpscare
+    s.Volume = 5
+    s.Parent = playerGui
+    s:Play()
+    Debris:AddItem(s, 3)
+
+    redFrame.BackgroundTransparency = 0
+    task.wait(CONFIG.jumpFlashTime)
+    TweenService:Create(redFrame, TweenInfo.new(0.8),
+        {BackgroundTransparency = 1}):Play()
+
+    local char = player.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then hum.Health = 0 end
+    end
+end
+
+-- Doors 原版封印闪光：双击金光 → 全屏泛白
+local function triggerSealFlash()
+    -- 双击
+    for _ = 1, 2 do
+        sealFrame.BackgroundTransparency = 0
+        task.wait(0.07)
+        sealFrame.BackgroundTransparency = 0.55
+        task.wait(0.07)
+    end
+    -- 泛白淡化
+    sealFrame.BackgroundTransparency = 0
+    TweenService:Create(sealFrame, TweenInfo.new(1.1, Enum.EasingStyle.Quad),
+        {BackgroundTransparency = 1}):Play()
+
+    local s = Instance.new("Sound")
+    s.SoundId = CONFIG.soundSeal
+    s.Volume = 5
+    s.Parent = playerGui
+    s:Play()
+    Debris:AddItem(s, 4)
+end
+
+-- ============================================================
+--  封印阵法（保留）
+-- ============================================================
+local function createSealCircle(position)
+    local sealModel = Instance.new("Model")
+    sealModel.Name = "A60_SealCircle"
+
+    local outerRing = Instance.new("Part")
+    outerRing.Shape = Enum.PartType.Cylinder
+    outerRing.Size = Vector3.new(0.12, 16, 16)
+    outerRing.CFrame = CFrame.new(position) * CFrame.Angles(0, 0, math.rad(90))
+    outerRing.Anchored = true
+    outerRing.CanCollide = false
+    outerRing.Material = Enum.Material.Neon
+    outerRing.Color = Color3.fromRGB(255, 215, 80)
+    outerRing.Transparency = 0.25
+    outerRing.Parent = sealModel
+
+    local midRing = Instance.new("Part")
+    midRing.Shape = Enum.PartType.Cylinder
+    midRing.Size = Vector3.new(0.12, 12, 12)
+    midRing.CFrame = CFrame.new(position + Vector3.new(0, 0.05, 0)) * CFrame.Angles(0, 0, math.rad(90))
+    midRing.Anchored = true
+    midRing.CanCollide = false
+    midRing.Material = Enum.Material.Neon
+    midRing.Color = Color3.fromRGB(255, 240, 150)
+    midRing.Transparency = 0.2
+    midRing.Parent = sealModel
+
+    local innerRing = Instance.new("Part")
+    innerRing.Shape = Enum.PartType.Cylinder
+    innerRing.Size = Vector3.new(0.12, 8, 8)
+    innerRing.CFrame = CFrame.new(position + Vector3.new(0, 0.1, 0)) * CFrame.Angles(0, 0, math.rad(90))
+    innerRing.Anchored = true
+    innerRing.CanCollide = false
+    innerRing.Material = Enum.Material.Neon
+    innerRing.Color = Color3.fromRGB(255, 215, 80)
+    innerRing.Transparency = 0.15
+    innerRing.Parent = sealModel
+
+    local runes = {}
+    for i = 1, 8 do
+        local angle = (i / 8) * math.pi * 2
+        local x = math.cos(angle) * 7
+        local z = math.sin(angle) * 7
+        local rune = Instance.new("Part")
+        rune.Shape = Enum.PartType.Ball
+        rune.Size = Vector3.new(0.9, 0.9, 0.9)
+        rune.Position = position + Vector3.new(x, 0.2, z)
+        rune.Anchored = true
+        rune.CanCollide = false
+        rune.Material = Enum.Material.Neon
+        rune.Color = Color3.fromRGB(255, 240, 150)
+        rune.Transparency = 0.1
+        rune.Parent = sealModel
+        table.insert(runes, rune)
+    end
+
+    local pillar = Instance.new("Part")
+    pillar.Size = Vector3.new(7, 40, 7)
+    pillar.Position = position + Vector3.new(0, 20, 0)
+    pillar.Anchored = true
+    pillar.CanCollide = false
+    pillar.Material = Enum.Material.ForceField
+    pillar.Color = Color3.fromRGB(255, 230, 130)
+    pillar.Transparency = 0.75
+    pillar.Parent = sealModel
+
+    local corePillar = Instance.new("Part")
+    corePillar.Size = Vector3.new(2.5, 40, 2.5)
+    corePillar.Position = position + Vector3.new(0, 20, 0)
+    corePillar.Anchored = true
+    corePillar.CanCollide = false
+    corePillar.Material = Enum.Material.Neon
+    corePillar.Color = Color3.fromRGB(255, 255, 220)
+    corePillar.Transparency = 0.5
+    corePillar.Parent = sealModel
+
+    local coreAtt = Instance.new("Attachment")
+    coreAtt.Parent = corePillar
+    local coreParticle = Instance.new("ParticleEmitter")
+    coreParticle.Texture = "rbxassetid://243660364"
+    coreParticle.Rate = 120
+    coreParticle.Lifetime = NumberRange.new(0.6, 1.2)
+    coreParticle.Speed = NumberRange.new(15, 30)
+    coreParticle.SpreadAngle = Vector2.new(15, 15)
+    coreParticle.Color = ColorSequence.new(Color3.fromRGB(255, 240, 150))
+    coreParticle.Size = NumberSequence.new(0.8, 0)
+    coreParticle.Transparency = NumberSequence.new(0.1, 1)
+    coreParticle.LightEmission = 1
+    coreParticle.Parent = coreAtt
+
+    local spinning = true
+    task.spawn(function()
+        local t = 0
+        while spinning and sealModel.Parent do
+            local dt = RunService.Heartbeat:Wait()
+            t = t + dt
+            outerRing.CFrame = CFrame.new(position)
+                * CFrame.Angles(0, t * 2, 0)
+                * CFrame.Angles(0, 0, math.rad(90))
+            midRing.CFrame = CFrame.new(position + Vector3.new(0, 0.05, 0))
+                * CFrame.Angles(0, -t * 2.5, 0)
+                * CFrame.Angles(0, 0, math.rad(90))
+            innerRing.CFrame = CFrame.new(position + Vector3.new(0, 0.1, 0))
+                * CFrame.Angles(0, t * 3.2, 0)
+                * CFrame.Angles(0, 0, math.rad(90))
+
+            for idx, rune in ipairs(runes) do
+                local angle = (idx / 8) * math.pi * 2 + t * 1.5
+                local x = math.cos(angle) * 7
+                local z = math.sin(angle) * 7
+                rune.Position = position + Vector3.new(x, 0.2 + math.sin(t * 4 + idx) * 0.3, z)
+            end
+        end
+    end)
+
+    return sealModel, function() spinning = false end
+end
+
+-- ============================================================
+--  封印 A-60（Doors 原版效果 + 阵法）
+-- ============================================================
+local function sealA60(refs)
+    -- 全屏金光双击
+    triggerSealFlash()
+
+    -- 十字架爆发金光
+    local char = player.Character
+    if char then
+        local tool = char:FindFirstChild("Crucifix")
+        if tool then
+            local handle = tool:FindFirstChild("Handle")
+            if handle then
+                local light = handle:FindFirstChildOfClass("PointLight")
+                if light then
+                    TweenService:Create(light, TweenInfo.new(0.3), {
+                        Brightness = 60, Range = 60
+                    }):Play()
+                    task.delay(0.9, function()
+                        TweenService:Create(light, TweenInfo.new(0.6), {
+                            Brightness = 5, Range = 12
+                        }):Play()
+                    end)
                 end
+
+                local bAtt = Instance.new("Attachment")
+                bAtt.Parent = handle
+                local burst = Instance.new("ParticleEmitter")
+                burst.Texture = "rbxassetid://243660364"
+                burst.Rate = 0
+                burst.Lifetime = NumberRange.new(0.6, 1.3)
+                burst.Speed = NumberRange.new(20, 40)
+                burst.SpreadAngle = Vector2.new(180, 180)
+                burst.Color = ColorSequence.new(Color3.fromRGB(255, 240, 150))
+                burst.Size = NumberSequence.new(1.5, 0)
+                burst.Transparency = NumberSequence.new(0, 1)
+                burst.LightEmission = 1
+                burst.Parent = bAtt
+                burst:Emit(150)
             end
         end
-        if AutoCraft.Enabled then
-            pcall(function()
-                ReplicatedStorage.RemoteEvents.CraftItem:InvokeServer(AutoCraft.ItemName)
-            end)
-            task.wait(AutoCraft.Interval)
-        end
-        if PullConfig.Enabled then
-            Notify("拉取开始：正在拉取物品...", 3)
-            local all = {}
-            local function gather(list)
-                for _, en in ipairs(list) do
-                    for _, item in ipairs(Workspace.Items:GetChildren()) do
-                        if item.Name == en then table.insert(all, item) end
-                    end
-                end
-            end
-            gather(PullConfig.SelectedFuel)
-            gather(PullConfig.SelectedScrap)
-            gather(PullConfig.SelectedEquip)
-            gather(PullConfig.SelectedFood)
-            gather(PullConfig.SelectedMed)
-            local total = #all
-            local pulled = 0
-            for _, item in ipairs(all) do
-                if not PullConfig.Enabled then break end
-                local target = getPullPos()
-                moveItemToPos(item, target)
-                pulled += 1
-                if pulled % 10 == 0 then
-                    Notify("拉取进度：已拉取 " .. pulled .. " / " .. total .. " 个物资", 3)
-                end
-                task.wait(math.max(0.1, PullConfig.Speed))
-            end
-            if total > 0 then
-                Notify("拉取完成：共 " .. total .. " 个物资", 3)
-            end
-            task.wait(1)
-        end
-        if AutoPullRawMeat then
-            for _, item in ipairs(Workspace.Items:GetChildren()) do
-                if item.Name == "Morsel" or item.Name == "Steak" then
-                    moveItemToPos(item, Vector3.new(1.4, 25.9, -0.9))
-                end
-            end
-        end
-        if AutoPlant.Enabled then
-            if doPlant() then task.wait(AutoPlant.Delay) else task.wait(1) end
-        end
-        if FunPattern.Enabled then
-            local logs = {}
-            for _, item in ipairs(Workspace.Items:GetChildren()) do
-                if item.Name:lower():find("log") and item:IsA("Model") then
-                    table.insert(logs, item)
-                end
-            end
-            if #logs > 0 then
-                local poses = genPattern(#logs)
-                for i, log in ipairs(logs) do
-                    local main = log:FindFirstChildWhichIsA("BasePart")
-                    if main then
-                        pcall(function()
-                            main.CFrame = CFrame.new(poses[i] or poses[1])
-                            main.AssemblyLinearVelocity = Vector3.zero
-                        end)
-                    end
-                end
-            end
-        end
-        if InstantInteract then
-            for _, obj in ipairs(Workspace:GetDescendants()) do
-                if obj:IsA("ProximityPrompt") then obj.HoldDuration = 0 end
-            end
-        end
-        if AutoStunDeer then
-            pcall(function()
-                local remote = ReplicatedStorage:FindFirstChild("RemoteEvents") and ReplicatedStorage.RemoteEvents:FindFirstChild("DeerHitByTorch")
-                local deer = Workspace:FindFirstChild("Characters") and Workspace.Characters:FindFirstChild("Deer")
-                if remote and deer then remote:InvokeServer(deer) end
-            end)
-        end
-        if Fishing.Instant then
-            pcall(function()
-                local r = ReplicatedStorage:FindFirstChild("RemoteEvents") and ReplicatedStorage.RemoteEvents:FindFirstChild("FinishFishing")
-                if r then r:FireServer(true) end
-            end)
-        end
-        if NoclipEnabled then
-            local c = LP.Character
-            if c then
-                for _, p in ipairs(c:GetDescendants()) do
-                    if p:IsA("BasePart") then p.CanCollide = false end
-                end
-            end
-        end
-        if AutoSaveChild then
-            local hrp = getHRP()
-            if hrp then
-                for _, child in ipairs(Workspace:GetDescendants()) do
-                    if not AutoSaveChild then break end
-                    if child:IsA("Model") and (child.Name:match("^Lost Child") or child.Name:match("Dino Kid") or child.Name:match("kraken") or child.Name:match("Squid") or child.Name:match("Koala")) then
-                        local part = child:FindFirstChild("HumanoidRootPart") or child.PrimaryPart
-                        if part then
-                            hrp.CFrame = part.CFrame + Vector3.new(0, 5, 0)
-                            task.wait(2)
-                        end
-                    end
-                end
-            end
-        end
-        if AutoOpenChest then
-            local hrp = getHRP()
-            if hrp then
-                local original = hrp.CFrame
-                local chests = getChests()
-                for _, chest in ipairs(chests) do
-                    if not AutoOpenChest then break end
-                    local part = chest.PrimaryPart or chest:FindFirstChildWhichIsA("BasePart")
-                    if part then
-                        hrp.CFrame = part.CFrame + Vector3.new(0, 6, 0)
-                        for _, prompt in ipairs(chestPrompts(chest)) do
-                            pcall(function() fireproximityprompt(prompt, math.huge) end)
-                        end
-                        local t = tick()
-                        while AutoOpenChest and tick() - t < 3 do task.wait() end
-                    end
-                end
-                hrp.CFrame = original
-            end
-        end
-        if ChestAura then
-            local hrp = getHRP()
-            if hrp then
-                for _, obj in ipairs(Workspace:GetDescendants()) do
-                    if obj:IsA("Model") and obj.Name:match("^Item Chest") then
-                        local part = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
-                        if part and (hrp.Position - part.Position).Magnitude <= ChestAuraRange then
-                            for _, prompt in ipairs(obj:GetDescendants()) do
-                                if prompt:IsA("ProximityPrompt") then
-                                    pcall(function() fireproximityprompt(prompt, math.huge) end)
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-        if BearTrapEnabled then
-            if BearTrapTarget == "无" then
-                BearTrapEnabled = false
+    end
+
+    if refs.particle then refs.particle.Enabled = false end
+
+    -- 阵法
+    local centerPos = refs.head.Position
+    local groundPos = Vector3.new(centerPos.X, centerPos.Y - 3, centerPos.Z)
+    local sealModel, stopSpin = createSealCircle(groundPos)
+
+    -- A-60 被拉入阵法
+    local targetPos = groundPos + Vector3.new(0, 4, 0)
+    local startPos = refs.head.Position
+    local startTime = tick()
+    local pullDuration = 0.8
+
+    task.spawn(function()
+        while tick() - startTime < pullDuration do
+            RunService.Heartbeat:Wait()
+            local alpha = math.min((tick() - startTime) / pullDuration, 1)
+            local newPos = startPos:Lerp(targetPos, alpha)
+            local dir = (targetPos - startPos)
+            if dir.Magnitude < 0.1 then
+                dir = Vector3.new(0, 0, -1)
             else
-                local target = Players:FindFirstChild(BearTrapTarget)
-                if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-                    local tPos = target.Character.HumanoidRootPart.Position + Vector3.new(0, 1, 0)
-                    local traps = {}
-                    for _, s in ipairs(Workspace.Structures:GetChildren()) do
-                        if s.Name:find("Bear Trap") then table.insert(traps, s) end
-                    end
-                    for _, i in ipairs(Workspace.Items:GetChildren()) do
-                        if i.Name:find("Bear Trap") then table.insert(traps, i) end
-                    end
-                    for _, trap in ipairs(traps) do
-                        if not BearTrapEnabled then break end
-                        if not trap.PrimaryPart then
-                            for _, p in ipairs(trap:GetChildren()) do
-                                if p:IsA("BasePart") then trap.PrimaryPart = p; break end
-                            end
-                        end
-                        if trap.PrimaryPart then
-                            pcall(function()
-                                ReplicatedStorage.RemoteEvents.RequestStartDraggingItem:FireServer(trap)
-                                trap:SetPrimaryPartCFrame(CFrame.new(tPos))
-                                ReplicatedStorage.RemoteEvents.StopDraggingItem:FireServer(trap)
-                                ReplicatedStorage.RemoteEvents.RequestSetTrap:FireServer(trap)
-                            end)
-                        end
-                    end
-                end
+                dir = dir.Unit
+            end
+            updateA60Parts(refs, newPos, dir)
+        end
+    end)
+
+    -- A-60 身上金色爆发
+    local sealAtt = Instance.new("Attachment")
+    sealAtt.Parent = refs.head
+    local burst = Instance.new("ParticleEmitter")
+    burst.Texture = "rbxassetid://243660364"
+    burst.Rate = 0
+    burst.Lifetime = NumberRange.new(0.6, 1.2)
+    burst.Speed = NumberRange.new(15, 25)
+    burst.SpreadAngle = Vector2.new(180, 180)
+    burst.Color = ColorSequence.new(Color3.fromRGB(255, 230, 150))
+    burst.Size = NumberSequence.new(1, 0)
+    burst.Transparency = NumberSequence.new(0.1, 1)
+    burst.LightEmission = 1
+    burst.Parent = sealAtt
+    burst:Emit(100)
+
+    local flashLight = Instance.new("PointLight")
+    flashLight.Color = Color3.fromRGB(255, 230, 150)
+    flashLight.Brightness = 12
+    flashLight.Range = 40
+    flashLight.Parent = refs.head
+
+    task.wait(pullDuration)
+
+    TweenService:Create(flashLight, TweenInfo.new(1),
+        {Brightness = 0, Range = 5}):Play()
+
+    local gold = Color3.fromRGB(255, 230, 150)
+    TweenService:Create(refs.head, TweenInfo.new(0.9),
+        {Color = gold, Transparency = 1, Size = Vector3.new(0.1, 0.1, 0.1)}):Play()
+    TweenService:Create(refs.eyeL, TweenInfo.new(0.9),
+        {Color = gold, Transparency = 1}):Play()
+    TweenService:Create(refs.eyeR, TweenInfo.new(0.9),
+        {Color = gold, Transparency = 1}):Play()
+    TweenService:Create(refs.mouthBlack, TweenInfo.new(0.9),
+        {Color = gold, Transparency = 1}):Play()
+    TweenService:Create(refs.mouthCover, TweenInfo.new(0.9),
+        {Color = gold, Transparency = 1}):Play()
+    TweenService:Create(refs.fog, TweenInfo.new(0.9),
+        {Color = gold, Transparency = 1, Size = Vector3.new(0.1, 0.1, 0.1)}):Play()
+    if refs.light then
+        TweenService:Create(refs.light, TweenInfo.new(0.9),
+            {Brightness = 0, Range = 0}):Play()
+    end
+
+    task.delay(1.2, function()
+        stopSpin()
+        for _, d in ipairs(sealModel:GetDescendants()) do
+            if d:IsA("BasePart") then
+                TweenService:Create(d, TweenInfo.new(0.6),
+                    {Transparency = 1}):Play()
             end
         end
-        if IgnoreMobs then
-            local char = LP.Character
-            if char then
-                local charsFolder = Workspace:FindFirstChild("Characters")
-                if charsFolder and char.Parent == charsFolder then
-                    originalCharParent = charsFolder
-                    pcall(function() char.Parent = Workspace end)
-                end
-            end
-            local charsFolder = Workspace:FindFirstChild("Characters")
-            if charsFolder then
-                for _, mob in ipairs(charsFolder:GetChildren()) do
-                    if mob ~= LP.Character and mob:IsA("Model") then
-                        pcall(function()
-                            for _, desc in ipairs(mob:GetDescendants()) do
-                                if desc:IsA("NumberValue") then
-                                    local n = desc.Name:lower()
-                                    if n:find("range") or n:find("distance") or n:find("aggro") or n:find("vision") or n:find("radius") or n:find("reach") or n:find("sight") or n:find("aware") then
-                                        desc.Value = -999999
-                                    end
-                                end
-                                if desc:IsA("ObjectValue") then
-                                    local n = desc.Name:lower()
-                                    if n:find("target") or n:find("focus") or n:find("enemy") or n:find("player") or n:find("victim") or n:find("prey") then
-                                        if desc.Value == LP.Character or desc.Value == LP or (desc.Value and desc.Value:IsDescendantOf(LP.Character)) then
-                                            desc.Value = nil
-                                        end
-                                    end
-                                end
-                            end
-                        end)
-                    end
-                end
-            end
+        task.wait(0.7)
+        sealModel:Destroy()
+    end)
+
+    task.delay(1.0, function()
+        if refs.model and refs.model.Parent then
+            refs.model:Destroy()
         end
-        if not IgnoreMobs and originalCharParent then
-            local char = LP.Character
-            if char and char.Parent == Workspace then
-                pcall(function() char.Parent = originalCharParent end)
-            end
-            originalCharParent = nil
-        end
-        task.wait(0.1)
-    end
-end)
-
---================================================================
---[ 创建 Obsidian UI 窗口 ]
---================================================================
-
-local Window = Library:CreateWindow({
-    Title = "亊彩脚本V2",
-    Footer = "亊彩",
-    Center = true,
-    ToggleKeybind = Enum.KeyCode.RightControl,
-    AutoShow = true,
-})
-
--- 分类：主要 | 自动 | 传送 | 物品召唤 | 玩家 | 视觉 | 种植 | 设置
-local Tabs = {
-    Main = Window:AddTab("主要"),
-    Auto = Window:AddTab("自动"),
-    Teleport = Window:AddTab("传送"),
-    Pull = Window:AddTab("物品召唤"),
-    Player = Window:AddTab("玩家"),
-    Visual = Window:AddTab("视觉"),
-    Plant = Window:AddTab("种植"),
-    Settings = Window:AddTab("设置"),
-}
-
---================================================================
---[ 主要标签页 - 战斗 + 砍树光环 + 地图加载 ]
---================================================================
-
-local MainBox1 = Tabs.Main:AddLeftGroupbox("攻击")
-
-MainBox1:AddToggle("KillAura", {
-    Text = "杀戮光环",
-    Default = false,
-    Callback = function(v) KillAura.Enabled = v end
-})
-
-MainBox1:AddDropdown("KillAuraMethod", {
-    Text = "攻击方式",
-    Values = {"范围", "全图"},
-    Default = "范围",
-    Callback = function(v) KillAura.Method = v end
-})
-
-MainBox1:AddSlider("KillAuraRange", {
-    Text = "攻击范围",
-    Default = 50,
-    Min = 0,
-    Max = 500,
-    Rounding = 0,
-    Callback = function(v) KillAura.Range = v end
-})
-
-MainBox1:AddButton("显示当前武器", function()
-    local tool = getAnyTool(false)
-    Notify("当前武器: " .. (tool and tool.Name or "无"), 3)
-end)
-
-MainBox1:AddToggle("GodMode", {
-    Text = "无敌（开了死）",
-    Default = false,
-    Callback = function(v) GodMode = v end
-})
-
-MainBox1:AddToggle("IgnoreMobs", {
-    Text = "上帝模式（不会死）",
-    Default = false,
-    Callback = function(v) 
-        IgnoreMobs = v 
-        godModeSpamActive = v 
-    end
-})
-
-MainBox1:AddDivider()
-MainBox1:AddLabel("=== 砍树 ===", true)
-
-MainBox1:AddToggle("ChopAura", {
-    Text = "砍树光环",
-    Default = false,
-    Callback = function(v) ChopAura.Enabled = v end
-})
-
-MainBox1:AddSlider("ChopAuraRange", {
-    Text = "砍树范围",
-    Default = 200,
-    Min = 0,
-    Max = 500,
-    Rounding = 0,
-    Callback = function(v) ChopAura.Range = v end
-})
-
-MainBox1:AddDivider()
-MainBox1:AddLabel("=== 地图加载 ===", true)
-
-MainBox1:AddButton("开始自动加载地图", function()
-    if mapLoadRunning then Notify("已经在加载中", 2); return end
-    mapLoadRunning = true
-    mapLoadLoop()
-    Notify("开始高空螺旋扫描", 3)
-end)
-
-MainBox1:AddButton("停止加载并落回篝火", function()
-    mapLoadRunning = false
-    Notify("已停止，返回篝火", 2)
-end)
-
-local MainBox2 = Tabs.Main:AddRightGroupbox("碰撞箱")
-
-MainBox2:AddToggle("CollisionShow", {
-    Text = "显示碰撞箱",
-    Default = false,
-    Callback = function(v) CollisionBox.Show = v end
-})
-
-MainBox2:AddToggle("CollisionWolf", {
-    Text = "狼碰撞箱",
-    Default = false,
-    Callback = function(v) CollisionBox.Wolf = v end
-})
-
-MainBox2:AddToggle("CollisionBunny", {
-    Text = "兔子碰撞箱",
-    Default = false,
-    Callback = function(v) CollisionBox.Bunny = v end
-})
-
-MainBox2:AddToggle("CollisionCultist", {
-    Text = "邪教徒碰撞箱",
-    Default = false,
-    Callback = function(v) CollisionBox.Cultist = v end
-})
-
-MainBox2:AddToggle("CollisionAll", {
-    Text = "全部碰撞箱",
-    Default = false,
-    Callback = function(v) CollisionBox.All = v end
-})
-
-MainBox2:AddSlider("CollisionSize", {
-    Text = "碰撞箱大小",
-    Default = 10,
-    Min = 2,
-    Max = 250,
-    Rounding = 0,
-    Callback = function(v) CollisionBox.Size = v end
-})
-
-local MainBox3 = Tabs.Main:AddLeftGroupbox("装备")
-
-MainBox3:AddToggle("AutoEquipBest", {
-    Text = "自动装备最佳武器",
-    Default = false,
-    Callback = function(v)
-        AutoEquipBest = v
-        if v then
-            task.spawn(function()
-                while AutoEquipBest do
-                    local c = LP.Character
-                    if c then
-                        local best, bestDmg = nil, 0
-                        for name, id in pairs(ToolsDamageIDs) do
-                            local t = LP:FindFirstChild("Inventory") and LP.Inventory:FindFirstChild(name)
-                            if t then
-                                local dmg = tonumber(id:match("^(%d+)_")) or 0
-                                if dmg > bestDmg then bestDmg = dmg; best = t end
-                            end
-                        end
-                        if best then equipTool(best) end
-                    end
-                    task.wait(0.5)
-                end
-                local t = getAnyTool(false); unequipTool(t)
-            end)
-        end
-    end
-})
-
-MainBox3:AddDropdown("SelectedWeapon", {
-    Text = "选择武器",
-    Values = {"Old Axe", "Good Axe", "Strong Axe", "Chainsaw", "Infernal Sword", "Spear"},
-    Default = "Strong Axe",
-    Callback = function(v) SelectedWeapon = v end
-})
-
-MainBox3:AddToggle("AutoEquipSelected", {
-    Text = "自动装备选定武器",
-    Default = false,
-    Callback = function(v)
-        AutoEquipSelected = v
-        if v then
-            task.spawn(function()
-                while AutoEquipSelected do
-                    local c = LP.Character
-                    if c then
-                        local t = LP:FindFirstChild("Inventory") and LP.Inventory:FindFirstChild(SelectedWeapon)
-                        if t then equipTool(t) else
-                            Notify("武器未找到: " .. SelectedWeapon, 3)
-                            AutoEquipSelected = false
-                            break
-                        end
-                    end
-                    task.wait(0.5)
-                end
-                local t = LP:FindFirstChild("Inventory") and LP.Inventory:FindFirstChild(SelectedWeapon); unequipTool(t)
-            end)
-        end
-    end
-})
-
-MainBox3:AddToggle("AutoToolSwitch", {
-    Text = "随机工具切换",
-    Default = false,
-    Callback = function(v)
-        AutoToolSwitch = v
-        if v then
-            task.spawn(function()
-                while AutoToolSwitch do
-                    local hrp = getHRP()
-                    if not hrp then task.wait(1); continue end
-                    local hasEnemy = false
-                    for _, mob in ipairs(Workspace.Characters:GetChildren()) do
-                        if mob:IsA("Model") then
-                            local p = mob:FindFirstChildWhichIsA("BasePart")
-                            if p and (p.Position - hrp.Position).Magnitude <= 50 then hasEnemy = true; break end
-                        end
-                    end
-                    local hasTree = false
-                    local map = Workspace:FindFirstChild("Map")
-                    if map then
-                        for _, folder in ipairs({map:FindFirstChild("Foliage"), map:FindFirstChild("Landmarks")}) do
-                            if folder then
-                                for _, obj in ipairs(folder:GetChildren()) do
-                                    if obj:IsA("Model") and obj.Name:match("Tree") then
-                                        local trunk = obj:FindFirstChild("Trunk")
-                                        if trunk and (trunk.Position - hrp.Position).Magnitude <= 50 then hasTree = true; break end
-                                    end
-                                end
-                            end
-                        end
-                    end
-                    if hasEnemy then
-                        for _, n in ipairs({"Infernal Sword", "Spear", "Chainsaw", "Strong Axe", "Good Axe"}) do
-                            local t = LP:FindFirstChild("Inventory") and LP.Inventory:FindFirstChild(n)
-                            if t then equipTool(t); break end
-                        end
-                    elseif hasTree then
-                        for _, n in ipairs({"Chainsaw", "Strong Axe", "Good Axe", "Old Axe"}) do
-                            local t = LP:FindFirstChild("Inventory") and LP.Inventory:FindFirstChild(n)
-                            if t then equipTool(t); break end
-                        end
-                    else
-                        local best, bestDmg = nil, 0
-                        for name, id in pairs(ToolsDamageIDs) do
-                            local t = LP:FindFirstChild("Inventory") and LP.Inventory:FindFirstChild(name)
-                            if t then
-                                local dmg = tonumber(id:match("^(%d+)_")) or 0
-                                if dmg > bestDmg then bestDmg = dmg; best = t end
-                            end
-                        end
-                        if best then equipTool(best) end
-                    end
-                    task.wait(1)
-                end
-                local t = getAnyTool(false); unequipTool(t)
-            end)
-        end
-    end
-})
-
-local MainBox4 = Tabs.Main:AddRightGroupbox("恶搞")
-
-local bearTrapList = {"无"}
-for _, p in ipairs(Players:GetPlayers()) do
-    if p ~= LP then table.insert(bearTrapList, p.Name) end
+    end)
 end
 
-MainBox4:AddDropdown("BearTrapTarget", {
-    Text = "选择攻击玩家",
-    Values = bearTrapList,
-    Default = "无",
-    Callback = function(v) BearTrapTarget = v end
-})
+-- ============================================================
+--  星光十字架 Tool（完整模型）
+-- ============================================================
+local function buildCrucifixTool()
+    local tool = Instance.new("Tool")
+    tool.Name = "Crucifix"
+    tool.RequiresHandle = true
+    tool.CanBeDropped = false
 
-MainBox4:AddButton("刷新玩家列表", function()
-    local list = {"无"}
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= LP then table.insert(list, p.Name) end
+    -- 竖杆
+    local handle = Instance.new("Part")
+    handle.Name = "Handle"
+    handle.Size = Vector3.new(0.35, 2.6, 0.35)
+    handle.Color = Color3.fromRGB(88, 52, 24)
+    handle.Material = Enum.Material.Wood
+    handle.CanCollide = false
+    handle.Parent = tool
+
+    -- 横杆
+    local bar = Instance.new("Part")
+    bar.Name = "Bar"
+    bar.Size = Vector3.new(1.7, 0.35, 0.35)
+    bar.Color = Color3.fromRGB(88, 52, 24)
+    bar.Material = Enum.Material.Wood
+    bar.CanCollide = false
+    bar.Parent = tool
+
+    local weldBar = Instance.new("WeldConstraint")
+    weldBar.Part0 = handle
+    weldBar.Part1 = bar
+    weldBar.Parent = handle
+    bar.CFrame = handle.CFrame * CFrame.new(0, 0.6, 0)
+
+    -- 4 个金色端点球
+    local endpoints = {
+        Vector3.new(0, 1.3, 0),
+        Vector3.new(0, -1.3, 0),
+        Vector3.new(-0.85, 0.6, 0),
+        Vector3.new(0.85, 0.6, 0),
+    }
+    for i, off in ipairs(endpoints) do
+        local ball = Instance.new("Part")
+        ball.Name = "Endpoint" .. i
+        ball.Shape = Enum.PartType.Ball
+        ball.Size = Vector3.new(0.45, 0.45, 0.45)
+        ball.Color = Color3.fromRGB(255, 215, 100)
+        ball.Material = Enum.Material.Neon
+        ball.CanCollide = false
+        ball.Transparency = 0.05
+        ball.Parent = tool
+        ball.CFrame = handle.CFrame * CFrame.new(off)
+        local w = Instance.new("WeldConstraint")
+        w.Part0 = handle
+        w.Part1 = ball
+        w.Parent = handle
     end
-    bearTrapList = list
-    Notify("已刷新: " .. #list .. "人", 2)
-end)
 
-MainBox4:AddToggle("BearTrapToggle", {
-    Text = "自动捕兽夹攻击",
-    Default = false,
-    Callback = function(v) BearTrapEnabled = v end
-})
+    -- 中心金星
+    local star = Instance.new("Part")
+    star.Name = "Star"
+    star.Shape = Enum.PartType.Ball
+    star.Size = Vector3.new(0.75, 0.75, 0.75)
+    star.Color = Color3.fromRGB(255, 240, 160)
+    star.Material = Enum.Material.Neon
+    star.CanCollide = false
+    star.Parent = tool
+    star.CFrame = handle.CFrame * CFrame.new(0, 0.6, -0.3)
+    local wStar = Instance.new("WeldConstraint")
+    wStar.Part0 = handle
+    wStar.Part1 = star
+    wStar.Parent = handle
 
---================================================================
---[ 自动标签页 ]
---================================================================
+    -- 金色光环
+    local halo = Instance.new("Part")
+    halo.Name = "Halo"
+    halo.Shape = Enum.PartType.Ball
+    halo.Size = Vector3.new(1.7, 1.7, 1.7)
+    halo.Color = Color3.fromRGB(255, 230, 130)
+    halo.Material = Enum.Material.ForceField
+    halo.Transparency = 0.7
+    halo.CanCollide = false
+    halo.Parent = tool
+    halo.CFrame = handle.CFrame * CFrame.new(0, 0.6, 0)
+    local wHalo = Instance.new("WeldConstraint")
+    wHalo.Part0 = handle
+    wHalo.Part1 = halo
+    wHalo.Parent = handle
 
-local AutoBox1 = Tabs.Auto:AddLeftGroupbox("钓鱼")
+    -- 光
+    local light = Instance.new("PointLight")
+    light.Color = Color3.fromRGB(255, 220, 130)
+    light.Brightness = 5
+    light.Range = 12
+    light.Parent = handle
 
-AutoBox1:AddToggle("FishingAuto", {
-    Text = "自动钓鱼",
-    Default = false,
-    Callback = function(v) 
-        Fishing.Auto = v 
-        if v then autoFishingLoop() end 
-    end
-})
+    -- 粒子
+    local att = Instance.new("Attachment")
+    att.Parent = handle
+    local pe = Instance.new("ParticleEmitter")
+    pe.Texture = "rbxassetid://243660364"
+    pe.Rate = 25
+    pe.Lifetime = NumberRange.new(0.6, 1.2)
+    pe.Speed = NumberRange.new(2, 5)
+    pe.SpreadAngle = Vector2.new(180, 180)
+    pe.Color = ColorSequence.new(Color3.fromRGB(255, 220, 130))
+    pe.Size = NumberSequence.new(0.4, 0)
+    pe.Transparency = NumberSequence.new(0.2, 1)
+    pe.LightEmission = 1
+    pe.Parent = att
 
-AutoBox1:AddToggle("FishingNoDelay", {
-    Text = "无延迟钓鱼",
-    Default = false,
-    Callback = function(v) 
-        Fishing.NoDelay = v 
-        if v then noDelayFishingLoop() end 
-    end
-})
+    tool.Grip = CFrame.new(0, -0.3, -1.3) * CFrame.Angles(math.rad(-20), 0, 0)
 
-AutoBox1:AddToggle("FishingInstant", {
-    Text = "秒钓鱼",
-    Default = false,
-    Callback = function(v) 
-        Fishing.Instant = v 
-        if v then instantFishingLoop() end 
-    end
-})
+    return tool
+end
 
-local AutoBox2 = Tabs.Auto:AddRightGroupbox("食物与烹饪")
+local hasCrucifix = false
 
-AutoBox2:AddToggle("AutoFeed", {
-    Text = "自动进食",
-    Default = false,
-    Callback = function(v) AutoFeed.Enabled = v end
-})
-
-AutoBox2:AddDropdown("AutoFeedFoods", {
-    Text = "选择食物",
-    Values = {"苹果", "浆果", "胡萝卜", "蛋糕", "辣椒", "熟肉块", "熟牛排"},
-    Multi = true,
-    Callback = function(v)
-        local en = {}
-        for k, val in pairs(v) do
-            local cn = type(k) == "number" and val or k
-            if ItemCN[cn] then table.insert(en, ItemCN[cn]) end
-        end
-        AutoFeed.Foods = en
-    end
-})
-
-AutoBox2:AddSlider("AutoFeedThreshold", {
-    Text = "饥饿阈值 %",
-    Default = 75,
-    Min = 0,
-    Max = 100,
-    Rounding = 0,
-    Callback = function(v) AutoFeed.Threshold = v end
-})
-
-AutoBox2:AddDropdown("AutoCookItems", {
-    Text = "烹饪食物",
-    Values = {"生肉块", "生牛排", "肋骨", "三文鱼", "鲭鱼"},
-    Multi = true,
-    Callback = function(v)
-        local en = {}
-        for k, val in pairs(v) do
-            local cn = type(k) == "number" and val or k
-            if ItemCN[cn] then table.insert(en, ItemCN[cn]) end
-        end
-        AutoCook.Items = en
-    end
-})
-
-AutoBox2:AddToggle("AutoCook", {
-    Text = "自动烹饪",
-    Default = false,
-    Callback = function(v) AutoCook.Enabled = v end
-})
-
-AutoBox2:AddToggle("AutoPullRawMeat", {
-    Text = "自动拉生肉到篝火",
-    Default = false,
-    Callback = function(v) AutoPullRawMeat = v end
-})
-
-local AutoBox3 = Tabs.Auto:AddLeftGroupbox("制作与宝箱")
-
-AutoBox3:AddInput("CraftItemName", {
-    Text = "制作物品名",
-    Default = "Shelf",
-    Callback = function(v) AutoCraft.ItemName = v end
-})
-
-AutoBox3:AddSlider("CraftInterval", {
-    Text = "制作间隔(秒)",
-    Default = 5,
-    Min = 1,
-    Max = 60,
-    Rounding = 0,
-    Callback = function(v) AutoCraft.Interval = v end
-})
-
-AutoBox3:AddButton("制作一次", function()
-    pcall(function()
-        ReplicatedStorage.RemoteEvents.CraftItem:InvokeServer(AutoCraft.ItemName)
-        Notify("已制作: " .. AutoCraft.ItemName, 2)
+local function bindCrucifixEvents(tool)
+    tool.Equipped:Connect(function()
+        local char = player.Character
+        if not char then return end
+        local hl = Instance.new("Highlight")
+        hl.FillColor = Color3.fromRGB(255, 215, 0)
+        hl.FillTransparency = 0.8
+        hl.OutlineColor = Color3.fromRGB(255, 255, 200)
+        hl.Parent = char
+        Debris:AddItem(hl, 1.5)
     end)
-end)
+end
 
-AutoBox3:AddToggle("AutoCraft", {
-    Text = "自动制作",
-    Default = false,
-    Callback = function(v) AutoCraft.Enabled = v end
-})
+local function giveCrucifix()
+    if hasCrucifix then return end
+    hasCrucifix = true
+    local tool = buildCrucifixTool()
+    bindCrucifixEvents(tool)
+    tool.Parent = player.Backpack
+end
 
-AutoBox3:AddToggle("AutoOpenChest", {
-    Text = "自动开全部宝箱",
-    Default = false,
-    Callback = function(v) AutoOpenChest = v end
-})
+crossBtn.MouseButton1Click:Connect(giveCrucifix)
 
-AutoBox3:AddToggle("ChestAura", {
-    Text = "宝箱光环",
-    Default = false,
-    Callback = function(v) ChestAura = v end
-})
+-- ============================================================
+--  手持十字架判定
+-- ============================================================
+local function isHoldingCrucifix()
+    local char = player.Character
+    if not char then return false end
+    local tool = char:FindFirstChildOfClass("Tool")
+    return tool and tool.Name == "Crucifix"
+end
 
-AutoBox3:AddSlider("ChestAuraRange", {
-    Text = "光环范围",
-    Default = 50,
-    Min = 1,
-    Max = 200,
-    Rounding = 0,
-    Callback = function(v) ChestAuraRange = v end
-})
+-- ============================================================
+--  A-60 主逻辑
+-- ============================================================
+local a60Active  = false
+local currentA60 = nil
 
-local AutoBox4 = Tabs.Auto:AddRightGroupbox("其它")
+local function stopA60()
+    a60Active = false
+    if currentA60 then
+        currentA60:Destroy()
+        currentA60 = nil
+    end
+    endOmen(1.2)
+end
 
-AutoBox4:AddToggle("AutoStunDeer", {
-    Text = "自动眩晕鹿",
-    Default = false,
-    Callback = function(v) AutoStunDeer = v end
-})
+local function spawnA60()
+    if a60Active then return end
+    local char = player.Character
+    if not char then return end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
 
-AutoBox4:AddToggle("AutoSaveChild", {
-    Text = "自动救所有小孩",
-    Default = false,
-    Callback = function(v) AutoSaveChild = v end
-})
+    a60Active = true
 
---================================================================
---[ 传送标签页 ]
---================================================================
+    -- ============ 预兆 ============
+    startOmen(CONFIG.omenDuration)
 
-local TeleBox1 = Tabs.Teleport:AddLeftGroupbox("基础传送点")
+    task.spawn(function()
+        -- 等待预兆
+        task.wait(CONFIG.omenDuration + 0.1)
 
-TeleBox1:AddButton("传送到营火", function()
-    local hrp = getHRP()
-    if hrp then hrp.CFrame = CFrame.new(0.431, 15.776, -1.886) end
-end)
+        if not a60Active then
+            endOmen(1.0)
+            return
+        end
 
-TeleBox1:AddButton("传送到安全区", function()
-    local part = Workspace:FindFirstChild("SafeZonePart") or Instance.new("Part")
-    part.Anchored = true
-    part.Size = Vector3.new(30, 3, 30)
-    part.Position = Vector3.new(0, 350, 0)
-    part.Parent = Workspace
-    local hrp = getHRP()
-    if hrp then hrp.CFrame = CFrame.new(0, 360, 0) end
-end)
+        local pr0 = char:FindFirstChild("HumanoidRootPart")
+        if not pr0 then
+            a60Active = false
+            endOmen(1.0)
+            return
+        end
 
-TeleBox1:AddButton("传送到商人", function()
-    local hrp = getHRP()
-    if hrp then hrp.CFrame = CFrame.new(-37.08, 3.98, -16.33) end
-end)
+        -- ============ 生成 A-60 ============
+        local playerPos = pr0.Position
+        local backDir = -pr0.CFrame.LookVector
+        local spawnPos = playerPos + backDir * CONFIG.spawnDistance
+        spawnPos = Vector3.new(spawnPos.X, playerPos.Y + 2, spawnPos.Z)
 
-TeleBox1:AddButton("传送回火旁", function()
-    local hrp = getHRP()
-    if hrp then hrp.CFrame = CFrame.new(-0.0967, 7.937, -0.178) end
-end)
+        local facingDir = (playerPos - spawnPos)
+        facingDir = Vector3.new(facingDir.X, 0, facingDir.Z).Unit
 
-TeleBox1:AddButton("传送到随机树", function()
-    local hrp = getHRP()
-    if not hrp then return end
-    local map = Workspace:FindFirstChild("Map")
-    if not map then return end
-    local trees = {}
-    for _, f in ipairs({map:FindFirstChild("Foliage"), map:FindFirstChild("Landmarks")}) do
-        if f then
-            for _, obj in ipairs(f:GetChildren()) do
-                if obj:IsA("Model") and obj.Name == "Small Tree" then
-                    local trunk = obj:FindFirstChild("Trunk") or obj.PrimaryPart
-                    if trunk then table.insert(trees, trunk) end
+        local refs = createA60Model(spawnPos, facingDir)
+        refs.model.Parent = workspace
+        currentA60 = refs.model
+
+        local staticSound = Instance.new("Sound")
+        staticSound.SoundId = CONFIG.soundStatic
+        staticSound.Volume = 3
+        staticSound.Looped = true
+        staticSound.Parent = refs.head
+        staticSound:Play()
+
+        local passCount = math.random(3, 5)
+        local passDir = 1
+
+        for i = 1, passCount do
+            if not a60Active then return end
+
+            local pr = char:FindFirstChild("HumanoidRootPart")
+            if not pr then stopA60(); return end
+
+            playShake(CONFIG.shakeIntensity, CONFIG.shakeDuration)
+
+            local dashSound = Instance.new("Sound")
+            dashSound.SoundId = CONFIG.soundDash
+            dashSound.Volume = 2.5
+            dashSound.Parent = playerGui
+            dashSound:Play()
+            Debris:AddItem(dashSound, 2)
+
+            local currentPlayerPos = pr.Position
+            local forwardDir = pr.CFrame.LookVector
+
+            local targetOffset
+            if passDir == 1 then
+                targetOffset = forwardDir * CONFIG.passDistance
+            else
+                targetOffset = -forwardDir * CONFIG.passDistance
+            end
+            local targetPos = currentPlayerPos + targetOffset + Vector3.new(0, 2, 0)
+
+            local contactTriggered = false
+
+            while a60Active do
+                local pr2 = char:FindFirstChild("HumanoidRootPart")
+                if not pr2 then stopA60(); return end
+
+                local currentPos = refs.head.Position
+                local delta = targetPos - currentPos
+                local dist = delta.Magnitude
+
+                if dist < 2 then break end
+
+                local dir = delta.Unit
+                local dt = RunService.Heartbeat:Wait()
+                local step = math.min(CONFIG.dashSpeed * dt, dist)
+                local newPos = currentPos + dir * step
+
+                updateA60Parts(refs, newPos, dir)
+
+                if not contactTriggered then
+                    local distToPlayer = (newPos - pr2.Position).Magnitude
+                    if distToPlayer < CONFIG.contactRadius then
+                        contactTriggered = true
+
+                        if isHidden() then
+                            -- 安全
+                        elseif isHoldingCrucifix() then
+                            -- 封印
+                            local c = char:FindFirstChild("Crucifix")
+                            if c then c:Destroy() end
+                            local bpC = player.Backpack:FindFirstChild("Crucifix")
+                            if bpC then bpC:Destroy() end
+                            hasCrucifix = false
+
+                            a60Active = false
+                            currentA60 = nil
+                            sealA60(refs)
+                            endOmen(1.2)
+                            return
+                        else
+                            triggerJumpscare()
+                            stopA60()
+                            return
+                        end
+                    end
                 end
             end
-        end
-    end
-    if #trees > 0 then
-        local t = trees[math.random(1, #trees)]
-        hrp.CFrame = CFrame.new(t.Position + Vector3.new(3, 0, 3))
-    end
-end)
 
-local TeleBox2 = Tabs.Teleport:AddRightGroupbox("目标传送")
+            passDir = -passDir
 
-local childList, childNames = getChildrenList()
-
-TeleBox2:AddDropdown("ChildSelect", {
-    Text = "选择儿童",
-    Values = childNames,
-    Default = childNames[1] or "无",
-})
-
-TeleBox2:AddButton("刷新儿童列表", function()
-    local list, names = getChildrenList()
-    Notify("找到 " .. #names .. " 个小孩", 2)
-end)
-
-TeleBox2:AddButton("传送到选定儿童", function()
-    local selected = Options.ChildSelect.Value
-    if not selected or selected == "无" then Notify("请先选择儿童", 3); return end
-    local list, names = getChildrenList()
-    for i, name in ipairs(names) do
-        if name == selected then
-            local part = list[i] and (list[i]:FindFirstChild("HumanoidRootPart") or list[i].PrimaryPart)
-            if part then
-                local hrp = getHRP()
-                if hrp then hrp.CFrame = part.CFrame + Vector3.new(0, 5, 0) end
+            if i < passCount and a60Active then
+                task.wait(
+                    math.random() * (CONFIG.maxReactionTime - CONFIG.minReactionTime)
+                    + CONFIG.minReactionTime
+                )
             end
-            break
         end
-    end
-end)
 
-TeleBox2:AddButton("传送到最近宝箱", function()
-    local chests = getChests()
-    local hrp = getHRP()
-    if not hrp or #chests == 0 then Notify("附近无宝箱", 2); return end
-    local nearest, minDist = nil, math.huge
-    for _, chest in ipairs(chests) do
-        local part = chest.PrimaryPart or chest:FindFirstChildWhichIsA("BasePart")
-        if part then
-            local dist = (hrp.Position - part.Position).Magnitude
-            if dist < minDist then minDist = dist; nearest = part end
+        if a60Active then
+            a60Active = false
+            task.wait(0.6)
+            if currentA60 then
+                currentA60:Destroy()
+                currentA60 = nil
+            end
+            endOmen(1.2)
         end
-    end
-    if nearest then hrp.CFrame = nearest.CFrame + Vector3.new(0, 5, 0) end
-end)
-
---================================================================
---[ 物品召唤标签页（原拉取物品） ]
---================================================================
-
-local PullBox1 = Tabs.Pull:AddLeftGroupbox("召唤设置")
-
-PullBox1:AddDropdown("PullTarget", {
-    Text = "召唤到",
-    Values = {"自己", "篝火", "建造台"},
-    Default = "自己",
-    Callback = function(v) PullConfig.Target = v end
-})
-
-PullBox1:AddSlider("PullSpeed", {
-    Text = "召唤间隔(秒)",
-    Default = 0.5,
-    Min = 0.1,
-    Max = 5,
-    Rounding = 1,
-    Callback = function(v) PullConfig.Speed = v end
-})
-
-PullBox1:AddToggle("PullToggle", {
-    Text = "开始召唤物品",
-    Default = false,
-    Callback = function(v) 
-        PullConfig.Enabled = v 
-        if v then Notify("召唤已启动", 3) else Notify("召唤已停止", 3) end
-    end
-})
-
-local PullBox2 = Tabs.Pull:AddRightGroupbox("选择物品")
-
-PullBox2:AddDropdown("PullFuel", {
-    Text = "燃烧物",
-    Values = {"木头", "煤", "油桶", "椅子", "生物燃料"},
-    Multi = true,
-    Callback = function(v)
-        local en = {}
-        for k, val in pairs(v) do
-            local cn = type(k) == "number" and val or k
-            if ItemCN[cn] then table.insert(en, ItemCN[cn]) end
-        end
-        PullConfig.SelectedFuel = en
-    end
-})
-
-PullBox2:AddDropdown("PullScrap", {
-    Text = "废品物",
-    Values = {"螺栓", "破风扇", "坏微波炉", "旧收音机", "洗衣机", "旧汽车引擎", "轮胎", "金属板"},
-    Multi = true,
-    Callback = function(v)
-        local en = {}
-        for k, val in pairs(v) do
-            local cn = type(k) == "number" and val or k
-            if ItemCN[cn] then table.insert(en, ItemCN[cn]) end
-        end
-        PullConfig.SelectedScrap = en
-    end
-})
-
-PullBox2:AddDropdown("PullEquip", {
-    Text = "装备物",
-    Values = {"左轮手枪", "步枪", "皮革背心", "铁甲", "左轮弹药", "步枪弹药", "巨袋", "好的背包", "强力斧头", "好的斧头"},
-    Multi = true,
-    Callback = function(v)
-        local en = {}
-        for k, val in pairs(v) do
-            local cn = type(k) == "number" and val or k
-            if ItemCN[cn] then table.insert(en, ItemCN[cn]) end
-        end
-        PullConfig.SelectedEquip = en
-    end
-})
-
-PullBox2:AddDropdown("PullFood", {
-    Text = "食物",
-    Values = {"苹果", "浆果", "胡萝卜", "蛋糕", "辣椒", "熟肉块", "熟牛排", "生肉块", "生牛排"},
-    Multi = true,
-    Callback = function(v)
-        local en = {}
-        for k, val in pairs(v) do
-            local cn = type(k) == "number" and val or k
-            if ItemCN[cn] then table.insert(en, ItemCN[cn]) end
-        end
-        PullConfig.SelectedFood = en
-    end
-})
-
-PullBox2:AddDropdown("PullMed", {
-    Text = "药品",
-    Values = {"绷带", "医疗包"},
-    Multi = true,
-    Callback = function(v)
-        local en = {}
-        for k, val in pairs(v) do
-            local cn = type(k) == "number" and val or k
-            if ItemCN[cn] then table.insert(en, ItemCN[cn]) end
-        end
-        PullConfig.SelectedMed = en
-    end
-})
-
---================================================================
---[ 玩家标签页 ]
---================================================================
-
-local PlayerBox1 = Tabs.Player:AddLeftGroupbox("移动与增强")
-
-PlayerBox1:AddToggle("SpeedToggle", {
-    Text = "启用速度",
-    Default = false,
-    Callback = function(v)
-        SpeedEnabled = v
-        if not v and Humanoid then Humanoid.WalkSpeed = 16 end
-    end
-})
-
-PlayerBox1:AddSlider("SpeedSlider", {
-    Text = "速度值",
-    Default = 16,
-    Min = 1,
-    Max = 150,
-    Rounding = 0,
-    Callback = function(v) SpeedValue = v end
-})
-
-PlayerBox1:AddToggle("InfiniteJump", {
-    Text = "无限跳",
-    Default = false,
-    Callback = function(v)
-        InfiniteJumpEnabled = v
-        if v then
-            UIS.JumpRequest:Connect(function()
-                local c = LP.Character
-                if c then
-                    local r = c:FindFirstChild("HumanoidRootPart")
-                    if r then r.Velocity = Vector3.new(r.Velocity.X, 50, r.Velocity.Z) end
-                end
-            end)
-        end
-    end
-})
-
-PlayerBox1:AddToggle("NoclipToggle", {
-    Text = "穿墙",
-    Default = false,
-    Callback = function(v) NoclipEnabled = v end
-})
-
-PlayerBox1:AddToggle("InstantInteract", {
-    Text = "秒互动",
-    Default = false,
-    Callback = function(v) InstantInteract = v end
-})
-
-PlayerBox1:AddToggle("AntiAFK", {
-    Text = "反挂机踢出",
-    Default = false,
-    Callback = function(v)
-        AntiAFKEnabled = v
-        if v then
-            LP.Idled:Connect(function()
-                local vu = game:GetService("VirtualUser")
-                vu:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-                wait(1)
-                vu:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-            end)
-        end
-    end
-})
-
-local PlayerBox2 = Tabs.Player:AddRightGroupbox("飞行")
-
-PlayerBox2:AddSlider("FlySpeed", {
-    Text = "飞行速度",
-    Default = 1,
-    Min = 1,
-    Max = 20,
-    Rounding = 0,
-    Callback = function(v) FlySpeed = v end
-})
-
-PlayerBox2:AddButton("加载外部飞行", function()
-    pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/kongbaNB/9178/refs/heads/main/fly.lua"))()
     end)
-    Notify("已尝试加载外部飞行", 2)
+end
+
+spawnBtn.MouseButton1Click:Connect(spawnA60)
+
+-- ============================================================
+--  重生自动给十字架
+-- ============================================================
+player.CharacterAdded:Connect(function()
+    task.wait(1)
+    if hasCrucifix
+        and not player.Backpack:FindFirstChild("Crucifix")
+        and not player.Character:FindFirstChild("Crucifix")
+    then
+        local tool = buildCrucifixTool()
+        bindCrucifixEvents(tool)
+        tool.Parent = player.Backpack
+    end
 end)
 
---================================================================
---[ 视觉标签页 ]
---================================================================
-
-local VisBox1 = Tabs.Visual:AddLeftGroupbox("透视")
-
-VisBox1:AddToggle("ESPItems", {
-    Text = "物品透视",
-    Default = false,
-    Callback = function(v) ESP.ItemsEnabled = v end
-})
-
-VisBox1:AddDropdown("ESPItemsSelect", {
-    Text = "选择物品",
-    Values = {"木头", "螺栓", "煤", "宝箱", "步枪", "绷带", "椅子", "轮胎"},
-    Multi = true,
-    Callback = function(v)
-        ESP.SelectedItems = {}
-        for k, val in pairs(v) do
-            local cn = type(k) == "number" and val or k
-            if ItemCN[cn] then ESP.SelectedItems[ItemCN[cn]] = true end
-        end
-    end
-})
-
-VisBox1:AddToggle("ESPMobs", {
-    Text = "敌人/小孩透视",
-    Default = false,
-    Callback = function(v) ESP.MobsEnabled = v end
-})
-
-local VisBox2 = Tabs.Visual:AddRightGroupbox("环境")
-
-VisBox2:AddToggle("Fullbright", {
-    Text = "全亮",
-    Default = false,
-    Callback = function(v)
-        FullbrightEnabled = v
-        if v then
-            Lighting.Brightness = 2
-            Lighting.Ambient = Color3.new(1, 1, 1)
-            Lighting.OutdoorAmbient = Color3.new(1, 1, 1)
-            Lighting.ShadowSoftness = 0
-            Lighting.GlobalShadows = false
-        else
-            Lighting.Brightness = 1
-            Lighting.Ambient = Color3.new(0, 0, 0)
-            Lighting.OutdoorAmbient = Color3.new(0.7, 0.7, 0.7)
-            Lighting.GlobalShadows = true
-        end
-    end
-})
-
-VisBox2:AddToggle("DisableFog", {
-    Text = "关闭雾效",
-    Default = false,
-    Callback = function(v)
-        DisableFogEnabled = v
-        if v then Lighting.FogEnd = 100000 else Lighting.FogEnd = 1000 end
-    end
-})
-
-VisBox2:AddToggle("DisableCampfireEffect", {
-    Text = "关闭篝火夜间效果",
-    Default = false,
-    Callback = function(v)
-        DisableCampfireEffect = v
-        local cc = Lighting:FindFirstChild("ColorCorrection")
-        if cc then cc.Enabled = not v end
-    end
-})
-
-VisBox2:AddToggle("NightVision", {
-    Text = "夜视",
-    Default = false,
-    Callback = function(v)
-        NightVisionEnabled = v
-        if v then
-            Lighting.Ambient = Color3.new(1, 1, 1)
-            Lighting.ColorShift_Bottom = Color3.new(1, 1, 1)
-            Lighting.ColorShift_Top = Color3.new(1, 1, 1)
-            Lighting.FogEnd = 100000
-            Lighting.FogStart = 100000
-            Lighting.Brightness = 1
-            Lighting.GlobalShadows = false
-            Lighting.OutdoorAmbient = Color3.new(1, 1, 1)
-            Lighting.ClockTime = 12
-        else
-            Lighting.Ambient = Color3.new(0, 0, 0)
-            Lighting.ColorShift_Bottom = Color3.new(0, 0, 0)
-            Lighting.ColorShift_Top = Color3.new(0, 0, 0)
-            Lighting.FogEnd = 1000
-            Lighting.FogStart = 0
-            Lighting.Brightness = 1
-            Lighting.GlobalShadows = true
-            Lighting.OutdoorAmbient = Color3.new(0.7, 0.7, 0.7)
-        end
-    end
-})
-
-VisBox2:AddToggle("KidESP", {
-    Text = "小孩透视",
-    Default = false,
-    Callback = function(v)
-        if not v then
-            for _, gui in pairs(kidESPData) do if gui then gui:Destroy() end end
-            kidESPData = {}
-        end
-    end
-})
-
---================================================================
---[ 种植标签页（原趣味） ]
---================================================================
-
-local PlantBox1 = Tabs.Plant:AddLeftGroupbox("种植")
-
-PlantBox1:AddDropdown("PlantShape", {
-    Text = "种植形状",
-    Values = {"正方形", "圆形", "原地"},
-    Default = "正方形",
-    Callback = function(v) AutoPlant.Shape = PlantShapeMap[v] or "square" end
-})
-
-PlantBox1:AddSlider("PlantSize", {
-    Text = "种植范围",
-    Default = 80,
-    Min = 10,
-    Max = 500,
-    Rounding = 0,
-    Callback = function(v) AutoPlant.Size = v end
-})
-
-PlantBox1:AddSlider("PlantHeight", {
-    Text = "种植高度",
-    Default = 3,
-    Min = 0,
-    Max = 50,
-    Rounding = 0,
-    Callback = function(v) AutoPlant.Height = v end
-})
-
-PlantBox1:AddSlider("PlantSpacing", {
-    Text = "树苗间隔",
-    Default = 1,
-    Min = 0.5,
-    Max = 10,
-    Rounding = 1,
-    Callback = function(v) AutoPlant.Spacing = v end
-})
-
-PlantBox1:AddSlider("PlantDelay", {
-    Text = "种植延迟(秒)",
-    Default = 1,
-    Min = 0.1,
-    Max = 10,
-    Rounding = 1,
-    Callback = function(v) AutoPlant.Delay = v end
-})
-
-PlantBox1:AddToggle("AutoPlant", {
-    Text = "自动种植",
-    Default = false,
-    Callback = function(v)
-        AutoPlant.Enabled = v
-        if v then saplingPositions = genPlantPos(); currentSaplingIndex = 1 end
-    end
-})
-
-local PlantBox2 = Tabs.Plant:AddRightGroupbox("图案与娱乐")
-
-PlantBox2:AddDropdown("PatternType", {
-    Text = "图案类型",
-    Values = {"球形", "项链", "流星"},
-    Default = "球形",
-    Callback = function(v) FunPattern.Pattern = PatternMap[v] or "sphere" end
-})
-
-PlantBox2:AddSlider("PatternRadius", {
-    Text = "图案大小",
-    Default = 75,
-    Min = 10,
-    Max = 500,
-    Rounding = 0,
-    Callback = function(v) FunPattern.Radius = v end
-})
-
-PlantBox2:AddSlider("PatternSpeed", {
-    Text = "旋转速度",
-    Default = 5,
-    Min = 1,
-    Max = 20,
-    Rounding = 0,
-    Callback = function(v) FunPattern.Speed = v end
-})
-
-PlantBox2:AddToggle("AutoPattern", {
-    Text = "自动形成图案",
-    Default = false,
-    Callback = function(v) FunPattern.Enabled = v end
-})
-
-PlantBox2:AddButton("召唤撸管", function()
-    Notify("生成中...", 2)
-    loadLuGuan()
-end)
-
---================================================================
---[ 设置标签页 ]
---================================================================
-
-local SettingsBox = Tabs.Settings:AddLeftGroupbox("菜单设置")
-
-SettingsBox:AddLabel("菜单快捷键"):AddKeyPicker("MenuKeybind", {
-    Default = "RightShift",
-    NoUI = true,
-    Text = "菜单快捷键",
-})
-Library.ToggleKeybind = Options.MenuKeybind
-
-SettingsBox:AddDivider()
-
-SettingsBox:AddToggle("ShowCustomCursor", {
-    Text = "自定义鼠标",
-    Default = true,
-    Callback = function(v)
-        Library.ShowCustomCursor = v
-    end,
-})
-
-SettingsBox:AddDivider()
-
-SettingsBox:AddDropdown("DPIDropdown", {
-    Text = "界面缩放",
-    Values = {"50%", "75%", "100%", "125%", "150%", "175%", "200%"},
-    Default = "100%",
-    Callback = function(v)
-        v = v:gsub("%%", "")
-        Library:SetDPIScale(tonumber(v))
-    end,
-})
-
-SettingsBox:AddButton("卸载脚本", function()
-    for _, c in pairs(Connections) do c:Disconnect() end
-    Library:Unload()
-end)
-
---================================================================
---[ 保存管理 ]
---================================================================
-
-ThemeManager:SetLibrary(Library)
-SaveManager:SetLibrary(Library)
-ThemeManager:SetFolder("亊彩脚本V2")
-SaveManager:SetFolder("亊彩脚本V2")
-ThemeManager:ApplyToTab(Tabs.Settings)
-
---================================================================
---[ 启动完成 ]
---================================================================
-
-Notify("加载完成！按 RightControl 打开菜单", 3)
-print("✅ 亊彩脚本V2 加载完成！")
+print("[A-60] 客户端脚本 v10 已加载（星光十字架 + Doors 封印 + 预兆）")
