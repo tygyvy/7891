@@ -1,0 +1,1734 @@
+local DrRayLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/AZYsGithub/DrRay-UI-Library/main/DrRay.lua"))()
+
+local window = DrRayLibrary:Load("Budgie Hub | SCP Games and SCP Monsters", "Default")
+
+local tab = DrRayLibrary.newTab("主要功能", "rbxassetid://1129583422")
+local killTab = DrRayLibrary.newTab("杀人脚本", "rbxassetid://1129583422")
+local espTab = DrRayLibrary.newTab("透视", "rbxassetid://1129583422")
+local moveTab = DrRayLibrary.newTab("移动/恶搞", "rbxassetid://1129583422")
+local ctrlTab = DrRayLibrary.newTab("操控面板", "rbxassetid://1129583422")
+
+local specIndex
+local cum = game.Players.LocalPlayer.Backpack.ChildAdded:Connect(function(inst)
+   if inst:IsA("Tool") and inst.Name == "Glock" and inst:FindFirstChild("HandgunScript") then
+      specIndex = getupvalue(getsenv(inst.HandgunScript).OnFire, 14)
+   end
+end)
+
+local function isnetworkowner(part)
+   return (part.ReceiveAge == 0 and gethiddenproperty(part, "NetworkIsSleeping") == false)
+end
+
+local getcustomasset = getcustomasset or getsynasset
+local isfolder = isfolder
+local isfile = isfile
+local writefile = writefile
+local makefolder = makefolder
+
+if not isfolder("BHU") then
+   makefolder("BHU")
+   if not isfile("BHU/Budgie_Sounds") then
+      task.spawn(function()
+         writefile("BHU/Budgie_Sounds", game:HttpGet("https://github.com/ADSKerOffical/BHU2Project/raw/refs/heads/main/The%20chirping%20of%20a%20budgie.mp3"))
+      end)
+   end
+end
+
+local glockTool
+local function getGlockInstanceFromAny()
+   if game.Players.LocalPlayer.Backpack:FindFirstChild("Glock") or game.Players.LocalPlayer.Character:FindFirstChild("Glock") then
+      specIndex = getupvalue(getsenv((game.Players.LocalPlayer.Backpack:FindFirstChild("Glock") or game.Players.LocalPlayer.Character:FindFirstChild("Glock")).HandgunScript).OnFire, 14)
+      return (game.Players.LocalPlayer.Backpack:FindFirstChild("Glock") or game.Players.LocalPlayer.Character:FindFirstChild("Glock"))
+   end
+   for _, player in next, game.Players:GetPlayers() do
+      if player.Character and player.Character:FindFirstChildOfClass("Tool") and player.Character:FindFirstChildOfClass("Tool").Name == "Glock" and player.Character:FindFirstChildOfClass("Tool"):FindFirstChild("Event") then
+          specIndex = getupvalue(getsenv(player.Character.Glock.HandgunScript).OnFire, 14)
+          return player.Character:FindFirstChildOfClass("Tool")
+      end
+      if player:FindFirstChild("Backpack") and player.Backpack:FindFirstChild("Glock") and player.Backpack.Glock:FindFirstChild("Event") then
+          specIndex = getupvalue(getsenv(player.Backpack.Glock.HandgunScript).OnFire, 14)
+          return player.Backpack.Glock
+      end
+   end
+end
+
+local receiv
+local function getReceiverRE()
+   for _, rem in next, game:GetDescendants() do
+      if rem:IsA("RemoteEvent") and rem.Name == "Receiver" and rem.Parent:IsA("Tool") then
+         return rem
+      end
+   end
+end
+
+tab.newButton("获取手枪", "获取一把手枪以使用后续功能", function()
+    if not (game.Players.LocalPlayer.Character:FindFirstChild("Glock") or game.Players.LocalPlayer.Backpack:FindFirstChild("Glock")) then
+       local pos = game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame
+       repeat task.wait()
+         game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = Workspace.Uniform["SCP MTF"].ClickPart.CFrame
+         fireproximityprompt(Workspace.Uniform["SCP MTF"].ClickPart.ProximityPrompt, 0)
+       until game.Players.LocalPlayer.Backpack:FindFirstChild("Glock")
+       game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = pos
+     else 
+        local tool = game.Players.LocalPlayer.Character:FindFirstChild("Glock") or game.Players.LocalPlayer.Backpack:FindFirstChild("Glock")
+        tool.Parent = game.Players.LocalPlayer.Character
+    end 
+end)
+
+tab.newButton("击杀所有玩家", "用手枪击杀所有玩家", function()
+    if glockTool == nil or not glockTool:FindFirstChild("Event") then
+        glockTool = getGlockInstanceFromAny()
+    end
+    local tool = game.Players.LocalPlayer.Backpack:FindFirstChild("Glock") or game.Players.LocalPlayer.Character:FindFirstChild("Glock") or glockTool
+   for _, plr in next, game.Players:GetPlayers() do
+  if plr ~= game.Players.LocalPlayer and plr.UserId ~= 4636830533 and workspace:FindFirstChild(plr.Name) and plr.Character:FindFirstChildOfClass("Humanoid") then
+    for _ = 1, 5 do tool.Event:FireServer(plr.Character.Humanoid, "Glock", specIndex) end
+  end
+end
+end)
+
+tab.newButton("修改手枪", "手枪无需换弹、无需弹药且伤害增加，可以击杀玩家", function()
+    if game.Players.LocalPlayer.Backpack:FindFirstChild("Glock") then
+      game.Players.LocalPlayer.Backpack:FindFirstChild("Glock").Parent = game.Players.LocalPlayer.Character
+    end
+    game.Players.LocalPlayer.Character.Glock.ToolTip = "手枪修改版󠁢󠁹󠀠󠁁󠁄󠁓󠁋󠁥󠁲"
+    setconstant(getsenv(game.Players.LocalPlayer.Character.Glock.HandgunScript).OnFire, 48, 0)
+    setconstant(getsenv(game.Players.LocalPlayer.Character.Glock.HandgunScript).OnFire, 44, 0) 
+    game.Players.LocalPlayer.Character.Glock.Activated:Connect(function()
+      for _ = 1, 20 do
+        game.Players.LocalPlayer.Character.Glock.Event:FireServer(game.Players.LocalPlayer:GetMouse().Target.Parent:IsA("Model") and game.Players.LocalPlayer:GetMouse().Target.Parent:FindFirstChildOfClass("Humanoid"), "Glock", getupvalue(getsenv(game.Players.LocalPlayer.Character.Glock.HandgunScript).OnFire, 14))
+      end
+    end)
+end)
+
+tab.newButton("获取所有徽章", "获取所有徽章 ._.", function()
+    for _, part in next, workspace.Badge:GetChildren() do
+        firetouchinterest(game.Players.LocalPlayer.Character:WaitForChild("HumanoidRootPart", 3600), part, 0)
+    end
+end)
+
+local uniforms = {}
+pcall(function()
+for _, inst in next, game.Workspace.UniformNew:GetChildren() do table.insert(uniforms, inst.Name) end
+for _, inst in next, game.Workspace.Uniform:GetChildren() do table.insert(uniforms, inst.Name) end
+for index, name in next, uniforms do
+   uniforms[index] = string.gsub(name, "(%l)(%u)", "%1 %2")
+end
+end)
+
+tab.newDropdown("穿戴制服", "试穿新制服", uniforms, function(ancd)
+    local realname = ancd:gsub(" ", "")
+    local uniform = game.Workspace.UniformNew:FindFirstChild(realname) or game.Workspace.Uniform:FindFirstChild(realname)
+    local pos = game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame
+    local team = game.Players.LocalPlayer.Team.Name
+    repeat task.wait()
+       game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = uniform.ClickPart.CFrame
+       fireproximityprompt(uniform.ClickPart.ProximityPrompt, 0)
+    until game.Players.LocalPlayer.Team.Name ~= team
+    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = pos
+end)
+
+local victim 
+tab.newInput("击杀玩家", "通过玩家名称或显示名称击杀玩家", function(text)
+    if glockTool == nil or not glockTool:FindFirstChild("Event") then
+      glockTool = getGlockInstanceFromAny()
+    end
+    for _, player in next, game.Players:GetPlayers() do
+      if (string.find(player.Name:lower(), text:lower()) or string.find(player.DisplayName:lower(), text:lower())) and player ~= game.Players.LocalPlayer and player.UserId ~= 4636830533 then
+        victim = player
+        hum = player.Character:WaitForChild("Humanoid")
+        for _ = 1, 20 do
+          glockTool.Event:FireServer(hum, "Glock", specIndex)
+        end
+        break
+      end
+    end
+end)
+
+tab.newToggle("循环击杀玩家", "循环击杀玩家（使用上次'击杀玩家'按钮击杀的目标）。请保持手持手枪", false, function(toggel)
+   andb = toggel
+   while andb and task.wait() do
+      if victim then
+         local hum = victim.Character:WaitForChild("Humanoid")
+         if hum and hum.Health > 0 and not hum.Parent:FindFirstChildOfClass("ForceField") then
+            if glockTool == nil or not glockTool:FindFirstChild("Event") then
+               glockTool = getGlockInstanceFromAny()
+            end
+            if glockTool then
+               glockTool.Event:FireServer(hum, "Glock", specIndex)
+            end
+         end
+      end
+   end
+end)
+
+tab.newButton("上帝模式", "你不会被杀死，但至少需要一个玩家持有霰弹枪。有时可能会失效", function()
+   for _, rem in next, game:GetDescendants() do
+      if rem:IsA("RemoteEvent") and rem.Name == "Receiver" and rem.Parent:IsA("Tool") then
+         rem:FireServer("Damage", game.Players.LocalPlayer.Character.Humanoid, 0/0)
+         receiv = rem
+         break
+      end
+   end
+end)
+
+tab.newInput("治疗玩家", "恢复玩家的全部生命值", function(text)
+   for _, player in next, game.Players:GetPlayers() do
+      if string.find(player.Name:lower(), text) or string.find(player.DisplayName:lower(), text) then
+         if receiv == nil then
+            receiv = getReceiverRE()
+         end
+         receiv:FireServer("Damage", player.Character:WaitForChild("Humanoid"), -math.huge)
+         break
+      end
+   end
+end)
+
+tab.newToggle("循环上帝模式", "循环开启上帝模式", false, function(togge)
+   uehe = togge
+   while uehe and task.wait() do
+      if game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+         if not (game.Players.LocalPlayer.Character.Humanoid.Health ~= game.Players.LocalPlayer.Character.Humanoid.Health) then
+            if receiv == nil then 
+               receiv = getReceiverRE()
+            end
+            receiv:FireServer("Damage", game.Players.LocalPlayer.Character.Humanoid, 0/0)
+         end
+      end
+   end 
+end)
+
+tab.newLabel("特殊工具")
+
+tab.newButton("苦难之核", "你就是神...", function()
+    if glockTool == nil or not glockTool:FindFirstChild("Event") then
+       glockTool = getGlockInstanceFromAny()
+    end
+    local tool = Instance.new("Tool", game.Players.LocalPlayer:WaitForChild("Backpack"))
+    tool.Name = "苦难之核󠁢󠁹󠀠󠁁󠁄󠁓󠁋󠁥󠁲󠀠󠀺󠀩"
+    task.spawn(function()
+       local letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+       repeat task.wait()
+          if tool.Parent == game.Players.LocalPlayer.Character then
+            local str1 = {}
+            local str2 = {}
+            for ism = 1, 60 do
+               local index = math.random(1, #letters)
+               local word = letters:sub(index, index)
+               if ism <= 30 then
+                  table.insert(str1, word)
+               else
+                  table.insert(str2, word)
+               end
+             end
+             tool.ToolTip = table.concat(str1) .. " 真正的苦难之核 " .. table.concat(str2)
+          end
+       until not tool or tool.Parent == nil
+    end)
+    local handle = Instance.new("Part", tool)
+    handle.Name = "Handle"
+    handle.Size = Vector3.new(1.5, 1.5, 1.5)
+    handle.BrickColor = BrickColor.new(Color3.new(0.1, 0, 0.1))
+    handle.Shape = "Ball"
+    handle.Material = "Neon"
+    local wooh = Instance.new("Sound", handle)
+    wooh.SoundId = "rbxassetid://5768708188"
+    wooh.Volume = 0.5
+    local pitch = Instance.new("PitchShiftSoundEffect", wooh)
+    pitch.Priority = 1000
+    pitch.Octave = 0.7
+    local distkoe = Instance.new("DistortionSoundEffect", wooh)
+    distkoe.Priority = 1000
+    distkoe.Level = 100
+    handle.Touched:Connect(function(hit)
+       if hit.Parent:FindFirstChildOfClass("Humanoid") then
+          local humanoid = hit.Parent:FindFirstChildOfClass("Humanoid")
+          for _ = 1, 5 do
+             glockTool.Event:FireServer(humanoid, "Glock", specIndex)
+          end
+          wooh:Play()
+          if isnetworkowner(humanoid.RootPart) then
+             humanoid.RootPart.AssemblyLinearVelocity = Vector3.zero
+          end
+       elseif not hit.Parent:FindFirstChildOfClass("Humanoid") and hit.Anchored == false and isnetworkowner(hit) then
+           hit.AssemblyLinearVelocity = Vector3.zero
+       end
+    end)
+    local screenGui = Instance.new("ScreenGui", game.CoreGui)
+    screenGui.Name = "灵魂即将挣脱并摧毁一切"
+    screenGui.ResetOnSpawn = false
+    screenGui.Enabled = false
+    tool.Destroying:Connect(function()
+       if screenGui then
+          screenGui:Destroy()
+       end
+    end)
+    local Button = Instance.new("TextButton")
+    Button.Name = "Wawa"
+    Button.Size = UDim2.new(0.05, 0.05, 0.05, 5)
+    Button.Position = UDim2.new(0.76, 0, 0.6, 0)
+    Button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Button.TextScaled = true
+    Button.Text = "真正的疯狂之波"
+    Button.Parent = screenGui
+    local cooldown = 0
+    Button.MouseButton1Click:Connect(function()
+       if tick() - cooldown >= 10 then
+          cooldown = tick()
+          sphere = handle:Clone()
+          sphere:ClearAllChildren()
+          sphere.Parent = workspace
+          sphere.Anchored = true
+          game.Debris:AddItem(sphere, 10)
+          sphere.Touched:Connect(function(hit)
+             if hit.Parent:FindFirstChildOfClass("Humanoid") and hit.Parent:FindFirstChildOfClass("Humanoid").Health > 0 and not hit:IsDescendantOf(game.Players.LocalPlayer.Character) then
+                local humanoid = hit.Parent:FindFirstChildOfClass("Humanoid")
+                glockTool.Event:FireServer(humanoid, "Glock", specIndex)
+             end
+          end)
+          task.spawn(function()
+          repeat task.wait()
+             local humanoids = {}
+for _, part in next, workspace:GetPartBoundsInRadius(sphere.Position, sphere.Size.X / 1.35) do
+    if part.Parent:IsA("Model") and part.Parent:FindFirstChildOfClass("Humanoid") and not part:IsDescendantOf(game.Players.LocalPlayer.Character) then
+      if not table.find(humanoids, part.Parent:FindFirstChildOfClass("Humanoid")) then
+        table.insert(humanoids, part.Parent:FindFirstChildOfClass("Humanoid"))
+      end
+    end
+  end
+for _, humanoid in next, humanoids do
+     glockTool.Event:FireServer(humanoid, "Glock", specIndex)
+end
+   until not sphere or sphere.Parent == nil 
+          end)
+          game:GetService("TweenService"):Create(sphere, TweenInfo.new(10, Enum.EasingStyle.Sine, Enum.EasingDirection.Out, 0, false, 0), {
+             Size = Vector3.new(200, 200, 200)
+          }):Play()
+          task.delay(8, function()
+             if sphere then
+                game:GetService("TweenService"):Create(sphere, TweenInfo.new(1.5, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, 0, false, 0), {
+                   Transparency = 1
+                }):Play()
+             end
+          end)
+          local sound = Instance.new("Sound", sphere)
+          sound.SoundId = "http://www.roblox.com/asset/?id=11984351"
+          sound.Volume = 0.4
+          sound.PlaybackSpeed = 0.5
+          sound:Play()
+          game.Debris:AddItem(sound, 6)
+          for _ = 1, 3 do
+             local distor = Instance.new("DistortionSoundEffect", sound)
+             distor.Level = 1
+             distor.Priority = 1000
+          end
+       end
+    end)
+    local loop = Instance.new("Sound", handle)
+    loop.SoundId = "rbxassetid://112878221721234"
+    loop.Looped = true
+    local core = Instance.new("Attachment", handle)
+    local particle = Instance.new("ParticleEmitter", core)
+    particle.Texture = "rbxassetid://85956657392054"
+    particle.Size = NumberSequence.new(1.1, 1.1)
+    particle.Speed = NumberRange.new(0, 0)
+    particle.LockedToPart = true
+    particle.Color = ColorSequence.new(Color3.new(0, 0, 0), Color3.new(0, 0, 0))
+    particle.RotSpeed = NumberRange.new(-360, 360)
+    particle.Lifetime = NumberRange.new(0.05, 0.05)
+    particle.Shape = "Sphere"
+    particle.Rate = 35
+    tool.Activated:Connect(function()
+        if glockTool == nil or not glockTool:FindFirstChild("Event") then
+           glockTool = getGlockInstanceFromAny()
+        end
+        game.Players.LocalPlayer.SimulationRadius = math.huge
+        local pos = game.Players.LocalPlayer:GetMouse().Hit
+        local target = game.Players.LocalPlayer:GetMouse().Target
+        if target and target.Parent:IsA("Model") and target.Parent:FindFirstChildOfClass("Humanoid") then
+           local humanoid = target.Parent:FindFirstChildOfClass("Humanoid")
+           for _ = 1, 250 do
+               glockTool.Event:FireServer(humanoid, "Glock", specIndex)
+           end
+           if not game.Players:GetPlayerFromCharacter(humanoid.Parent) and humanoid.Health <= 0 then
+              game.Players.LocalPlayer.SimulationRadius = math.huge
+              if isnetworkowner(humanoid.RootPart) then
+                 for _, part in next, humanoid.Parent:GetDescendants() do
+                    if part:IsA("BasePart") then
+                       part.AssemblyLinearVelocity = Vector3.zero
+                       part.AssemblyAngularVelocity = Vector3.zero
+                    end
+                 end
+              end
+           end
+        elseif target and target.Anchored == false and not (target.Parent:IsA("Model") and target.Parent:FindFirstChildOfClass("Humanoid")) and isnetworkowner(target) then
+           target.AssemblyLinearVelocity = Vector3.zero
+           target.AssemblyAngularVelocity = Vector3.zero
+        end
+        local by = Instance.new("Sound", handle)
+        by.SoundId = "rbxassetid://126117582247178"
+        by.Volume= 0.3
+        by:Play()
+        game.Debris:AddItem(by, 5)
+        local ADSKer = Instance.new("Part", workspace)
+        ADSKer.Anchored = true
+        ADSKer.CanCollide = false
+        ADSKer.CanTouch = false
+        ADSKer.CanQuery = false
+        ADSKer.Transparency = 1
+        ADSKer.Position = handle.Position
+        ADSKer.Size = Vector3.new(1, 1, (handle.Position - pos.Position).Magnitude)
+        ADSKer.CFrame = CFrame.lookAt(handle.Position, pos.Position) * CFrame.new(0, 0, -(handle.Position - pos.Position).Magnitude / 2)
+        game.Debris:AddItem(ADSKer, 5)
+        local orbs = Instance.new("ParticleEmitter", ADSKer)
+        orbs.Name = "特效󠁢󠁹󠀠󠁁󠁄󠁓󠁋󠁥󠁲"
+        orbs.Enabled = false
+        orbs.Lifetime = NumberRange.new(0.5, 0.5)
+        orbs.Speed = NumberRange.new(0, 0)
+        orbs.Texture = particle.Texture
+        orbs.Color = particle.Color
+        orbs.Size = NumberSequence.new(0, 1)
+        orbs.RotSpeed = NumberRange.new(-360, 360)
+        orbs.Transparency = NumberSequence.new(0, 1)
+        orbs.Shape = "Sphere"
+        orbs:Emit((handle.Position - pos.Position).Magnitude * 2)
+        game.Debris:AddItem(orbs, 3)
+    end)
+    tool.Equipped:Connect(function()
+      loop.Playing = true
+      screenGui.Enabled = true
+         tool.Unequipped:Wait()
+      loop.Playing = false
+      screenGui.Enabled = false
+    end)
+end)
+
+tab.newButton("虎皮鹦鹉", "哦我的小虎皮鹦鹉。用我的虎皮鹦鹉摧毁所有人", function()
+   local tool = Instance.new("Tool", game.Players.LocalPlayer.Backpack)
+   tool.Name = "虎皮鹦鹉"
+   tool.ToolTip = "服从虎皮鹦鹉󠁢󠁵󠁤󠁧󠁩󠁥󠀠󠁨󠁵󠁢"
+   tool.Grip = CFrame.Angles(0, math.rad(90), 0)
+   tool.RequiresHandle = false
+   local handle = Instance.new("Part", tool)
+   handle.Name = "Handle"
+local mesh = Instance.new("SpecialMesh", handle)
+mesh.MeshId = "rbxassetid://110778604682195"
+mesh.TextureId = "rbxassetid://82966045250136"
+mesh.Scale = Vector3.new(1, 1, 1)
+tool.Activated:Connect(function()
+   local budgie = handle:Clone()
+   budgie.CanCollide = true
+   budgie.CustomPhysicalProperties = PhysicalProperties.new(100, 0, 1, 1, 1)
+   budgie.Velocity = game.Players.LocalPlayer:GetMouse().Hit.LookVector * 300
+   budgie.Parent = workspace
+   game.Debris:AddItem(budgie, 10)
+   budgie.Touched:Connect(function(part)
+      if not part:IsDescendantOf(game.Players.LocalPlayer.Character) and part.Parent:FindFirstChildOfClass("Humanoid") then
+         local humanoid = part.Parent:FindFirstChildOfClass("Humanoid")
+         if glockTool == nil or not glockTool:FindFirstChild("Event") then
+            glockTool = getGlockInstanceFromAny()
+         end
+         for _ = 1, 50 do glockTool.Event:FireServer(humanoid, "Glock", specIndex) end
+      elseif not part:IsDescendantOf(game.Players.LocalPlayer.Character) and not part.Parent:FindFirstChildOfClass("Humanoid") then
+      end
+   end)
+      local sound = Instance.new("Sound", budgie)
+      sound.SoundId = getcustomasset("BHU/Budgie_Sounds")
+      sound.Volume = 1
+      sound.Looped = true
+      sound:Play()
+   end)
+end)
+
+tab.newButton("蓝色癌症", "想象一下这里有一个非常酷的描述", function()
+   local tool = Instance.new("Tool", game.Players.LocalPlayer.Backpack)
+tool.Name = "蓝色癌症"
+tool.ToolTip = "它拍手的声音非常响"
+tool.Grip = CFrame.Angles(math.rad(0), math.rad(0), math.rad(0))
+tool.GripPos = Vector3.new(0, 0, 0)
+tool:SetAttribute("Awakened", fasle)
+local mainpart = Instance.new("Part")
+mainpart.Transparency = 0
+mainpart.Name = "Handle"
+mainpart.Size = Vector3.zero
+mainpart.Parent = tool
+local arm1p = Instance.new("Part")
+arm1p.Size = Vector3.new(1, 1, 1)
+arm1p.CanCollide = false
+arm1p.Parent = mainpart
+local arm2p = Instance.new("Part")
+arm2p.Size = Vector3.new(1, 1, 1)
+arm2p.CanCollide = false
+arm2p.Parent = mainpart
+local headp = Instance.new("Part")
+headp.Size = Vector3.new(1, 1, 1)
+headp.Parent = mainpart
+local arm1 = Instance.new("SpecialMesh")
+arm1.MeshId = "rbxassetid://13200088262"
+arm1.TextureId = "rbxassetid://13200088371"
+arm1.Scale = Vector3.new(0.6, 0.6, 0.6)
+arm1.Parent = arm1p
+local arm2 = arm1:Clone()
+arm2.Parent = arm2p
+local head = Instance.new("SpecialMesh")
+head.MeshId = "rbxassetid://13200081913"
+head.TextureId = "rbxassetid://13200082055"
+head.Scale = Vector3.new(0.7, 0.7, 0.7)
+head.Parent = headp
+local armjoint1 = Instance.new("Weld")
+armjoint1.Part0 = mainpart
+armjoint1.Part1 = arm1p
+armjoint1.C0 = CFrame.new(-1, 0, -0.3) * CFrame.Angles(math.rad(0), math.rad(0), math.rad(0))
+armjoint1.Parent = mainpart
+local armjoint2 = Instance.new("Weld")
+armjoint2.Part0 = mainpart
+armjoint2.Part1 = arm2p
+armjoint2.C0 = CFrame.new(1, 0, -0.3) * CFrame.Angles(math.rad(0), math.rad(0), math.rad(180))
+armjoint2.Parent = mainpart
+local headjoint = Instance.new("Weld")
+headjoint.Part0 = mainpart
+headjoint.Part1 = headp
+headjoint.C0 = CFrame.new(0, 0, 0)
+headjoint.Parent = mainpart
+local lastPressTime = 0
+tool.Activated:Connect(function()
+  local currentTime = tick()
+            if currentTime - lastPressTime >= 1 then
+                lastPressTime = currentTime 
+local owner = tool.Parent
+local handle = mainpart
+local sound = Instance.new("Sound")
+sound.SoundId = "rbxassetid://119332409093320"
+sound.Volume = 5
+sound.PlaybackSpeed = 0.9
+sound.Looped = false
+sound.Parent = handle
+sound:Play()
+game.Debris:AddItem(sound, 5)
+local pitch = Instance.new("PitchShiftSoundEffect")
+pitch.Octave = 0.7
+pitch.Priority = math.huge
+pitch.Parent = sound
+local shockwave = Instance.new("Part")
+shockwave.CFrame = handle.CFrame
+shockwave.Size = Vector3.zero
+shockwave.Material = "SmoothPlastic"
+shockwave.Color = Color3.new(1, 1, 1)
+shockwave.Anchored = true
+shockwave.CanCollide = false
+shockwave.Parent = workspace
+game.Debris:AddItem(shockwave, 4)
+local modelsw = Instance.new("SpecialMesh")
+modelsw.Scale = Vector3.new(1, 1, 1)
+modelsw.MeshId = "rbxassetid://173770780"
+modelsw.Parent = shockwave
+local partTweenn2 = game:GetService("TweenService"):Create(shockwave, TweenInfo.new(0.7, Enum.EasingStyle.Quad), {
+        Transparency = 1
+    })
+    partTweenn2:Play()
+local partTweenn2 = game:GetService("TweenService"):Create(modelsw, TweenInfo.new(0.7, Enum.EasingStyle.Quad), {
+        Scale = Vector3.new(120, 1, 120)
+    })
+    partTweenn2:Play()
+ local humanoids = {}
+for _, part in next, workspace:GetPartBoundsInRadius(handle.Position, 40) do
+    if part.Parent:IsA("Model") and part.Parent:FindFirstChildOfClass("Humanoid") and not part:IsDescendantOf(owner) then
+      if not table.find(humanoids, part.Parent:FindFirstChildOfClass("Humanoid")) then
+        table.insert(humanoids, part.Parent:FindFirstChildOfClass("Humanoid"))
+      end
+    end
+  end
+for _, humanoid in next, humanoids do 
+  if glockTool == nil or not glockTool:FindFirstChild("Event") then
+     glockTool = getGlockInstanceFromAny()
+  end
+  for _ = 1, 250 do
+     glockTool.Event:FireServer(humanoid, "Glock", specIndex)
+  end
+end
+            end
+end)
+repeat task.wait(wait()) until tool.Parent == game.Players.LocalPlayer.Character
+    local sound = Instance.new("Sound")
+    sound.SoundId = "rbxassetid://2261507666"
+    sound.Volume = 2
+    sound.PlaybackSpeed = 1
+    sound.Looped = false
+    sound.Parent = mainpart
+    sound:Play()
+    game.Debris:AddItem(sound, 6)
+end)
+
+tab.newButton("Janora", "JANORA", function()
+  local tool = Instance.new("Tool", game.Players.LocalPlayer.Backpack)
+tool.Name = "Jarona"
+tool.ToolTip = "JARONA"
+tool.RequiresHandle = false
+tool:SetAttribute("Jarona_Act", false)
+    local screenGui = Instance.new("ScreenGui", game.CoreGui)
+    screenGui.Name = "Jaronas"
+    screenGui.ResetOnSpawn = false
+    screenGui.Enabled = false
+    tool.Destroying:Connect(function()
+       if screenGui then
+          screenGui:Destroy()
+       end
+    end)
+    local Button = Instance.new("TextButton")
+    Button.Name = "Cumalaka"
+    Button.Size = UDim2.new(0.05, 0.05, 0.05, 5)
+    Button.Position = UDim2.new(0.76, 0, 0.6, 0)
+    Button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Button.TextScaled = true
+    Button.Text = "Jarona 冲刺"
+    Button.Parent = screenGui
+    local cooldown = 0
+    Button.MouseButton1Click:Connect(function()
+       if tick() - cooldown >= 2 then
+          cooldown = tick()
+local bv = Instance.new("BodyVelocity", game.Players.LocalPlayer.Character.HumanoidRootPart)
+bv.P = math.huge
+bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+bv.Velocity = game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame.LookVector * 200
+game.Debris:AddItem(bv, 1)
+local sound = Instance.new("Sound", game.Players.LocalPlayer.Character.HumanoidRootPart)
+sound.SoundId = "rbxassetid://138210320"
+sound.Volume = 4
+game.Debris:AddItem(sound, 1.5)
+for _, part in next, game.Players.LocalPlayer.Character:GetChildren() do
+   if part:IsA("BasePart") then
+      task.spawn(function()
+      part.CustomPhysicalProperties = PhysicalProperties.new(99, 1, 1, 1, 1)
+      local con = part.Touched:Connect(function(hit)
+         if not hit:IsDescendantOf(game.Players.LocalPlayer.Character) and hit.Parent:FindFirstChildOfClass("Humanoid") then
+            local humanoid = hit.Parent:FindFirstChildOfClass("Humanoid")
+            if glockTool == nil or not glockTool:FindFirstChild("Event") then
+               glockTool = getGlockInstanceFromAny()
+            end
+            glockTool.Event:FireServer(humanoid, "Glock", specIndex)
+            sound:Play()
+         end
+      end)
+      repeat wait() until bv.Parent == nil or not bv
+         part:ResetPropertyToDefault("CustomPhysicalProperties")
+         if con then con:Disconnect() end
+      end)
+   end
+end
+game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame *= CFrame.Angles(math.rad(0), 0, math.rad(180))
+repeat task.wait()
+   game.Players.LocalPlayer.Character.HumanoidRootPart.AssemblyAngularVelocity = Vector3.new(400, 400, 400)
+   game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame *= CFrame.Angles(math.rad(math.random(-360, 360)), math.rad(math.random(-360, 360)), math.rad(math.random(-360, 360)))
+until not bv or bv == nil or bv.Parent == nil
+for _, part in next, game.Players.LocalPlayer.Character:GetChildren() do
+    if part:IsA("BasePart") then
+       part.AssemblyAngularVelocity = Vector3.zero
+       part.AssemblyLinearVelocity = Vector3.zero
+    end
+ end
+game.Players.LocalPlayer.Character.Humanoid:ChangeState("GettingUp")
+      end
+  end)
+  local Button2 = Button:Clone()
+  Button2.Position = UDim2.new(0.82, 0, 0.6, 0)
+  Button2.Text = "站起来"
+  Button2.Parent = screenGui
+  Button2.MouseButton1Click:Connect(function()
+     game.Players.LocalPlayer.Character.Humanoid:ChangeState("GettingUp")
+  end)
+tool.Activated:Connect(function()
+   game.Players.LocalPlayer.Character.Humanoid:ChangeState("FallingDown")
+   game.Players.LocalPlayer.Character.HumanoidRootPart.AssemblyLinearVelocity += game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame.LookVector * 300
+   local jaronas = {"92391018541866", "126883165922492", "116285593175641", "139878098626794"}
+   if not tool:GetAttribute("Jarona_Act") == true then
+      local sound = Instance.new("Sound", game.Players.LocalPlayer.Character.HumanoidRootPart)
+      sound.SoundId = "rbxassetid://" .. jaronas[math.random(1, 4)]
+      sound.Volume = 1
+      sound:Play()
+      game.Debris:AddItem(sound, 5)
+   end
+   local sound = Instance.new("Sound", game.Players.LocalPlayer.Character.HumanoidRootPart)
+   sound.SoundId = "rbxassetid://138210320"
+   sound.Volume = 5
+   sound.PlaybackSpeed = 1
+   sound.Looped = false
+   game.Debris:AddItem(sound, 5)
+   for _, part in next, game.Players.LocalPlayer.Character:GetChildren() do
+      if part:IsA("BasePart") then
+         task.spawn(function()
+            if not tool:GetAttribute("Jarona_Act") == true then
+               part.CustomPhysicalProperties = PhysicalProperties.new(99, 1, 1, 1, 1)
+               local con = part.Touched:Connect(function(par)
+                  if not par:IsDescendantOf(game.Players.LocalPlayer.Character) and par.Parent:FindFirstChildOfClass("Humanoid") then
+                     local humanoid = par.Parent:FindFirstChildOfClass("Humanoid")
+                     sound:Play()
+                     game.Players.LocalPlayer.Character.HumanoidRootPart.AssemblyLinearVelocity = (humanoid.RootPart.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Unit * -250
+                     if glockTool == nil or not glockTool:FindFirstChild("Event") then
+                        glockTool = getGlockInstanceFromAny()
+                     end
+                     for _ = 1, 10 do glockTool.Event:FireServer(humanoid, "Glock", specIndex) end
+                  end
+               end)
+                  repeat task.wait(wait()) until game.Players.LocalPlayer.Character.Humanoid:GetState() ~= Enum.HumanoidStateType.FallingDown
+               part:ResetPropertyToDefault("CustomPhysicalProperties")
+               if con then con:Disconnect() end
+               tool:SetAttribute("Jarona_Act", false)
+            end
+         end)
+      end
+   end
+   tool:SetAttribute("Jarona_Act", true)
+end)
+    tool.Equipped:Connect(function()
+       screenGui.Enabled = true
+         tool.Unequipped:Wait()
+       screenGui.Enabled = false
+    end)
+end)
+
+tab.newButton("祝福", "免费获得上帝之力的祝福（Budgie Hub）", function()
+   local tool = Instance.new("Tool", game.Players.LocalPlayer.Backpack)
+tool.Name = "祝福"
+tool.ToolTip = "祝福（治疗）你按下的任何人，甚至是实体"
+tool.RequiresHandle = false
+local screenGui = Instance.new("ScreenGui", game.CoreGui)
+screenGui.Enabled = false
+screenGui.ResetOnSpawn = false
+tool.Destroying:Connect(function()
+   if screenGui then
+      screenGui:Destroy()
+   end
+end)
+tool.Equipped:Connect(function()
+   screenGui.Enabled = true 
+     tool.Unequipped:Wait()
+   screenGui.Enabled = false
+end)
+local Button = Instance.new("TextButton")
+    Button.Name = "Wkiw"
+    Button.Size = UDim2.new(0.05, 0.05, 0.05, 5)
+    Button.Position = UDim2.new(0.76, 0, 0.6, 0)
+    Button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Button.TextScaled = true
+    Button.Text = "祝福之波"
+    Button.Parent = screenGui
+    Button.MouseButton1Click:Connect(function()
+       local sound = Instance.new("Sound", game.Players.LocalPlayer.Character.HumanoidRootPart)
+sound.SoundId = "rbxassetid://127416781"
+sound.Name = "Blessing"
+sound.Volume = 1.5
+sound.PlaybackSpeed = 0.8
+sound:Play()
+game.Debris:AddItem(sound, 5)
+if receiv == nil then
+   receiv = getReceiverRE()
+end
+local greenball = Instance.new("Part", workspace)
+greenball.Size = Vector3.zero
+greenball.Anchored = true
+greenball.Material = "Neon"
+greenball.Position = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
+greenball.Color = Color3.new(1, 1, 1)
+greenball.CanCollide = false
+greenball.CanQuery = false
+greenball.CanTouch = false
+greenball.Shape = "Ball"
+game.Debris:AddItem(greenball, 10)
+local particle = Instance.new("ParticleEmitter", greenball)
+particle.Enabled = false
+particle.Texture = "rbxassetid://16291625893"
+particle.Speed = NumberRange.new(20, 70)
+particle.Size = NumberSequence.new(1, 1)
+particle.Transparency = NumberSequence.new(0, 1)
+particle.Lifetime = NumberRange.new(3.5, 3.5)
+particle.SpreadAngle = Vector2.new(-360, 360)
+particle.Shape = "Sphere"
+particle:Emit(350)
+game.Debris:AddItem(particle, 4)
+local partTweenn2 = game:GetService("TweenService"):Create(greenball, TweenInfo.new(0.5, Enum.EasingStyle.Sine), {
+    Transparency = 1,
+    Size = Vector3.new(100, 100, 100),
+    Color = Color3.new(0, 0, 0)
+ })
+partTweenn2:Play()
+local humanoids = {}
+for _, part in next, workspace:GetPartBoundsInRadius(game.Players.LocalPlayer.Character.HumanoidRootPart.Position, 80) do
+    if part.Parent:IsA("Model") and part.Parent:FindFirstChildOfClass("Humanoid") then
+      if not table.find(humanoids, part.Parent:FindFirstChildOfClass("Humanoid")) then
+        table.insert(humanoids, part.Parent:FindFirstChildOfClass("Humanoid"))
+      end
+    end
+  end
+for _, humanoid in next, humanoids do
+  receiv:FireServer("Damage", humanoid, -humanoid.MaxHealth)
+end
+    end)
+tool.Activated:Connect(function()
+   local target = game.Players.LocalPlayer:GetMouse().Target
+   if target and target.Parent:FindFirstChildOfClass("Humanoid") then
+      local humanoid = target.Parent:FindFirstChildOfClass("Humanoid")
+      if receiv == nil then
+         receiv = getReceiverRE()
+      end
+      receiv:FireServer("Damage", humanoid, -humanoid.MaxHealth)
+        local light = Instance.new("PointLight", humanoid.RootPart)
+        light.Range = 10
+        light.Brightness = 1.5
+        light.Color = Color3.new(0, 1, 0)
+        game.Debris:AddItem(light, 4)
+        local particle = Instance.new("ParticleEmitter", humanoid.RootPart)
+        particle.Enabled = false
+        particle.Texture = "rbxassetid://85956657392054"
+        particle.Speed = NumberRange.new(3, 3)
+        particle.Size = NumberSequence.new(1, 1)
+        particle.Color = ColorSequence.new(Color3.new(0, 0.8, 0), Color3.new(0, 0.8, 0))
+        particle.Transparency = NumberSequence.new(0, 1)
+        particle.Lifetime = NumberRange.new(1, 1)
+        particle.SpreadAngle = Vector2.new(-360, 360)
+        particle.Shape = "Sphere"
+        particle:Emit(50)
+        game.Debris:AddItem(particle, 10)
+        task.delay(1, function()
+           local partTweenn2 = game:GetService("TweenService"):Create(light, TweenInfo.new(1, Enum.EasingStyle.Sine), {
+                 Range = 0
+              })
+           partTweenn2:Play()
+         end)
+        local sound = Instance.new("Sound", humanoid.RootPart)
+        sound.SoundId = "rbxassetid://3473563090"
+        sound.Volume = 1
+        sound.PlaybackSpeed = 1
+        sound:Play()
+        game.Debris:AddItem(sound, 8)
+   end
+end)
+end)
+
+tab.newButton("灭绝", "只需打个响指就能改变他人的命运（即兴创作）", function()
+  local tool = Instance.new("Tool", game.Players.LocalPlayer.Backpack)
+tool.Name = "灭绝"
+tool.ToolTip = "打个响指，我就能摧毁任何我想摧毁的人"
+tool.RequiresHandle = false
+tool.Activated:Connect(function()
+    local target = game.Players.LocalPlayer:GetMouse().Target
+    if target and target.Parent:FindFirstChildOfClass("Humanoid") then
+       local humanoid = target.Parent:FindFirstChildOfClass("Humanoid")
+       if receiv == nil then 
+          receiv = getReceiverRE()
+       end
+       receiv:FireServer("Damage", humanoid, math.huge)
+        for _, part in next, humanoid.Parent:GetDescendants() do
+           if part:IsA("BasePart") then
+              part.Transparency = 1
+              part.CanCollide = false
+              part.CanQuery = false
+           end
+        end
+        local sound = Instance.new("Sound", humanoid.RootPart)
+        sound.SoundId = "rbxassetid://106306557753297"
+        sound.Volume = 1
+        sound:Play()
+        local particle = Instance.new("ParticleEmitter", humanoid.RootPart)
+        particle.Enabled = false
+        particle.Texture = "rbxassetid://137278198363013"
+        particle.Speed = NumberRange.new(3, 3)
+        particle.Size = NumberSequence.new(1, 1)
+        particle.Transparency = NumberSequence.new(0, 1)
+        particle.Lifetime = NumberRange.new(2, 2)
+        particle.SpreadAngle = Vector2.new(-360, 360)
+        particle.Shape = "Sphere"
+        particle:Emit(25)
+        game.Debris:AddItem(particle, 10)
+    end
+end)
+end)
+
+-- ============================================================
+-- 杀人脚本 分类功能
+-- ============================================================
+local KPlayers = game:GetService("Players")
+local KLocalPlayer = KPlayers.LocalPlayer
+local KVirtualInputManager = game:GetService("VirtualInputManager")
+
+pcall(function()
+    loadstring(game:HttpGet("https://pastebin.com/raw/MFtsqzFG"))()
+end)
+
+local function KKill(victimName)
+    if not victimName then return end
+    if victimName == KLocalPlayer.Name then return end
+    local targetPlayer = KPlayers:FindFirstChild(victimName)
+    if not targetPlayer or not targetPlayer.Character then return end
+    if targetPlayer == KLocalPlayer then return end
+    local targetHumanoid = targetPlayer.Character:FindFirstChildOfClass("Humanoid")
+    if not targetHumanoid or targetHumanoid.Health <= 0 then return end
+    if receiv == nil then receiv = getReceiverRE() end
+    if receiv then
+        receiv:FireServer("Damage", targetHumanoid, math.huge)
+    end
+end
+
+local function KKillAll()
+    if receiv == nil then receiv = getReceiverRE() end
+    if not receiv then return end
+    for _, player in ipairs(KPlayers:GetPlayers()) do
+        if player ~= KLocalPlayer and player.Character then
+            local h = player.Character:FindFirstChildOfClass("Humanoid")
+            if h and h.Health > 0 then
+                receiv:FireServer("Damage", h, math.huge)
+            end
+        end
+    end
+end
+
+killTab.newButton("传送到枪的旁边", "传送到霰弹枪位置并自动拾取", function()
+    if KLocalPlayer.Character and KLocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        KLocalPlayer.Character:PivotTo(CFrame.new(-789.930969, 2.99992466, 27.4075813))
+        task.wait(0.1)
+        KVirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+        task.wait(0.05)
+        KVirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+    end
+end)
+
+killTab.newToggle("点击击杀", "点击屏幕上的玩家或NPC进行击杀", false, function(state)
+    if state then
+        local Mouse = KLocalPlayer:GetMouse()
+        Mouse.Button1Down:Connect(function()
+            local target = Mouse.Target
+            if not target then return end
+            local character = target:FindFirstAncestorOfClass("Model")
+            if not character then return end
+            local tp = KPlayers:GetPlayerFromCharacter(character)
+            if tp and tp ~= KLocalPlayer then
+                KKill(tp.Name)
+            else
+                local h = character:FindFirstChildOfClass("Humanoid")
+                if h and h.Health > 0 then
+                    if receiv == nil then receiv = getReceiverRE() end
+                    if receiv then
+                        receiv:FireServer("Damage", h, math.huge)
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+killTab.newToggle("循环击杀所有玩家", "持续循环击杀所有玩家", false, function(state)
+    if state then
+        task.spawn(function()
+            while state do
+                KKillAll()
+                task.wait(0.1)
+            end
+        end)
+    end
+end)
+
+-- ============================================================
+-- 透视 分类功能
+-- ============================================================
+local ESPPlayers = game:GetService("Players")
+local ESPLocalPlayer = ESPPlayers.LocalPlayer
+
+local Abysall = nil
+local ABY_BASE = "https://raw.githubusercontent.com/therealcookiemonsterof1966/AbysallContinued/main/"
+
+local debugText = "状态：等待启动"
+local debugLabelFunc = nil
+
+local function SetDebug(msg)
+    debugText = msg
+    print("[透视调试] " .. msg)
+    if debugLabelFunc then
+        pcall(function() debugLabelFunc("状态：" .. msg) end)
+    end
+end
+
+local function LoadAbysallESP()
+    if Abysall then return true end
+    local ok, err = pcall(function()
+        getgenv().Abysall = {
+            Environment = loadstring(game:HttpGet(ABY_BASE .. "Components/Environment.luau"))(),
+            ESPLibrary  = loadstring(game:HttpGet(ABY_BASE .. "Components/ESP.luau"))(),
+            Legit = true
+        }
+        Abysall = getgenv().Abysall
+    end)
+    if ok and Abysall and Abysall.ESPLibrary then
+        SetDebug("ESPLibrary 加载成功")
+        return true
+    else
+        SetDebug("ESPLibrary 加载失败：" .. tostring(err))
+        return false
+    end
+end
+
+local function isNPC(model)
+    if not model or not model:IsA("Model") then return false end
+    if model == ESPLocalPlayer.Character then return false end
+    if ESPPlayers:GetPlayerFromCharacter(model) then return false end
+    local hum = model:FindFirstChildOfClass("Humanoid")
+    if not hum or hum.Health <= 0 then return false end
+    if not (model:FindFirstChild("Head") or model:FindFirstChild("HumanoidRootPart")) then
+        return false
+    end
+    return true
+end
+
+local ESPList = {}
+local CurrentColor = Color3.fromRGB(255, 50, 50)
+local autoScan = true
+local espEnabled = false
+
+local function AddESP(Model)
+    if ESPList[Model] then return end
+    if not Abysall or not Abysall.ESPLibrary then return end
+    local ok, err = pcall(function()
+        Abysall.ESPLibrary:AddESP({
+            Object = Model,
+            Text = Model.Name,
+            Color = CurrentColor
+        })
+    end)
+    if ok then
+        ESPList[Model] = true
+    else
+        SetDebug("AddESP 失败：" .. tostring(err))
+    end
+end
+
+local function RemoveESP(Model)
+    if not ESPList[Model] then return end
+    pcall(function()
+        Abysall.ESPLibrary:RemoveESP(Model)
+    end)
+    ESPList[Model] = nil
+end
+
+local function ClearAllESP()
+    for Model in pairs(ESPList) do
+        pcall(function() Abysall.ESPLibrary:RemoveESP(Model) end)
+    end
+    ESPList = {}
+end
+
+local function ScanMap()
+    if not Abysall then return end
+    SetDebug("正在扫描地图...")
+    local Found = 0
+    local Start = tick()
+    for _, Obj in ipairs(workspace:GetDescendants()) do
+        if tick() - Start > 5 then break end
+        if Obj:IsA("Model") and isNPC(Obj) then
+            Found += 1
+            if espEnabled then
+                AddESP(Obj)
+            end
+        end
+    end
+    SetDebug("扫描完成，共 " .. Found .. " 个 NPC")
+end
+
+espTab.newLabel("NPC 透视")
+
+espTab.newToggle("透视 NPC", "打开后扫描地图并高亮所有 NPC", false, function(state)
+    espEnabled = state
+    if state then
+        if not LoadAbysallESP() then
+            SetDebug("库加载失败，无法开启透视")
+            return
+        end
+        task.spawn(ScanMap)
+    else
+        ClearAllESP()
+        SetDebug("透视已关闭")
+    end
+end)
+
+espTab.newInput("NPC 颜色", "输入 RGB，格式：255,50,50", function(text)
+    local r, g, b = text:match("(%d+)[,，%s]+(%d+)[,，%s]+(%d+)")
+    if r and g and b then
+        CurrentColor = Color3.fromRGB(tonumber(r), tonumber(g), tonumber(b))
+        SetDebug("颜色已改为 " .. r .. "," .. g .. "," .. b)
+        for Model in pairs(ESPList) do
+            pcall(function()
+                if Abysall.ESPLibrary.UpdateObjectColor then
+                    Abysall.ESPLibrary:UpdateObjectColor(Model, CurrentColor)
+                else
+                    Abysall.ESPLibrary:RemoveESP(Model)
+                    task.wait()
+                    Abysall.ESPLibrary:AddESP({
+                        Object = Model,
+                        Text = Model.Name,
+                        Color = CurrentColor
+                    })
+                end
+            end)
+        end
+    else
+        SetDebug("颜色格式错误，应为 255,50,50")
+    end
+end)
+
+espTab.newToggle("新 NPC 自动加入", "新刷出来的 NPC 也会自动显示", true, function(state)
+    autoScan = state
+    SetDebug("自动加入：" .. tostring(state))
+end)
+
+espTab.newButton("重新扫描地图", "扫描并显示所有 NPC", function()
+    if not LoadAbysallESP() then return end
+    task.spawn(ScanMap)
+end)
+
+espTab.newButton("清除所有透视", "移除当前所有 NPC 高亮", function()
+    ClearAllESP()
+    SetDebug("已清除所有透视")
+end)
+
+espTab.newLabel("状态：等待启动")
+
+workspace.DescendantAdded:Connect(function(Obj)
+    if not espEnabled then return end
+    if not autoScan then return end
+    if Obj:IsA("Model") and isNPC(Obj) then
+        task.wait(0.2)
+        if Obj.Parent and isNPC(Obj) then
+            AddESP(Obj)
+        end
+    end
+end)
+
+game:GetService("RunService").Heartbeat:Connect(function()
+    if not espEnabled then return end
+    for Model in pairs(ESPList) do
+        if not Model.Parent or not isNPC(Model) then
+            pcall(function() Abysall.ESPLibrary:RemoveESP(Model) end)
+            ESPList[Model] = nil
+        end
+    end
+end)
+
+SetDebug("透视分类已初始化")
+
+-- ============================================================
+-- 移动/恶搞 分类功能
+-- ============================================================
+local MPlayers = game:GetService("Players")
+local MLocalPlayer = MPlayers.LocalPlayer
+local MUserInputService = game:GetService("UserInputService")
+local MRunService = game:GetService("RunService")
+
+local speedValue = 100
+local speedEnabled = false
+local infJumpEnabled = false
+local noclipEnabled = false
+local bodyBumpEnabled = false
+
+local function ApplySpeed()
+    local char = MLocalPlayer.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.WalkSpeed = speedEnabled and speedValue or 16
+        end
+    end
+end
+
+moveTab.newInput("速度数值", "输入速度值（默认 100），然后打开下面的开关", function(text)
+    local num = tonumber(text)
+    if num then
+        speedValue = num
+        print("[移动调试] 速度数值已设为 " .. num .. "（未启用）")
+        if speedEnabled then
+            ApplySpeed()
+        end
+    end
+end)
+
+moveTab.newToggle("启用速度", "打开后应用速度数值，关闭恢复默认 16", false, function(state)
+    speedEnabled = state
+    ApplySpeed()
+    print("[移动调试] 启用速度：" .. tostring(state) .. "，当前值：" .. speedValue)
+end)
+
+moveTab.newToggle("无限跳", "按住跳跃键持续跳跃，连点也可以", false, function(state)
+    infJumpEnabled = state
+    print("[移动调试] 无限跳：" .. tostring(state))
+end)
+
+MUserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not infJumpEnabled then return end
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.Space or input.UserInputType == Enum.UserInputType.Touch then
+        local char = MLocalPlayer.Character
+        if char then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end
+    end
+end)
+
+moveTab.newToggle("穿墙", "关闭自身碰撞，可穿过墙壁", false, function(state)
+    noclipEnabled = state
+    print("[移动调试] 穿墙：" .. tostring(state))
+    if state then
+        task.spawn(function()
+            while noclipEnabled do
+                task.wait(0.1)
+                local char = MLocalPlayer.Character
+                if char then
+                    for _, part in ipairs(char:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = false
+                        end
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+local function LaunchCharacter(targetChar, power)
+    if not targetChar then return end
+    local hrp = targetChar:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    pcall(function() hrp:SetNetworkOwner(MLocalPlayer) end)
+    local bv = Instance.new("BodyVelocity", hrp)
+    bv.P = math.huge
+    bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    bv.Velocity = Vector3.new(
+        math.random(-power, power),
+        power,
+        math.random(-power, power)
+    )
+    game.Debris:AddItem(bv, 1.5)
+    local bav = Instance.new("BodyAngularVelocity", hrp)
+    bav.P = math.huge
+    bav.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+    bav.AngularVelocity = Vector3.new(
+        math.random(-50, 50),
+        math.random(-50, 50),
+        math.random(-50, 50)
+    )
+    game.Debris:AddItem(bav, 1.5)
+end
+
+moveTab.newInput("甩飞玩家", "输入玩家名，回车甩飞", function(text)
+    for _, plr in ipairs(MPlayers:GetPlayers()) do
+        if plr ~= MLocalPlayer and (string.find(plr.Name:lower(), text:lower()) or string.find(plr.DisplayName:lower(), text:lower())) then
+            LaunchCharacter(plr.Character, 500)
+            print("[移动调试] 甩飞 " .. plr.Name)
+            break
+        end
+    end
+end)
+
+moveTab.newButton("甩飞所有玩家", "把在场所有玩家全部甩飞", function()
+    for _, plr in ipairs(MPlayers:GetPlayers()) do
+        if plr ~= MLocalPlayer and plr.Character then
+            LaunchCharacter(plr.Character, 500)
+        end
+    end
+    print("[移动调试] 甩飞全部")
+end)
+
+moveTab.newToggle("身体碰撞甩飞", "碰到谁就甩飞谁", false, function(state)
+    bodyBumpEnabled = state
+    print("[移动调试] 身体碰撞甩飞：" .. tostring(state))
+    if state then
+        task.spawn(function()
+            while bodyBumpEnabled do
+                task.wait(0.1)
+                local char = MLocalPlayer.Character
+                if char then
+                    for _, part in ipairs(char:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            local con
+                            con = part.Touched:Connect(function(hit)
+                                if not bodyBumpEnabled then
+                                    if con then con:Disconnect() end
+                                    return
+                                end
+                                if hit:IsDescendantOf(char) then return end
+                                local model = hit:FindFirstAncestorOfClass("Model")
+                                if model and model:FindFirstChildOfClass("Humanoid") and model ~= char then
+                                    LaunchCharacter(model, 500)
+                                end
+                            end)
+                        end
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+MLocalPlayer.CharacterAdded:Connect(function(char)
+    task.wait(1)
+    ApplySpeed()
+end)
+
+if MLocalPlayer.Character then
+    ApplySpeed()
+end
+
+print("[移动/恶搞] 分类已加载")
+
+-- ============================================================
+-- 操控面板 分类功能
+-- ============================================================
+local CPlayers = game:GetService("Players")
+local CLocalPlayer = CPlayers.LocalPlayer
+local CCamera = workspace.CurrentCamera
+local CTS = game:GetService("TweenService")
+local CRS = game:GetService("RunService")
+local CCoreGui = game:GetService("CoreGui")
+
+local CChar = CLocalPlayer.Character
+local CHrp = CChar and CChar:FindFirstChild("HumanoidRootPart")
+local CHum = CChar and CChar:FindFirstChild("Humanoid")
+
+local function CReasign(c)
+    CHrp = c:WaitForChild("HumanoidRootPart")
+    CHum = c:WaitForChild("Humanoid")
+    CChar = c
+end
+if getgenv().CCharSpawn then getgenv().CCharSpawn:Disconnect() end
+getgenv().CCharSpawn = CLocalPlayer.CharacterAdded:Connect(CReasign)
+
+if getgenv().CSimRadiusCon then getgenv().CSimRadiusCon:Disconnect() end
+getgenv().CSimRadiusCon = CRS.Stepped:Connect(function()
+    pcall(function()
+        sethiddenproperty(CLocalPlayer, "SimulationRadius", math.huge)
+        sethiddenproperty(CLocalPlayer, "MaximumSimulationRadius", math.huge)
+    end)
+end)
+
+getgenv().CSelection = nil
+
+local CSettings = {
+    Velocity = { X = 0, Y = 100, Z = 0, Relative = false },
+    Responsiveness = 0.2,
+    Trip = 3,
+    SpinAmount = 4,
+    CFrame = { X = 0, Y = 100, Z = 0, Relative = false },
+    DanceSpeed = 6,
+    FuckSpeed = 15,
+}
+
+local function CSound(id, v)
+    local a = Instance.new("Sound", workspace)
+    a.SoundId = "rbxassetid://" .. id
+    a.PlayOnRemove = true
+    a.Volume = v
+    a:Destroy()
+end
+
+local function CGetClosestNPC(radius)
+    local dist = radius or math.huge
+    local closest = nil
+    for _, v in next, workspace:GetDescendants() do
+        if v:IsA("Model") and v:FindFirstChild("HumanoidRootPart") and v:FindFirstChild("Humanoid") then
+            local phrp = v.HumanoidRootPart
+            local phum = v.Humanoid
+            if v ~= CChar and (CHrp.Position - phrp.Position).Magnitude < dist and phum.Health > 0 and phrp.ReceiveAge == 0 then
+                dist = (CHrp.Position - phrp.Position).Magnitude
+                closest = v
+            end
+        end
+    end
+    return closest
+end
+
+local function CDoSelect()
+    local npc = CGetClosestNPC()
+    if npc then
+        if not getgenv().CSelection or not getgenv().CSelection.Parent then
+            getgenv().CSelection = Instance.new("SelectionBox")
+        end
+        getgenv().CSelection.Adornee = npc
+        getgenv().CSelection.Name = "SelectedNPC"
+        getgenv().CSelection.Parent = workspace
+        getgenv().CSelection.Color3 = Color3.new(1, 0, 0)
+        CSound(12221944, 10)
+    end
+end
+
+local function CDoKill()
+    local t = getgenv().CSelection and getgenv().CSelection.Adornee
+    if t then
+        local h = t:FindFirstChild("Humanoid")
+        if h then
+            h.Health = -1
+            h:TakeDamage(9e9)
+            h:ChangeState("Dead")
+            getgenv().CSelection.Adornee = nil
+        end
+    end
+end
+
+local function CDoDelete()
+    local t = getgenv().CSelection and getgenv().CSelection.Adornee
+    if t then
+        local phrp = t:FindFirstChild("HumanoidRootPart")
+        if phrp and CHrp then
+            local height = workspace.FallenPartsDestroyHeight
+            local vec = Vector3.new(CHrp.Position.X, height, CHrp.Position.Z)
+            local dis = (CHrp.Position - vec).Magnitude
+            phrp.CFrame *= CFrame.new(0, (-dis) + 3, 0)
+            CSound(12222140, 10)
+        end
+    end
+end
+
+-- ============================================================
+-- 悬浮按钮：选中/击杀/删掉
+-- ============================================================
+local CPanelGui = nil
+local CPanelFrame = nil
+local btnSelect = nil
+local btnKill = nil
+local btnDelete = nil
+
+local function EnsurePanel()
+    if CPanelGui and CPanelGui.Parent then return end
+
+    CPanelGui = Instance.new("ScreenGui")
+    CPanelGui.Name = "NPCPanel_" .. tostring(math.random(1, 999999))
+    CPanelGui.ResetOnSpawn = false
+    CPanelGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    pcall(function()
+        CPanelGui.Parent = gethui() or CCoreGui
+    end)
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 220, 0, 50)
+    frame.Position = UDim2.new(0.5, -110, 0.5, -25)
+    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    frame.BackgroundTransparency = 0.2
+    frame.BorderSizePixel = 0
+    frame.Active = true
+    frame.Draggable = true
+    frame.Parent = CPanelGui
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = frame
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(80, 80, 110)
+    stroke.Thickness = 1
+    stroke.Parent = frame
+
+    local layout = Instance.new("UIListLayout")
+    layout.FillDirection = Enum.FillDirection.Horizontal
+    layout.Padding = UDim.new(0, 6)
+    layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    layout.VerticalAlignment = Enum.VerticalAlignment.Center
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Parent = frame
+
+    local function makeBtn(text, color, callback)
+        local b = Instance.new("TextButton")
+        b.Size = UDim2.new(0, 62, 0, 36)
+        b.BackgroundColor3 = color
+        b.Text = text
+        b.TextColor3 = Color3.fromRGB(255, 255, 255)
+        b.TextSize = 14
+        b.Font = Enum.Font.GothamBold
+        b.AutoButtonColor = true
+        b.Parent = frame
+
+        local c = Instance.new("UICorner")
+        c.CornerRadius = UDim.new(0, 8)
+        c.Parent = b
+
+        b.MouseButton1Click:Connect(callback)
+        return b
+    end
+
+    btnSelect = makeBtn("选中", Color3.fromRGB(60, 100, 200), CDoSelect)
+    btnKill = makeBtn("击杀", Color3.fromRGB(200, 50, 50), CDoKill)
+    btnDelete = makeBtn("删掉", Color3.fromRGB(150, 60, 180), CDoDelete)
+
+    CPanelFrame = frame
+end
+
+local function IsPanelVisible()
+    return CPanelGui and CPanelGui.Parent and CPanelFrame and CPanelFrame.Visible
+end
+
+local function ShowOnlySelect()
+    EnsurePanel()
+    if btnSelect and btnKill and btnDelete then
+        btnSelect.Visible = true
+        btnKill.Visible = false
+        btnDelete.Visible = false
+    end
+    CPanelFrame.Visible = true
+    CPanelFrame.Size = UDim2.new(0, 70, 0, 50)
+end
+
+local function ShowOnlyKill()
+    EnsurePanel()
+    if btnSelect and btnKill and btnDelete then
+        btnSelect.Visible = false
+        btnKill.Visible = true
+        btnDelete.Visible = false
+    end
+    CPanelFrame.Visible = true
+    CPanelFrame.Size = UDim2.new(0, 70, 0, 50)
+end
+
+local function ShowOnlyDelete()
+    EnsurePanel()
+    if btnSelect and btnKill and btnDelete then
+        btnSelect.Visible = false
+        btnKill.Visible = false
+        btnDelete.Visible = true
+    end
+    CPanelFrame.Visible = true
+    CPanelFrame.Size = UDim2.new(0, 70, 0, 50)
+end
+
+local function ShowAll()
+    EnsurePanel()
+    if btnSelect and btnKill and btnDelete then
+        btnSelect.Visible = true
+        btnKill.Visible = true
+        btnDelete.Visible = true
+    end
+    CPanelFrame.Visible = true
+    CPanelFrame.Size = UDim2.new(0, 220, 0, 50)
+end
+
+local function HideAll()
+    if CPanelFrame then
+        CPanelFrame.Visible = false
+    end
+end
+
+ctrlTab.newButton("生成选中悬浮", "屏幕上只显示【选中】悬浮按钮", function()
+    ShowOnlySelect()
+end)
+
+ctrlTab.newButton("生成击杀悬浮", "屏幕上只显示【击杀】悬浮按钮", function()
+    ShowOnlyKill()
+end)
+
+ctrlTab.newButton("生成删掉悬浮", "屏幕上只显示【删掉】悬浮按钮", function()
+    ShowOnlyDelete()
+end)
+
+ctrlTab.newButton("显示全部悬浮", "同时显示【选中/击杀/删掉】三个按钮", function()
+    ShowAll()
+end)
+
+ctrlTab.newButton("隐藏所有悬浮", "隐藏屏幕上的悬浮按钮", function()
+    HideAll()
+end)
+
+ctrlTab.newLabel("操作（需先选中 NPC）")
+
+ctrlTab.newButton("选中最近 NPC", "选择最近的 NPC（红框高亮）", function()
+    CDoSelect()
+end)
+
+ctrlTab.newButton("击杀", "杀死当前选中的 NPC", function()
+    CDoKill()
+end)
+
+ctrlTab.newButton("删掉", "把当前选中的 NPC 扔到虚空", function()
+    CDoDelete()
+end)
+
+ctrlTab.newButton("Velocity", "给选中的 NPC 施加速度", function()
+    local t = getgenv().CSelection and getgenv().CSelection.Adornee
+    if t then
+        local phrp = t:FindFirstChild("HumanoidRootPart")
+        if phrp then
+            if CSettings.Velocity.Relative then
+                phrp.Velocity += Vector3.new(CSettings.Velocity.X, CSettings.Velocity.Y, CSettings.Velocity.Z)
+            else
+                phrp.Velocity = Vector3.new(CSettings.Velocity.X, CSettings.Velocity.Y, CSettings.Velocity.Z)
+            end
+        end
+    end
+end)
+
+local ctrlDragEnabled = false
+ctrlTab.newToggle("拖拽", "把选中的 NPC 拖到你面前", false, function(state)
+    ctrlDragEnabled = state
+    if state then
+        local t = getgenv().CSelection and getgenv().CSelection.Adornee
+        if not t then return end
+        local phrp = t:FindFirstChild("HumanoidRootPart")
+        local phum = t:FindFirstChild("Humanoid")
+        task.spawn(function()
+            while ctrlDragEnabled and t and t.Parent and phrp and phrp.Parent
+                and phum and phum.Parent and phum.Health > 0
+                and getgenv().CSelection and getgenv().CSelection.Adornee == t
+                and phrp.ReceiveAge == 0 do
+                phrp.CFrame = phrp.CFrame:Lerp(CCamera.CFrame * CFrame.new(0, 0, -15), CSettings.Responsiveness)
+                phrp.Velocity = Vector3.new(0, 3, 0)
+                task.wait()
+            end
+        end)
+    end
+end)
+
+local ctrlTripEnabled = false
+ctrlTab.newToggle("绊倒", "让选中的 NPC 摔倒", false, function(state)
+    ctrlTripEnabled = state
+    if state then
+        local t = getgenv().CSelection and getgenv().CSelection.Adornee
+        if not t then return end
+        local phrp = t:FindFirstChild("HumanoidRootPart")
+        local phum = t:FindFirstChild("Humanoid")
+        CSound(12222046, 7.5)
+        task.spawn(function()
+            local start = tick()
+            while ctrlTripEnabled and t and t.Parent and phrp and phrp.Parent
+                and phum and phum.Parent and phum.Health > 0
+                and getgenv().CSelection and getgenv().CSelection.Adornee == t
+                and tick() - start < CSettings.Trip and phrp.ReceiveAge == 0 do
+                phum.PlatformStand = true
+                task.wait()
+            end
+            if phum then phum.PlatformStand = false end
+        end)
+    end
+end)
+
+local ctrlControlEnabled = false
+ctrlTab.newToggle("操控", "控制选中的 NPC 移动", false, function(state)
+    ctrlControlEnabled = state
+    if state then
+        local t = getgenv().CSelection and getgenv().CSelection.Adornee
+        if not t then return end
+        local phrp = t:FindFirstChild("HumanoidRootPart")
+        local phum = t:FindFirstChild("Humanoid")
+        CHrp.Anchored = true
+        CCamera.CameraSubject = t
+        task.spawn(function()
+            while ctrlControlEnabled and t and t.Parent and phrp and phrp.Parent
+                and phum and phum.Parent and phum.Health > 0
+                and getgenv().CSelection and getgenv().CSelection.Adornee == t
+                and phrp.ReceiveAge == 0 do
+                if phum.WalkSpeed <= 0 then phum.WalkSpeed = 16 end
+                phum:MoveTo(phrp.Position + CHum.MoveDirection * 3)
+                phum.Jump = CHum.Jump
+                task.wait()
+            end
+            CHrp.Anchored = false
+            CCamera.CameraSubject = CHum
+        end)
+    end
+end)
+
+local ctrlSpinEnabled = false
+ctrlTab.newToggle("旋转", "让选中的 NPC 疯狂旋转", false, function(state)
+    ctrlSpinEnabled = state
+    if state then
+        local t = getgenv().CSelection and getgenv().CSelection.Adornee
+        if not t then return end
+        local phrp = t:FindFirstChild("HumanoidRootPart")
+        local phum = t:FindFirstChild("Humanoid")
+        task.spawn(function()
+            while ctrlSpinEnabled and t and t.Parent and phrp and phrp.Parent
+                and phum and phum.Parent and phum.Health > 0
+                and getgenv().CSelection and getgenv().CSelection.Adornee == t
+                and phrp.ReceiveAge == 0 do
+                phrp.CFrame *= CFrame.Angles(0, math.rad(CSettings.SpinAmount), 0)
+                task.wait()
+            end
+        end)
+    end
+end)
+
+ctrlTab.newButton("CFrame", "把选中的 NPC 传送到设置的位置", function()
+    local t = getgenv().CSelection and getgenv().CSelection.Adornee
+    if t then
+        local phrp = t:FindFirstChild("HumanoidRootPart")
+        if phrp then
+            if CSettings.CFrame.Relative then
+                phrp.CFrame *= CFrame.new(CSettings.CFrame.X, CSettings.CFrame.Y, CSettings.CFrame.Z)
+            else
+                phrp.CFrame = CFrame.new(CSettings.CFrame.X, CSettings.CFrame.Y, CSettings.CFrame.Z)
+            end
+        end
+    end
+end)
+
+local ctrlDanceEnabled = false
+ctrlTab.newToggle("跳舞", "让选中的 NPC 跳舞", false, function(state)
+    ctrlDanceEnabled = state
+    if state then
+        local t = getgenv().CSelection and getgenv().CSelection.Adornee
+        if not t then return end
+        local phrp = t:FindFirstChild("HumanoidRootPart")
+        local phum = t:FindFirstChild("Humanoid")
+        local oldpos = phrp and phrp.CFrame
+        task.spawn(function()
+            while ctrlDanceEnabled and t and t.Parent and phrp and phrp.Parent
+                and phum and phum.Parent and phum.Health > 0
+                and getgenv().CSelection and getgenv().CSelection.Adornee == t
+                and phrp.ReceiveAge == 0 do
+                phrp.CFrame = oldpos * CFrame.Angles(math.cos(tick() * 2) / 2, 0, math.sin(tick() * CSettings.DanceSpeed) / 3)
+                phrp.Velocity = Vector3.new(0, 3, 0)
+                phum.PlatformStand = true
+                task.wait()
+            end
+            if phum then phum.PlatformStand = false end
+        end)
+    end
+end)
+
+local ctrlFuckEnabled = false
+ctrlTab.newToggle("啪啪", "让选中的 NPC 贴着你", false, function(state)
+    ctrlFuckEnabled = state
+    if state then
+        local t = getgenv().CSelection and getgenv().CSelection.Adornee
+        if not t then return end
+        local phrp = t:FindFirstChild("HumanoidRootPart")
+        local phum = t:FindFirstChild("Humanoid")
+        task.spawn(function()
+            while ctrlFuckEnabled and t and t.Parent and phrp and phrp.Parent
+                and phum and phum.Parent and phum.Health > 0
+                and getgenv().CSelection and getgenv().CSelection.Adornee == t
+                and phrp.ReceiveAge == 0 do
+                phrp.CFrame = CHrp.CFrame
+                    * CFrame.new(0, -1.2, -(1.5 + math.abs(math.sin(tick() * CSettings.FuckSpeed))))
+                    * CFrame.Angles(math.rad(-90), 0, 0)
+                phrp.Velocity = Vector3.new(0, 3, 0)
+                phum.PlatformStand = true
+                task.wait()
+            end
+            if phum then phum.PlatformStand = false end
+        end)
+    end
+end)
+
+ctrlTab.newButton("停止所有循环", "停止所有正在循环的功能", function()
+    ctrlDragEnabled = false
+    ctrlTripEnabled = false
+    ctrlControlEnabled = false
+    ctrlSpinEnabled = false
+    ctrlDanceEnabled = false
+    ctrlFuckEnabled = false
+    if getgenv().CSelection then getgenv().CSelection.Adornee = nil end
+end)
+
+print("[操控面板] 分类已加载")
+
+--[[
+-- 彩蛋
+local author = 
+]]--.. -- --  /  ...  ---  /  ..-.  ..-  -.-.  -.-  .  -..  /  ..-  .--.
