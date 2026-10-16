@@ -1,0 +1,419 @@
+local Translations = {
+    -- 顶部/分类
+    ["cheesy"] = "Cheesy",
+    ["Home"] = "主页",
+    ["Main"] = "主要",
+    ["Visuals"] = "视觉",
+    ["Exploits"] = "功能",
+    ["Miscellaneous"] = "杂项",
+    ["User Addons"] = "用户插件",
+    ["Settings"] = "设置",
+
+    -- 设置 (Settings)
+    ["Menu"] = "菜单",
+    ["Custom Cursor"] = "自定义光标",
+    ["Menu Keybind"] = "菜单快捷键",
+    ["RightShift"] = "右Shift",
+    ["DPI Scale"] = "DPI 缩放",
+    ["UI Library"] = "界面库",
+    ["Obsidian"] = "黑曜石",
+    ["Test Notif"] = "测试通知",
+    ["Refresh Addons"] = "刷新插件",
+    ["Unload Script"] = "卸载脚本",
+    ["Cheesy Icon"] = "Cheesy 图标",
+    ["Changing the language reloads the UI in the new language"] = "更改语言后，界面会以新语言重新加载",
+    ["Language"] = "语言",
+    ["English"] = "英语",
+    ["Select Language"] = "选择语言",
+    ["Reset Loading"] = "重置加载",
+    ["Queue On Teleport"] = "传送时排队",
+    ["Background color"] = "背景颜色",
+    ["Theme list"] = "主题列表",
+    ["Default"] = "默认",
+    ["Set as default"] = "设为默认",
+    ["Custom theme name"] = "自定义主题名称",
+    ["Create theme"] = "创建主题",
+    ["Custom themes"] = "自定义主题",
+    ["Load theme"] = "加载主题",
+    ["Overwrite theme"] = "覆盖主题",
+    ["Delete theme"] = "删除主题",
+    ["Refresh list"] = "刷新列表",
+    ["Reset default"] = "重置默认",
+    ["Current default theme: cheesy"] = "当前默认主题：cheesy",
+    ["Configuration"] = "配置",
+    ["Config name"] = "配置名称",
+    ["Create config"] = "创建配置",
+    ["Config list"] = "配置列表",
+    ["Load config"] = "加载配置",
+    ["Overwrite config"] = "覆盖配置",
+    ["Delete config"] = "删除配置",
+    ["Set as autoload"] = "设为自动加载",
+    ["Reset autoload"] = "重置自动加载",
+    ["Current autoload config: none"] = "当前自动加载配置：无",
+    ["Config JSON"] = "配置 JSON",
+    ["Import config"] = "导入配置",
+    ["Export current config"] = "导出当前配置",
+
+    -- 主要 (Main)
+    ["Character"] = "角色",
+    ["Walkspeed"] = "行走速度",
+    ["Walkspeed: 16"] = "行走速度: 16",
+    ["Speed Bypass"] = "速度绕过",
+    ["Default"] = "默认",
+    ["Fly"] = "飞行",
+    ["Fly Speed: 60"] = "飞行速度: 60",
+    ["Remove Acceleration"] = "无加速度",
+    ["Enable Jumping"] = "启用跳跃",
+    ["Infinite Jump"] = "无限跳",
+    ["Enable Sliding"] = "启用滑铲",
+    ["Noclip"] = "穿墙",
+    ["Phase"] = "相位",
+    ["Other"] = "其他",
+    ["Anticheat Manipulation"] = "反作弊操控",
+    ["Auto Interact"] = "自动交互",
+    ["Interact Blacklist"] = "交互黑名单",
+    ["Dropped Items"] = "掉落物品",
+    ["Godmode"] = "无敌模式",
+    ["Godmode Method"] = "无敌模式方式",
+    ["Always enabled"] = "始终开启",
+    ["On entity spawn"] = "实体生成时",
+    ["Figure Godmode"] = "Figure 无敌",
+    ["Notify When Vulnerable"] = "虚弱时提醒",
+    ["Auto Closet"] = "自动躲藏",
+    ["Ignore List"] = "忽略列表",
+    ["Door Reach"] = "隔门交互",
+    ["Distance: 45 studs"] = "距离: 45 单位",
+
+    -- 视觉 (Visuals)
+    ["Camera"] = "相机",
+    ["Fullbright"] = "全亮",
+    ["Brightness Level: 3"] = "亮度等级: 3",
+    ["Ambient"] = "环境光",
+    ["Field of View"] = "视野范围",
+    ["Field of View: 70"] = "视野范围: 70",
+    ["Third Person"] = "第三人称",
+    ["X Offset"] = "X 偏移",
+    ["Y Offset"] = "Y 偏移",
+    ["Z Offset"] = "Z 偏移",
+    ["Wall Check"] = "墙体碰撞",
+    ["Viewmodel Offset"] = "视角模型偏移",
+    ["Freecam"] = "自由相机",
+    ["Freecam Speed: 75"] = "自由相机速度: 75",
+    ["Remove Camera Bobbing"] = "无镜头晃动",
+    ["Remove Camera Shake"] = "无镜头摇晃",
+    ["Remove Fog"] = "无雾",
+    ["Remove Firedamp Effect"] = "无沼气效果",
+    ["Oxygen Notifications"] = "氧气通知",
+    ["Haste/Time Notifications"] = "Haste/时间通知",
+    ["Transparent Hiding Spots"] = "透明躲藏点",
+    ["Transparency: 0.94"] = "透明度: 0.94",
+    ["Disable Jumpscares"] = "禁用跳脸",
+    ["Jumpscares To Disable"] = "要禁用的跳脸",
+    ["Glitch, Timothy, Void,..."] = "Glitch, Timothy, Void,...",
+    ["Remove Cutscenes"] = "无过场动画",
+    ["Rainbow ESP"] = "彩虹透视",
+    ["Entities Tracers"] = "实体追踪线",
+    ["Doors Tracers"] = "门追踪线",
+    ["Objectives Tracers"] = "目标追踪线",
+    ["Items Tracers"] = "物品追踪线",
+    ["Chests Tracers"] = "箱子追踪线",
+    ["Hiding Spots Tracers"] = "躲藏点追踪线",
+    ["Tracer Origin"] = "追踪线起点",
+    ["Top"] = "顶部",
+    ["Middle"] = "中间",
+    ["Bottom"] = "底部",
+    ["Text Size: 15"] = "文字大小: 15",
+    ["Text Font"] = "字体",
+    ["Code"] = "Code",
+    ["ESP Highlight Limit: 240"] = "透视高亮限制: 240",
+    ["ESP Distance: 250 studs"] = "透视距离: 250 单位",
+    ["Use ESP Outline (colour)"] = "使用透视描边 (颜色)",
+    ["Fill Transparency: 0.75"] = "填充透明度: 0.75",
+    ["Outline Transparency: 0"] = "描边透明度: 0",
+    ["Text Transparency: 0"] = "文字透明度: 0",
+    ["Text Outline Transparency: 0"] = "文字描边透明度: 0",
+    ["Tracer Thickness: 0.75"] = "追踪线粗细: 0.75",
+    ["ESP Fade"] = "透视淡入",
+    ["Fade Time: 0.25s"] = "淡入时间: 0.25秒",
+    ["Enable Arrows"] = "启用箭头",
+    ["Arrow Radius: 250 px"] = "箭头半径: 250 像素",
+    ["Show Entity Path"] = "显示实体路径",
+    ["Entity Notifications"] = "实体通知",
+    ["Entity List"] = "实体列表",
+    ["Allowed Entities"] = "允许的实体",
+    ["Entities"] = "实体",
+    ["Doors"] = "门",
+    ["Objectives"] = "目标",
+    ["Items"] = "物品",
+    ["Chests"] = "箱子",
+    ["Hiding Spots"] = "躲藏点",
+    ["Players"] = "玩家",
+
+    -- 功能 (Exploits)
+    ["Pre-Run"] = "跑图前",
+    ["Buy Items"] = "购买物品",
+    ["Purchase Count: 3"] = "购买数量: 3",
+    ["Items to Buy"] = "要购买的物品",
+    ["Show Crucifix"] = "显示十字架",
+    ["Show Skeleton Key"] = "显示万能钥匙",
+    ["Prompts"] = "交互提示",
+    ["Instant Interact"] = "瞬间交互",
+    ["Prompt Clip"] = "交互穿墙",
+    ["Prompt Reach"] = "交互距离",
+    ["Prompt Range: 1"] = "交互范围: 1",
+    ["Infinite Items"] = "无限物品",
+    ["Infinite Crucifix"] = "无限十字架",
+    ["Win Heartbeat Minigame"] = "心跳小游戏必胜",
+    ["Crouch Spoof"] = "蹲下伪装",
+    ["Fake Revive"] = "假复活",
+    ["Bypasses"] = "绕过",
+    ["Removals"] = "移除",
+    ["Damage"] = "伤害",
+    ["No Screech Damage"] = "无 Screech 伤害",
+    ["No A-90 Damage"] = "无 A-90 伤害",
+    ["No Halt Damage"] = "无 Halt 伤害",
+    ["Remove A-90"] = "移除 A-90",
+    ["Remove Dread"] = "移除 Dread",
+    ["Remove Footstep Sounds"] = "无脚步声",
+    ["Remove Jammin Music"] = "无 Jammin 音乐",
+    ["Remove Interacting Sounds"] = "无交互音效",
+    ["Remove Haste Sound"] = "无 Haste 音效",
+    ["Remove Closet Delay"] = "移除躲藏点延迟",
+    ["Anti Giggle"] = "防 Giggle",
+    ["Anti Dupe"] = "防 Dupe",
+    ["Anti Eyes"] = "防 Eyes",
+    ["Anti Lookman"] = "防 Lookman",
+    ["Anti Gloombat Eggs"] = "防 Gloombat 蛋",
+    ["Anti Seek Obstructions"] = "防 Seek 障碍",
+    ["Anti Vacuum"] = "防真空",
+    ["Anti Snare"] = "防 Snare",
+    ["Automation"] = "自动化",
+    ["Auto Unlock Padlock"] = "自动开挂锁",
+    ["Show Library Code"] = "显示图书馆密码",
+    ["Auto Breaker Box"] = "自动电闸盒",
+    ["Breaker Box Method"] = "电闸盒方式",
+    ["Instant"] = "瞬间",
+    ["Legit"] = "正常",
+    ["Auto Brute-Force Padlock"] = "自动暴力破解挂锁",
+    ["Auto Hotel"] = "自动酒店",
+    ["Method"] = "方式",
+    ["Teleport"] = "传送",
+    ["Pathfind"] = "寻路",
+    ["Show Hotel Path"] = "显示酒店路径",
+    ["Pathfind Timeout"] = "寻路超时",
+
+    -- 杂项 (Miscellaneous)
+    ["Play Again"] = "再玩一次",
+    ["Return to Lobby"] = "返回大厅",
+    ["Reset Character"] = "重置角色",
+    ["Give Star Jug"] = "给予星壶",
+    ["Copy/Open Discord Invite"] = "复制/打开 Discord 邀请",
+    ["Show Keybinds"] = "显示按键",
+    ["Discord Rich Presence"] = "Discord 状态",
+    ["Anti-Lag"] = "防延迟",
+    ["Disable Idle Kick"] = "防挂机踢出",
+    ["Display Info"] = "显示信息",
+    ["Fun"] = "娱乐",
+    ["uhhhh"] = "呃...",
+    ["uhhhh v2"] = "呃... v2",
+    ["Death Farm"] = "刷死亡",
+    ["Orbit Items"] = "环绕物品",
+    ["Orbit Y Offset"] = "环绕 Y 偏移",
+    ["Orbit Speed"] = "环绕速度",
+    ["Bring Items"] = "拉取物品",
+    ["Twerk"] = "电臀舞",
+
+    -- 用户插件 (User Addons)
+    ["Your addons folder is currently empty. Insert a .lua file into 'cheesy/addons'."] = "你的插件文件夹目前为空。请将 .lua 文件放入 'cheesy/addons'。",
+
+    -- 底部信息
+    ["Revamped :0 dsc.gg/cheesyscript"] = "Revamped :0 dsc.gg/cheesyscript",
+    ["Game: DOORS"] = "游戏: DOORS",
+    ["Executor: Delta"] = "执行器: Delta",
+    ["Build: 26.10.14"] = "版本号: 26.10.14",
+    ["Version: 7.5.14"] = "版本: 7.5.14",
+
+    -- 物品列表（所有截图里出现的）
+    ["Alcohol Bottles"] = "酒精瓶",
+    ["Alarm Clock"] = "闹钟",
+    ["Aloe Vera"] = "芦荟",
+    ["Bandage"] = "绷带",
+    ["Bandage Pack"] = "绷带包",
+    ["Battery"] = "电池",
+    ["Battery Pack"] = "电池包",
+    ["Big Bomb"] = "大炸弹",
+    ["Big Shield Potion"] = "大护盾药水",
+    ["Bomb"] = "炸弹",
+    ["Boxing Gloves"] = "拳击手套",
+    ["Briefcase"] = "公文包",
+    ["Bread"] = "面包",
+    ["Broken Monitor"] = "坏显示器",
+    ["Candle"] = "蜡烛",
+    ["Candy"] = "糖果",
+    ["CD Disc"] = "CD 光盘",
+    ["Cheese"] = "奶酪",
+    ["Compass"] = "指南针",
+    ["Crucifix"] = "十字架",
+    ["Donut"] = "甜甜圈",
+    ["Drakobloxxer"] = "Drakobloxxer",
+    ["Fih Food"] = "鱼食",
+    ["Flashlight"] = "手电筒",
+    ["Glitch Fragment"] = "故障碎片",
+    ["Glowstick"] = "荧光棒",
+    ["Golden Gun"] = "金枪",
+    ["GrumbleRig"] = "咕哝套装",
+    ["Gummy Flashlight"] = "软糖手电",
+    ["Gween Soda"] = "绿汽水",
+    ["Gween Soda Pack"] = "绿汽水包",
+    ["Hiding Box"] = "躲藏箱",
+    ["Holy Hand Grenade"] = "神圣手雷",
+    ["Honey Pot"] = "蜂蜜罐",
+    ["Iron Key"] = "铁钥匙",
+    ["Jerry Can"] = "油桶",
+    ["Knockbomb"] = "击退炸弹",
+    ["Lamp"] = "台灯",
+    ["Lantern"] = "灯笼",
+    ["Laser Pointer"] = "激光笔",
+    ["Lighter"] = "打火机",
+    ["Lockpicks"] = "开锁器",
+    ["Lotus"] = "莲花",
+    ["Lotus Petal"] = "莲花瓣",
+    ["Lunch Box"] = "午餐盒",
+    ["Mini Shield Potion"] = "小护盾药水",
+    ["Moonlight Candle"] = "月光蜡烛",
+    ["Moonlight Smoothie"] = "月光冰沙",
+    ["Multitool"] = "多功能工具",
+    ["Nanner"] = "香蕉",
+    ["Paper Plane"] = "纸飞机",
+    ["Pizza"] = "披萨",
+    ["Rift Jar"] = "裂缝罐",
+    ["Sally Toy"] = "Sally 玩具",
+    ["Scrap"] = "废料",
+    ["SecretCD"] = "秘密 CD",
+    ["Shears"] = "剪刀",
+    ["Skeleton Key"] = "万能钥匙",
+    ["Smoothie"] = "冰沙",
+    ["Snare"] = "陷阱",
+    ["Spotlight"] = "聚光灯",
+    ["Starlight Barrel"] = "星光桶",
+    ["Starlight Bottle"] = "星光瓶",
+    ["Starlight Vial"] = "星光瓶",
+    ["Stop Sign"] = "停止标志",
+    ["Straplight"] = "绑带手电",
+    ["Tablet"] = "平板",
+    ["Tip Jar"] = "小费罐",
+    ["Vitamins"] = "维生素",
+    ["WaterPump"] = "水泵",
+    ["Water Cup"] = "水杯",
+    ["Giggles"] = "咯咯笑",
+    ["GiggleCeiling"] = "咯咯笑天花板",
+    ["Pump"] = "水泵",
+
+    -- 实体名（保留英文，避免错翻）
+    ["Screech"] = "Screech", ["Scribbles"] = "Scribbles", ["Seek"] = "Seek",
+    ["Stem"] = "Stem", ["Surge"] = "Surge", ["Teller"] = "Teller",
+    ["Timothy"] = "Timothy", ["World Lotus"] = "World Lotus",
+    ["Gloombat"] = "Gloombat", ["Gloombat Swarm"] = "Gloombat Swarm",
+    ["Grampy"] = "Grampy", ["Groundskeeper"] = "Groundskeeper",
+    ["Grumble"] = "Grumble", ["Halt"] = "Halt", ["Haste"] = "Haste",
+    ["Hijack"] = "Hijack", ["Honcho"] = "Honcho", ["Drones"] = "Drones",
+    ["Eyes"] = "Eyes", ["Eyestalk"] = "Eyestalk", ["Figure"] = "Figure",
+    ["Fire Arm"] = "Fire Arm", ["Firedamp"] = "Firedamp", ["Giggle"] = "Giggle",
+    ["Glitch"] = "Glitch", ["Ransom"] = "Ransom", ["Rush"] = "Rush",
+    ["Sally"] = "Sally", ["Jeff The Killer"] = "Jeff The Killer",
+    ["Lookman"] = "Lookman", ["Louie"] = "Louie", ["Mandrake"] = "Mandrake",
+    ["Monument"] = "Monument", ["Noise"] = "Noise",
+    ["Noise Television"] = "Noise Television", ["Portrait"] = "Portrait",
+    ["Queen Grumble"] = "Queen Grumble", ["Alma"] = "Alma",
+    ["Ambush"] = "Ambush", ["Bash"] = "Bash", ["Blitz"] = "Blitz",
+    ["Bramble"] = "Bramble", ["Creak"] = "Creak", ["Dread"] = "Dread",
+    ["Drone Stampede"] = "Drone Stampede",
+}
+
+local sortedKeys = {}
+for en, cn in pairs(Translations) do
+    table.insert(sortedKeys, {en = en, cn = cn})
+end
+table.sort(sortedKeys, function(a, b) return #a.en > #b.en end)
+
+local function translateText(text)
+    if not text or type(text) ~= "string" then return text end
+
+    local doorsNum = text:match("^Doors%s+(%d+)$")
+    if doorsNum then return "门 " .. doorsNum end
+    local doorNum = text:match("^Door%s+(%d+)$")
+    if doorNum then return "门 " .. doorNum end
+    if text == "Key" or text:match("^Key%s*%[") then
+        return (text:gsub("^Key", "钥匙"))
+    end
+
+    local dist = text:match("^%s*%[%s*(%d+)m%s*%]%s*$")
+    if dist then return "[ " .. dist .. "米 ]" end
+
+    if Translations[text] then return Translations[text] end
+
+    for _, pair in ipairs(sortedKeys) do
+        if text:find(pair.en, 1, true) then
+            local newText = text:gsub(pair.en:gsub("(%W)", "%%%1"), pair.cn)
+            if newText ~= text and newText:find(pair.en, 1, true) then
+                return text
+            end
+            return newText
+        end
+    end
+    return text
+end
+
+local function getContainers()
+    local list = {}
+    local ok, hui = pcall(function() return gethui() end)
+    if ok and hui then table.insert(list, hui) end
+    pcall(function() table.insert(list, game:GetService("CoreGui")) end)
+    pcall(function()
+        local p = game:GetService("Players").LocalPlayer
+        if p and p:FindFirstChild("PlayerGui") then table.insert(list, p.PlayerGui) end
+    end)
+    pcall(function() table.insert(list, game:GetService("Workspace")) end)
+    return list
+end
+
+local function translateOne(gui)
+    if not gui:IsA("TextLabel") and not gui:IsA("TextButton") and not gui:IsA("TextBox") then return end
+    local t = gui.Text
+    if t and t ~= "" then
+        local nt = translateText(t)
+        if nt ~= t then gui.Text = nt end
+    end
+end
+
+local function bindTextChange(gui)
+    if not gui:IsA("TextLabel") and not gui:IsA("TextButton") and not gui:IsA("TextBox") then return end
+    gui:GetPropertyChangedSignal("Text"):Connect(function()
+        local t = gui.Text
+        if t and t ~= "" then
+            local nt = translateText(t)
+            if nt ~= t then gui.Text = nt end
+        end
+    end)
+end
+
+local function processContainer(container)
+    for _, gui in ipairs(container:GetDescendants()) do
+        translateOne(gui)
+        bindTextChange(gui)
+    end
+    container.DescendantAdded:Connect(function(desc)
+        task.wait(0.05)
+        translateOne(desc)
+        bindTextChange(desc)
+    end)
+end
+
+task.spawn(function()
+    task.wait(2)
+    for _, container in ipairs(getContainers()) do
+        pcall(processContainer, container)
+    end
+end)
+
+loadstring(game:HttpGet("https://raw.githubusercontent.com/doram44/cheesy/refs/heads/main/cheesy.lua"))()
