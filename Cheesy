@@ -201,6 +201,7 @@ local Translations = {
     ["Keys"] = "钥匙",
     ["Chests"] = "箱子",
     ["Gold"] = "金币",
+    ["Gold Pile"] = "金币堆",
     ["Stardust"] = "星尘",
     ["Objectives"] = "目标",
     ["Hiding Spots"] = "躲藏点",
@@ -251,6 +252,9 @@ local Translations = {
     ["Unlocked"] = "已解锁",
     ["Room"] = "房间",
     ["Room Number"] = "房间号",
+    ["Closet"] = "躲藏点",
+    ["Key"] = "钥匙",
+    ["Chest"] = "箱子",
 
     -- 功能 (Exploits)
     ["Pre-Run"] = "跑图前",
