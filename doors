@@ -1,9 +1,5 @@
 -- ==========================================
 -- 卡密复制 UI
--- 标题：卡密复制
--- 紫色图标 / 黑色边缘 / 右下角圆角长方形按钮（白光边缘）"复制"
--- 点复制 → 复制 DOORSMV
--- 复制成功后点击 UI → 摧毁 → 24 小时内不再显示
 -- ==========================================
 
 local Services = setmetatable({}, {
@@ -617,6 +613,7 @@ local Translations = {
     ["Auto Closet"] = "自动躲藏",
     ["Auto Clear Closet"] = "自动清理躲藏点",
     ["Anti Closet Trash"] = "防躲藏点垃圾",
+    ["Vent"] = "躲藏点",
     ["Screech"] = "Screech", ["Scribbles"] = "Scribbles", ["Seek"] = "Seek",
     ["Stem"] = "Stem", ["Surge"] = "Surge", ["Teller"] = "Teller",
     ["Timothy"] = "Timothy", ["World Lotus"] = "World Lotus",
