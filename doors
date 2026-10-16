@@ -1,3 +1,211 @@
+-- ==========================================
+-- 卡密复制 UI
+-- 标题：卡密复制
+-- 紫色图标 / 黑色边缘 / 右下角圆角长方形按钮（白光边缘）"复制"
+-- 点复制 → 复制 DOORSMV
+-- 复制成功后点击 UI → 摧毁 → 24 小时内不再显示
+-- ==========================================
+
+local Services = setmetatable({}, {
+    __index = function(_, Name)
+        return game:GetService(Name)
+    end
+})
+
+local Players = Services.Players
+local TweenService = Services.TweenService
+local LocalPlayer = Players.LocalPlayer
+
+local COPY_TEXT = "DOORSMV"
+local SAVE_FOLDER = "DoorsMV"
+local SAVE_FILE = SAVE_FOLDER .. "/LastShown.txt"
+local COOLDOWN = 24 * 60 * 60
+
+local function GetContainer()
+    if gethui then
+        return gethui()
+    end
+    return Services.CoreGui
+end
+
+local function HasFileAPI()
+    return writefile and readfile and isfile and makefolder
+end
+
+local function ShouldShow()
+    if not HasFileAPI() then return true end
+    if not isfolder(SAVE_FOLDER) then makefolder(SAVE_FOLDER) end
+    if not isfile(SAVE_FILE) then return true end
+
+    local Last = tonumber(readfile(SAVE_FILE))
+    if not Last then return true end
+    if os.time() - Last >= COOLDOWN then return true end
+    return false
+end
+
+local function MarkShown()
+    if not HasFileAPI() then return end
+    if not isfolder(SAVE_FOLDER) then makefolder(SAVE_FOLDER) end
+    writefile(SAVE_FILE, tostring(os.time()))
+end
+
+local function ShowKeyUI()
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "CopyKeyUI"
+    ScreenGui.ResetOnSpawn = false
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    ScreenGui.DisplayOrder = 99999
+    ScreenGui.Parent = GetContainer()
+
+    local MainFrame = Instance.new("Frame", ScreenGui)
+    MainFrame.Name = "MainFrame"
+    MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+    MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+    MainFrame.Size = UDim2.new(0, 340, 0, 190)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+    MainFrame.BorderSizePixel = 0
+    MainFrame.Active = true
+    MainFrame.Draggable = true
+
+    local MainCorner = Instance.new("UICorner", MainFrame)
+    MainCorner.CornerRadius = UDim.new(0, 12)
+
+    local MainStroke = Instance.new("UIStroke", MainFrame)
+    MainStroke.Thickness = 2
+    MainStroke.Color = Color3.fromRGB(0, 0, 0)
+    MainStroke.Transparency = 0
+    MainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+    local IconFrame = Instance.new("Frame", MainFrame)
+    IconFrame.Name = "Icon"
+    IconFrame.Position = UDim2.new(0, 20, 0, 24)
+    IconFrame.Size = UDim2.new(0, 48, 0, 48)
+    IconFrame.BackgroundColor3 = Color3.fromRGB(138, 43, 226)
+    IconFrame.BorderSizePixel = 0
+
+    local IconCorner = Instance.new("UICorner", IconFrame)
+    IconCorner.CornerRadius = UDim.new(0, 10)
+
+    local IconLabel = Instance.new("TextLabel", IconFrame)
+    IconLabel.Size = UDim2.new(1, 0, 1, 0)
+    IconLabel.BackgroundTransparency = 1
+    IconLabel.Text = "D"
+    IconLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    IconLabel.TextScaled = true
+    IconLabel.Font = Enum.Font.GothamBold
+    IconLabel.TextSize = 28
+
+    local TitleLabel = Instance.new("TextLabel", MainFrame)
+    TitleLabel.Name = "Title"
+    TitleLabel.Position = UDim2.new(0, 84, 0, 26)
+    TitleLabel.Size = UDim2.new(1, -100, 0, 24)
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Text = "卡密复制"
+    TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLabel.Font = Enum.Font.GothamBold
+    TitleLabel.TextSize = 20
+
+    local SubLabel = Instance.new("TextLabel", MainFrame)
+    SubLabel.Name = "Sub"
+    SubLabel.Position = UDim2.new(0, 84, 0, 52)
+    SubLabel.Size = UDim2.new(1, -100, 0, 18)
+    SubLabel.BackgroundTransparency = 1
+    SubLabel.Text = "点击右下角按钮复制"
+    SubLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+    SubLabel.TextXAlignment = Enum.TextXAlignment.Left
+    SubLabel.Font = Enum.Font.Gotham
+    SubLabel.TextSize = 13
+
+    local CopyButton = Instance.new("TextButton", MainFrame)
+    CopyButton.Name = "CopyButton"
+    CopyButton.AnchorPoint = Vector2.new(1, 1)
+    CopyButton.Position = UDim2.new(1, -20, 1, -20)
+    CopyButton.Size = UDim2.new(0, 110, 0, 40)
+    CopyButton.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
+    CopyButton.BorderSizePixel = 0
+    CopyButton.Text = "复制"
+    CopyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CopyButton.TextSize = 16
+    CopyButton.Font = Enum.Font.GothamBold
+    CopyButton.AutoButtonColor = true
+
+    local CopyCorner = Instance.new("UICorner", CopyButton)
+    CopyCorner.CornerRadius = UDim.new(0, 8)
+
+    local CopyStroke = Instance.new("UIStroke", CopyButton)
+    CopyStroke.Thickness = 2
+    CopyStroke.Color = Color3.fromRGB(255, 255, 255)
+    CopyStroke.Transparency = 0
+    CopyStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+    task.spawn(function()
+        while CopyStroke and CopyStroke.Parent do
+            TweenService:Create(CopyStroke, TweenInfo.new(0.9, Enum.EasingStyle.Sine), { Transparency = 0.75 }):Play()
+            task.wait(0.9)
+            if not (CopyStroke and CopyStroke.Parent) then break end
+            TweenService:Create(CopyStroke, TweenInfo.new(0.9, Enum.EasingStyle.Sine), { Transparency = 0 }):Play()
+            task.wait(0.9)
+        end
+    end)
+
+    local Copied = false
+
+    local function DestroyUI()
+        if ScreenGui and ScreenGui.Parent then
+            ScreenGui:Destroy()
+        end
+    end
+
+    CopyButton.MouseButton1Click:Connect(function()
+        if Copied then return end
+
+        local Success = false
+
+        if toclipboard then
+            local ok = pcall(function() toclipboard(COPY_TEXT) end)
+            Success = ok
+        end
+
+        if not Success and setclipboard then
+            local ok = pcall(function() setclipboard(COPY_TEXT) end)
+            Success = ok
+        end
+
+        if Success then
+            Copied = true
+            CopyButton.Text = "已复制"
+            CopyButton.BackgroundColor3 = Color3.fromRGB(40, 100, 40)
+            SubLabel.Text = "复制成功，点击 UI 关闭"
+            SubLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
+            MarkShown()
+        else
+            CopyButton.Text = "复制失败"
+            CopyButton.BackgroundColor3 = Color3.fromRGB(100, 30, 30)
+            SubLabel.Text = "执行器不支持复制"
+            SubLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+        end
+    end)
+
+    MainFrame.InputBegan:Connect(function(Input)
+        if not Copied then return end
+        if Input.UserInputType == Enum.UserInputType.MouseButton1
+            or Input.UserInputType == Enum.UserInputType.Touch then
+            DestroyUI()
+        end
+    end)
+
+    print("[卡密复制] UI 已加载")
+end
+
+if ShouldShow() then
+    ShowKeyUI()
+end
+
+-- ==========================================
+-- 以下是汉化 + 加载器部分
+-- ==========================================
+
 local Translations = {
     ["Twinkhook V3"] = "Twinkhook V3",
     ["Twinkhook"] = "Twinkhook",
@@ -116,7 +324,7 @@ local Translations = {
     ["Bypass Line Of Sight"] = "穿墙交互", ["Use Items Anywhere"] = "随处使用物品",
     ["Auto Hide"] = "自动躲藏", ["Hide Blacklist"] = "躲藏黑名单",
     ["Only When Visible"] = "仅可见时", ["Prediction Time"] = "预测时间",
-    ["Hide Range"] = "躲藏范围", ["Fast Closet Exit"] = "快速出柜",
+    ["Hide Range"] = "躲藏范围", ["Fast Closet Exit"] = "快速出躲藏点",
     ["Enable Notifications"] = "启用通知", ["Play Sound"] = "播放声音",
     ["Sound Volume"] = "音量", ["Notification Time"] = "通知时长",
     ["Entity Spawns"] = "实体生成", ["Item Spawns"] = "物品生成",
@@ -194,7 +402,7 @@ local Translations = {
     ["Auto Lotus Petals"] = "自动莲花瓣", ["Disable Mandrake"] = "禁用 Mandrake",
     ["Anti Groundskeeper"] = "防 Groundskeeper", ["Disable Surge"] = "禁用 Surge",
     ["No Surge Damage"] = "无 Surge 伤害", ["Eyestalk Path"] = "Eyestalk 路径",
-    ["Auto Clear Closet"] = "自动清理柜子", ["Auto Look At Flowers"] = "自动看花",
+    ["Auto Clear Closet"] = "自动清理躲藏点", ["Auto Look At Flowers"] = "自动看花",
     ["Auto Water Cooler"] = "自动饮水机", ["Auto Teller Ticket"] = "自动 Teller 票",
     ["Auto Skip Forget Me Not"] = "自动跳过 Forget Me Not",
     ["Auto Deposit Packages"] = "自动存包裹", ["Stall Drone Stampede"] = "卡住 Drone Stampede",
@@ -310,7 +518,7 @@ local Translations = {
     ["Notify Anchor Code"] = "提醒锚点密码",
     ["Notify Entity List"] = "提醒实体列表",
     ["Notify Item List"] = "提醒物品列表",
-    ["Exit Closet"] = "离开柜子",
+    ["Exit Closet"] = "离开躲藏点",
     ["Tp Next Door"] = "传送下一扇门",
     ["Auto Tp Next Door"] = "自动传送下一扇门",
     ["Item Number"] = "物品编号",
@@ -357,7 +565,7 @@ local Translations = {
     ["Giggle"] = "咯咯笑",
     ["It's dark and wiggling, shine a light on it before it drops."] = "它又黑又在扭动，在它掉下来前用光照它。",
     ["Rush Spawned"] = "冲刺者已生成",
-    ["Hide in a closet or locker, it's coming through."] = "躲进柜子或衣柜里，它要来了。",
+    ["Hide in a closet or locker, it's coming through."] = "躲进躲藏点里，它要来了。",
     ["Teller Spawned"] = "柜员已生成",
     ["Hand over your ticket when your number is called."] = "叫到你的号时把票交过去。",
     ["Eyes Spawned"] = "眼睛已生成",
@@ -398,9 +606,17 @@ local Translations = {
     ["Package"] = "包裹",
     ["Candy Vault Invite"] = "糖果金库邀请函",
     ["Breaker Pole"] = "断路器杆",
-    ["Toolshed"] = "工具棚",
+    ["Toolshed"] = "躲藏点",
     ["Cellar"] = "地窖",
     ["Electrical Key"] = "电子钥匙",
+    ["Double Bed"] = "双人床",
+    ["Garage"] = "车库",
+    ["Garage Door"] = "车库门",
+    ["Closet"] = "躲藏点",
+    ["Locker"] = "躲藏点",
+    ["Auto Closet"] = "自动躲藏",
+    ["Auto Clear Closet"] = "自动清理躲藏点",
+    ["Anti Closet Trash"] = "防躲藏点垃圾",
     ["Screech"] = "Screech", ["Scribbles"] = "Scribbles", ["Seek"] = "Seek",
     ["Stem"] = "Stem", ["Surge"] = "Surge", ["Teller"] = "Teller",
     ["Timothy"] = "Timothy", ["World Lotus"] = "World Lotus",
@@ -420,7 +636,6 @@ local Translations = {
     ["Bramble"] = "Bramble", ["Creak"] = "Creak", ["Dread"] = "Dread",
     ["Drone Stampede"] = "Drone Stampede",
     ["Bed"] = "床",
-    ["Closet"] = "柜子",
     ["Addons"] = "附加插件",
     ["Put addon files in Twinkhook 汉化 汉化 /Addons and execute again to load them."] = "将附加插件文件放到 Twinkhook 汉化/Addons 文件夹，重新运行来加载插件。",
     ["Addons are made by other people, only run ones you trust."] = "附加插件由第三方制作，仅运行你信任的插件。",
