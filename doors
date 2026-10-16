@@ -1,5 +1,7 @@
 -- ==========================================
 -- 卡密复制 UI
+-- 标题：卡密复制(不是让你解卡，只是给你卡密，卡密是固定的)
+-- 功能：复制卡密 / 不复制直接执行 / 关闭执行 / 下次提醒时间可选
 -- ==========================================
 
 local Services = setmetatable({}, {
@@ -15,7 +17,16 @@ local LocalPlayer = Players.LocalPlayer
 local COPY_TEXT = "DOORSMV"
 local SAVE_FOLDER = "DoorsMV"
 local SAVE_FILE = SAVE_FOLDER .. "/LastShown.txt"
-local COOLDOWN = 24 * 60 * 60
+
+local TIME_OPTIONS = {
+    ["1小时"] = 1 * 60 * 60,
+    ["2小时"] = 2 * 60 * 60,
+    ["6小时"] = 6 * 60 * 60,
+    ["12小时"] = 12 * 60 * 60,
+    ["24小时"] = 24 * 60 * 60,
+}
+
+local SelectedCooldown = TIME_OPTIONS["24小时"]
 
 local function GetContainer()
     if gethui then
@@ -35,7 +46,7 @@ local function ShouldShow()
 
     local Last = tonumber(readfile(SAVE_FILE))
     if not Last then return true end
-    if os.time() - Last >= COOLDOWN then return true end
+    if os.time() - Last >= SelectedCooldown then return true end
     return false
 end
 
@@ -57,7 +68,7 @@ local function ShowKeyUI()
     MainFrame.Name = "MainFrame"
     MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
     MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-    MainFrame.Size = UDim2.new(0, 340, 0, 190)
+    MainFrame.Size = UDim2.new(0, 360, 0, 260)
     MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
     MainFrame.BorderSizePixel = 0
     MainFrame.Active = true
@@ -93,14 +104,15 @@ local function ShowKeyUI()
 
     local TitleLabel = Instance.new("TextLabel", MainFrame)
     TitleLabel.Name = "Title"
-    TitleLabel.Position = UDim2.new(0, 84, 0, 26)
+    TitleLabel.Position = UDim2.new(0, 84, 0, 20)
     TitleLabel.Size = UDim2.new(1, -100, 0, 24)
     TitleLabel.BackgroundTransparency = 1
-    TitleLabel.Text = "卡密复制"
+    TitleLabel.Text = "卡密复制(不是让你解卡，只是给你卡密，卡密是固定的)"
     TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
     TitleLabel.Font = Enum.Font.GothamBold
-    TitleLabel.TextSize = 20
+    TitleLabel.TextSize = 13
+    TitleLabel.TextWrapped = true
 
     local SubLabel = Instance.new("TextLabel", MainFrame)
     SubLabel.Name = "Sub"
@@ -113,18 +125,99 @@ local function ShowKeyUI()
     SubLabel.Font = Enum.Font.Gotham
     SubLabel.TextSize = 13
 
+    local TimeLabel = Instance.new("TextLabel", MainFrame)
+    TimeLabel.Position = UDim2.new(0, 20, 0, 90)
+    TimeLabel.Size = UDim2.new(0, 100, 0, 20)
+    TimeLabel.BackgroundTransparency = 1
+    TimeLabel.Text = "下次提醒："
+    TimeLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    TimeLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TimeLabel.Font = Enum.Font.Gotham
+    TimeLabel.TextSize = 13
+
+    local TimeButton = Instance.new("TextButton", MainFrame)
+    TimeButton.Position = UDim2.new(0, 120, 0, 86)
+    TimeButton.Size = UDim2.new(0, 220, 0, 28)
+    TimeButton.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
+    TimeButton.Text = "24小时"
+    TimeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TimeButton.Font = Enum.Font.Gotham
+    TimeButton.TextSize = 13
+
+    local TimeCorner = Instance.new("UICorner", TimeButton)
+    TimeCorner.CornerRadius = UDim.new(0, 6)
+
+    local TimeStroke = Instance.new("UIStroke", TimeButton)
+    TimeStroke.Thickness = 1
+    TimeStroke.Color = Color3.fromRGB(80, 80, 90)
+    TimeStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+    local Dropdown = Instance.new("Frame", MainFrame)
+    Dropdown.Position = UDim2.new(0, 120, 0, 116)
+    Dropdown.Size = UDim2.new(0, 220, 0, 0)
+    Dropdown.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+    Dropdown.BorderSizePixel = 0
+    Dropdown.Visible = false
+    Dropdown.ClipsDescendants = true
+
+    local DropdownCorner = Instance.new("UICorner", Dropdown)
+    DropdownCorner.CornerRadius = UDim.new(0, 6)
+
+    local DropdownStroke = Instance.new("UIStroke", Dropdown)
+    DropdownStroke.Thickness = 1
+    DropdownStroke.Color = Color3.fromRGB(80, 80, 90)
+    DropdownStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+    local DropdownLayout = Instance.new("UIListLayout", Dropdown)
+    DropdownLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    DropdownLayout.Padding = UDim.new(0, 0)
+
+    local DropdownOpen = false
+
+    local function RefreshDropdownHeight()
+        local total = 0
+        for _, child in ipairs(Dropdown:GetChildren()) do
+            if child:IsA("TextButton") then
+                total = total + child.Size.Y.Offset
+            end
+        end
+        Dropdown.Size = UDim2.new(0, 220, 0, total)
+    end
+
+    for name, seconds in pairs(TIME_OPTIONS) do
+        local OptionBtn = Instance.new("TextButton", Dropdown)
+        OptionBtn.Size = UDim2.new(1, 0, 0, 28)
+        OptionBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+        OptionBtn.Text = name
+        OptionBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
+        OptionBtn.Font = Enum.Font.Gotham
+        OptionBtn.TextSize = 13
+        OptionBtn.AutoButtonColor = true
+
+        OptionBtn.MouseButton1Click:Connect(function()
+            SelectedCooldown = seconds
+            TimeButton.Text = name
+            DropdownOpen = false
+            Dropdown.Visible = false
+        end)
+    end
+
+    RefreshDropdownHeight()
+
+    TimeButton.MouseButton1Click:Connect(function()
+        DropdownOpen = not DropdownOpen
+        Dropdown.Visible = DropdownOpen
+    end)
+
     local CopyButton = Instance.new("TextButton", MainFrame)
     CopyButton.Name = "CopyButton"
-    CopyButton.AnchorPoint = Vector2.new(1, 1)
-    CopyButton.Position = UDim2.new(1, -20, 1, -20)
-    CopyButton.Size = UDim2.new(0, 110, 0, 40)
+    CopyButton.Position = UDim2.new(0, 20, 1, -70)
+    CopyButton.Size = UDim2.new(0, 100, 0, 40)
     CopyButton.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
-    CopyButton.BorderSizePixel = 0
     CopyButton.Text = "复制"
     CopyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    CopyButton.TextSize = 16
     CopyButton.Font = Enum.Font.GothamBold
-    CopyButton.AutoButtonColor = true
+    CopyButton.TextSize = 14
 
     local CopyCorner = Instance.new("UICorner", CopyButton)
     CopyCorner.CornerRadius = UDim.new(0, 8)
@@ -134,6 +227,40 @@ local function ShowKeyUI()
     CopyStroke.Color = Color3.fromRGB(255, 255, 255)
     CopyStroke.Transparency = 0
     CopyStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+    local RunButton = Instance.new("TextButton", MainFrame)
+    RunButton.Position = UDim2.new(0, 130, 1, -70)
+    RunButton.Size = UDim2.new(0, 100, 0, 40)
+    RunButton.BackgroundColor3 = Color3.fromRGB(30, 36, 30)
+    RunButton.Text = "不复制执行"
+    RunButton.TextColor3 = Color3.fromRGB(200, 255, 200)
+    RunButton.Font = Enum.Font.GothamBold
+    RunButton.TextSize = 13
+
+    local RunCorner = Instance.new("UICorner", RunButton)
+    RunCorner.CornerRadius = UDim.new(0, 8)
+
+    local RunStroke = Instance.new("UIStroke", RunButton)
+    RunStroke.Thickness = 1
+    RunStroke.Color = Color3.fromRGB(80, 120, 80)
+    RunStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+    local CloseButton = Instance.new("TextButton", MainFrame)
+    CloseButton.Position = UDim2.new(0, 240, 1, -70)
+    CloseButton.Size = UDim2.new(0, 100, 0, 40)
+    CloseButton.BackgroundColor3 = Color3.fromRGB(36, 30, 30)
+    CloseButton.Text = "关闭执行"
+    CloseButton.TextColor3 = Color3.fromRGB(255, 200, 200)
+    CloseButton.Font = Enum.Font.GothamBold
+    CloseButton.TextSize = 13
+
+    local CloseCorner = Instance.new("UICorner", CloseButton)
+    CloseCorner.CornerRadius = UDim.new(0, 8)
+
+    local CloseStroke = Instance.new("UIStroke", CloseButton)
+    CloseStroke.Thickness = 1
+    CloseStroke.Color = Color3.fromRGB(120, 80, 80)
+    CloseStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
     task.spawn(function()
         while CopyStroke and CopyStroke.Parent do
@@ -145,7 +272,7 @@ local function ShowKeyUI()
         end
     end)
 
-    local Copied = false
+    local Finished = false
 
     local function DestroyUI()
         if ScreenGui and ScreenGui.Parent then
@@ -154,7 +281,7 @@ local function ShowKeyUI()
     end
 
     CopyButton.MouseButton1Click:Connect(function()
-        if Copied then return end
+        if Finished then return end
 
         local Success = false
 
@@ -169,7 +296,7 @@ local function ShowKeyUI()
         end
 
         if Success then
-            Copied = true
+            Finished = true
             CopyButton.Text = "已复制"
             CopyButton.BackgroundColor3 = Color3.fromRGB(40, 100, 40)
             SubLabel.Text = "复制成功，点击 UI 关闭"
@@ -183,8 +310,22 @@ local function ShowKeyUI()
         end
     end)
 
+    RunButton.MouseButton1Click:Connect(function()
+        if Finished then return end
+        Finished = true
+        MarkShown()
+        DestroyUI()
+    end)
+
+    CloseButton.MouseButton1Click:Connect(function()
+        if Finished then return end
+        Finished = true
+        DestroyUI()
+        error("用户选择了关闭执行")
+    end)
+
     MainFrame.InputBegan:Connect(function(Input)
-        if not Copied then return end
+        if not Finished then return end
         if Input.UserInputType == Enum.UserInputType.MouseButton1
             or Input.UserInputType == Enum.UserInputType.Touch then
             DestroyUI()
@@ -271,8 +412,8 @@ local Translations = {
     ["Gate"] = "大门",
     ["Panel"] = "面板",
     ["Water"] = "水",
-    ["Anchor A"] = "锚点 A",
-    ["Anchor B"] = "锚点 B",
+    ["Anchor"] = "锚点",
+    ["Anchor"] = "锚点",
     ["Anchor B (410)"] = "锚点 B (410)",
     ["Cuttable Vines"] = "可砍伐的藤蔓",
     ["Timer Lever"] = "计时拉杆",
@@ -632,7 +773,7 @@ local Translations = {
     ["Ambush"] = "Ambush", ["Bash"] = "Bash", ["Blitz"] = "Blitz",
     ["Bramble"] = "Bramble", ["Creak"] = "Creak", ["Dread"] = "Dread",
     ["Drone Stampede"] = "Drone Stampede",
-    ["Bed"] = "床",
+    ["Bed"] = "躲藏点",
     ["Addons"] = "附加插件",
     ["Put addon files in Twinkhook 汉化 汉化 /Addons and execute again to load them."] = "将附加插件文件放到 Twinkhook 汉化/Addons 文件夹，重新运行来加载插件。",
     ["Addons are made by other people, only run ones you trust."] = "附加插件由第三方制作，仅运行你信任的插件。",
