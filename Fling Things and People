@@ -45,6 +45,8 @@ local S = {
     MasslessGrab = false, MasslessGrabToys = false, MasslessGrabPlayers = false,
     PhysicsGrab = false,
     InfZoom = false,
+    InfZoomSpeed = 1.5,
+    InfZoomMax = 500,
     SilentAim = false,
     Triggerbot = false,
     LegitAim = false,
@@ -61,6 +63,8 @@ local S = {
     FightBack = false, FightBackMode = "击杀",
     AuraRadius = 20, MagnetRange = 50, RepelForce = 100,
     ShowAuraRadius = false,
+    FlingAuraDistance = 20,
+    FlingAuraForce = 5e10,
     nameESP = false, avatarESP = false,
     espAvatarSize = 36,
     espNameSize = 14,
@@ -1171,7 +1175,7 @@ task.spawn(function()
     end
 end)
 
--- ===== 玩家：速度（你给的 CFrame 位移写法）=====
+-- ===== 玩家：速度 =====
 local playerMove = Tabs.Player:AddLeftGroupbox("移动")
 playerMove:AddToggle("PlayerWalkspeed", {
     Text = "速度",
@@ -1361,7 +1365,7 @@ grabSec:AddButton({ Text = "松开全部", Func = function()
     end
 end})
 
--- 无限缩放（放在投掷力量下面，第二排）
+-- 无限缩放（放在投掷力量下面）
 do
     local infZoomValue = 0
     local infZoomConn1, infZoomConn2, infZoomLoop = nil, nil, nil
@@ -1399,9 +1403,9 @@ do
                     if input.UserInputType == Enum.UserInputType.MouseWheel then
                         if Workspace:FindFirstChild("GrabParts") then
                             if input.Position.Z > 0 then
-                                infZoomValue = infZoomValue + 1.5
+                                infZoomValue = math.min(infZoomValue + S.InfZoomSpeed, S.InfZoomMax)
                             else
-                                infZoomValue = infZoomValue - 1.5
+                                infZoomValue = math.max(infZoomValue - S.InfZoomSpeed, 0)
                             end
                         else
                             infZoomValue = 0
@@ -1420,6 +1424,14 @@ do
                 stopInfZoom()
             end
         end,
+    })
+    grabSec:AddSlider("InfZoomSpeed", {
+        Text = "缩放速度", Default = 1.5, Min = 0.5, Max = 10, Rounding = 1,
+        Callback = function(v) S.InfZoomSpeed = v end,
+    })
+    grabSec:AddSlider("InfZoomMax", {
+        Text = "最大缩放距离", Default = 500, Min = 10, Max = 1000, Rounding = 0,
+        Callback = function(v) S.InfZoomMax = v end,
     })
 end
 
@@ -1830,10 +1842,10 @@ auraAtkSec:AddToggle("FlingAura", {
                             if plr ~= LocalPlayer and plr.Character then
                                 pcall(function()
                                     local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
-                                    if hrp and (hrp.Position - r.Position).Magnitude <= S.AuraRadius then
+                                    if hrp and (hrp.Position - r.Position).Magnitude <= S.FlingAuraDistance then
                                         auraSetNetworkOwner(hrp)
                                         local bv = Instance.new("BodyVelocity", hrp)
-                                        bv.Velocity = Vector3.new(math.random(-1,1) * 5e10, 5e15, math.random(-1,1) * 5e10)
+                                        bv.Velocity = Vector3.new(math.random(-1,1) * S.FlingAuraForce, S.FlingAuraForce * 10, math.random(-1,1) * S.FlingAuraForce)
                                         bv.MaxForce = Vector3.one * math.huge
                                         Debris:AddItem(bv, 0.2)
                                     end
@@ -1848,6 +1860,14 @@ auraAtkSec:AddToggle("FlingAura", {
             if T.flingAuraTask then task.cancel(T.flingAuraTask) T.flingAuraTask = nil end
         end
     end,
+})
+auraAtkSec:AddSlider("FlingAuraDistance", {
+    Text = "弹飞距离", Default = 20, Min = 1, Max = 500, Rounding = 0,
+    Callback = function(v) S.FlingAuraDistance = v end,
+})
+auraAtkSec:AddSlider("FlingAuraForce", {
+    Text = "弹飞力度", Default = 5e10, Min = 1e8, Max = 1e12, Rounding = 0,
+    Callback = function(v) S.FlingAuraForce = v end,
 })
 
 auraAtkSec:AddToggle("BringAura", {
@@ -2499,4 +2519,4 @@ SaveManager:SetFolder("PlutonLite")
 SaveManager:BuildConfigSection(Tabs.Misc)
 ThemeManager:ApplyToTab(Tabs.Misc)
 
-warn("Pluton Lite (完整版 + 光环显示 + 速度修正) 已加载")
+warn("Pluton Lite (完整版 + 弹飞距离/力度 + 缩放速度/距离) 已加载")
