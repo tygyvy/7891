@@ -6,6 +6,7 @@ local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local Debris = game:GetService("Debris")
 local TeleportService = game:GetService("TeleportService")
+local Lighting = game:GetService("Lighting")
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
@@ -34,7 +35,7 @@ local DestroyToy = MT:WaitForChild("DestroyToy")
 local IsHeld = LocalPlayer:WaitForChild("IsHeld", 5)
 
 local S = {
-    AntiGrab = false, AntiVoid = false, InfJump = false, Noclip = false,
+    AntiGrab = false, AntiGrabV2 = false, AntiVoid = false, InfJump = false, Noclip = false,
     Fly = false, FlySpeed = 50, Target = nil,
     Walkspeed = false, WalkspeedValue = 16,
     JumpPower = false, JumpPowerValue = 50,
@@ -57,9 +58,23 @@ local S = {
     FightBack = false, FightBackMode = "击杀",
     AuraRadius = 20, MagnetRange = 50, RepelForce = 100,
     nameESP = false, avatarESP = false,
+    espAvatarSize = 36,
+    espNameSize = 14,
+    espShowDistance = false,
+    espTracer = false,
+    espTracerThickness = 0.2,
     grabKickAllActive = false, grabKickAllHeight = "Spawn",
     KickAura = false,
     ThirdPerson = false,
+    ClickAura = false,
+    FlingAura = false,
+    BringAura = false,
+    AntiInputLag = false,
+    HighlightObjects = false,
+    FOVChanger = false,
+    FOVValue = 70,
+    FPSBooster = false,
+    NightMode = false,
 }
 
 local T = {
@@ -81,6 +96,17 @@ local T = {
     speedConn = nil,
     gravityConn = nil,
     thirdPersonConn = nil,
+    tracerConns = {},
+    antiGrabV2Conn = nil,
+    struggleTasks = {},
+    clickTask = nil,
+    clickAffected = {},
+    flingAuraTask = nil,
+    bringAuraTask = nil,
+    antiInputLag = nil,
+    nightSky = nil,
+    originalNight = nil,
+    originalLighting = nil,
 }
 
 local function char() return LocalPlayer.Character end
@@ -114,7 +140,7 @@ local function auraBodyVelocity(part, vel, lifetime)
     Debris:AddItem(bv, lifetime or 1)
 end
 
--- ===== 第三人称实现 =====
+-- ===== 第三人称 =====
 local function enableThirdPerson()
     S.ThirdPerson = true
     LocalPlayer.CameraMode = Enum.CameraMode.Classic
@@ -157,6 +183,60 @@ local function disableThirdPerson()
     LocalPlayer.CameraMinZoomDistance = 0.5
     LocalPlayer.CameraMaxZoomDistance = 0.5
     if T.thirdPersonConn then T.thirdPersonConn:Disconnect() T.thirdPersonConn = nil end
+end
+
+-- ===== 防抓取 v2 =====
+local function enableAntiGrabV2()
+    if T.antiGrabV2Conn then T.antiGrabV2Conn:Disconnect() end
+    T.struggleTasks = {}
+    local function startStruggleLoop()
+        local c = char()
+        if not c or T.struggleTasks[c] then return end
+        T.struggleTasks[c] = true
+        task.spawn(function()
+            while T.struggleTasks[c] do
+                local head = c:FindFirstChild("Head")
+                if head and head:FindFirstChild("PartOwner") and IsHeld and IsHeld.Value then
+                    pcall(function()
+                        Struggle:FireServer()
+                        local gce = ReplicatedStorage:FindFirstChild("GameCorrectionEvents")
+                        if gce then
+                            local sav = gce:FindFirstChild("StopAllVelocity")
+                            if sav then sav:FireServer() end
+                        end
+                    end)
+                else
+                    T.struggleTasks[c] = nil
+                    break
+                end
+                task.wait(0.1)
+            end
+        end)
+    end
+    local lastCheck = 0
+    T.antiGrabV2Conn = RunService.Heartbeat:Connect(function()
+        local now = tick()
+        if now - lastCheck < 0.04 then return end
+        lastCheck = now
+        local c = char()
+        if c and c:FindFirstChild("Head") then
+            local head = c.Head
+            if head:FindFirstChild("PartOwner") and IsHeld and IsHeld.Value then
+                startStruggleLoop()
+            end
+        end
+    end)
+end
+local function disableAntiGrabV2()
+    if T.antiGrabV2Conn then
+        T.antiGrabV2Conn:Disconnect()
+        T.antiGrabV2Conn = nil
+    end
+    if T.struggleTasks then
+        for k in pairs(T.struggleTasks) do
+            T.struggleTasks[k] = nil
+        end
+    end
 end
 
 -- ===== 超级力量（kubydog）=====
@@ -724,7 +804,13 @@ combatSec:AddToggle("AimIgnoreFriends", {
 
 -- ===== 防身 =====
 local antiSec = Tabs.Anti:AddLeftGroupbox("防抓取")
-antiSec:AddToggle("AntiGrab", { Text = "防抓取", Default = false, Callback = function(v) S.AntiGrab = v end })
+antiSec:AddToggle("AntiGrabV2", {
+    Text = "防抓取 v2（持续挣扎）", Default = false,
+    Callback = function(v)
+        S.AntiGrabV2 = v
+        if v then enableAntiGrabV2() else disableAntiGrabV2() end
+    end,
+})
 antiSec:AddToggle("AntiVoid", {
     Text = "防虚空", Default = false,
     Callback = function(v)
@@ -764,7 +850,8 @@ antiSec:AddToggle("AntiOwnership", {
                                     if part:IsA("BasePart") then pcall(function() part.Anchored = true end) end
                                 end
                                 local held = LocalPlayer:FindFirstChild("IsHeld")
-                                while held and held.Value and S.AntiOwnership do task.wait(0.05) end                                for _, part in pairs(character:GetChildren()) do
+                                while held and held.Value and S.AntiOwnership do task.wait(0.05) end
+                                for _, part in pairs(character:GetChildren()) do
                                     if part:IsA("BasePart") then pcall(function() part.Anchored = false end) end
                                 end
                             end
@@ -1003,11 +1090,44 @@ antiSec:AddDropdown("FightBackMode", {
     Text = "反击模式", Values = {"击杀", "踢出", "虚空", "上天"}, Default = 1,
     Callback = function(v) S.FightBackMode = v end,
 })
+antiSec:AddToggle("AntiInputLag", {
+    Text = "防输入延迟", Default = false,
+    Callback = function(v)
+        S.AntiInputLag = v
+        if v then
+            if T.antiInputLag then task.cancel(T.antiInputLag) end
+            T.antiInputLag = task.spawn(function()
+                local plr = LocalPlayer
+                local c = plr.Character or plr.CharacterAdded:Wait()
+                local hrp = c:WaitForChild("HumanoidRootPart")
+                while S.AntiInputLag do
+                    local folder = Workspace:FindFirstChild(plr.Name .. "SpawnedInToys")
+                    if not folder then task.wait(0.1) continue end
+                    local toy = folder:FindFirstChild("FoodCoconut")
+                    if not toy then
+                        pcall(function() SpawnToy:InvokeServer("FoodCoconut", hrp.CFrame * CFrame.new(0, 5, 0), Vector3.zero) end)
+                        task.wait(0.3)
+                    end
+                    if toy and toy:FindFirstChild("HoldPart") then
+                        local hp = toy.HoldPart
+                        pcall(function() hp.HoldItemRemoteFunction:InvokeServer(toy, c) end)
+                        task.wait(0.05)
+                        pcall(function() hp.DropItemRemoteFunction:InvokeServer(toy, hrp.CFrame * CFrame.new(0, 2000, 0), Vector3.zero) end)
+                        task.wait(0.5)
+                    end
+                    task.wait(0.1)
+                end
+            end)
+        else
+            if T.antiInputLag then pcall(function() task.cancel(T.antiInputLag) end) T.antiInputLag = nil end
+        end
+    end,
+})
 
 task.spawn(function()
     while true do
         task.wait(0.1)
-        if S.AntiGrab and IsHeld.Value then
+        if S.AntiGrabV2 and IsHeld.Value then
             local c = char(); local h = c and c:FindFirstChild("Head")
             if h and h:FindFirstChild("PartOwner") then
                 pcall(function() Struggle:FireServer() end)
@@ -1020,25 +1140,30 @@ end)
 
 -- ===== 玩家 =====
 local playerMove = Tabs.Player:AddLeftGroupbox("移动")
+local speedLoop = nil
 playerMove:AddToggle("WalkspeedToggle", {
-    Text = "速度调试", Default = false,
+    Text = "速度调试",
+    Default = false,
     Callback = function(v)
         S.Walkspeed = v
-        local h = hum()
-        if h then
-            if v then h.WalkSpeed = S.WalkspeedValue else h.WalkSpeed = 16 end
+        if speedLoop then task.cancel(speedLoop) speedLoop = nil end
+        if v then
+            speedLoop = task.spawn(function()
+                while S.Walkspeed do
+                    local h = hum()
+                    if h then h.WalkSpeed = S.WalkspeedValue end
+                    task.wait()
+                end
+            end)
+        else
+            local h = hum()
+            if h then h.WalkSpeed = 16 end
         end
     end,
 })
 playerMove:AddSlider("WalkspeedValue", {
     Text = "速度值", Default = 16, Min = 16, Max = 500, Rounding = 0,
-    Callback = function(v)
-        S.WalkspeedValue = v
-        if S.Walkspeed then
-            local h = hum()
-            if h then h.WalkSpeed = v end
-        end
-    end,
+    Callback = function(v) S.WalkspeedValue = v end,
 })
 playerMove:AddToggle("InfJump", { Text = "无限跳", Default = false, Callback = function(v) S.InfJump = v end })
 UserInputService.JumpRequest:Connect(function()
@@ -1491,6 +1616,136 @@ auraAtkSec:AddToggle("KickAura", {
     end,
 })
 
+auraAtkSec:AddToggle("ClickAura", {
+    Text = "点击光环（定人）", Default = false,
+    Callback = function(v)
+        S.ClickAura = v
+        T.clickAffected = {}
+        if v then
+            if T.clickTask then task.cancel(T.clickTask) end
+            T.clickTask = task.spawn(function()
+                while S.ClickAura do
+                    local r = auraGetRoot()
+                    if r then
+                        for _, plr in ipairs(Players:GetPlayers()) do
+                            if plr ~= LocalPlayer and plr.Character then
+                                local t = plr.Character:FindFirstChild("Torso")
+                                    or plr.Character:FindFirstChild("UpperTorso")
+                                    or plr.Character:FindFirstChild("HumanoidRootPart")
+                                local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+                                if t and hrp and (t.Position - r.Position).Magnitude <= S.AuraRadius then
+                                    pcall(function() SetOwner:FireServer(t, hrp.CFrame) end)
+                                    if not t:FindFirstChild("ClickAuraBV") then
+                                        local bv = Instance.new("BodyVelocity")
+                                        bv.Name = "ClickAuraBV"
+                                        bv.Velocity = Vector3.zero
+                                        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                                        bv.Parent = t
+                                        local bg = Instance.new("BodyGyro")
+                                        bg.Name = "ClickAuraBG"
+                                        bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+                                        bg.P = 10000
+                                        bg.D = 500
+                                        bg.CFrame = CFrame.new(t.Position, t.Position + Vector3.new(0, 0, 1))
+                                        bg.Parent = t
+                                    end
+                                    T.clickAffected[plr] = true
+                                elseif T.clickAffected[plr] and t then
+                                    local bv = t:FindFirstChild("ClickAuraBV")
+                                    local bg = t:FindFirstChild("ClickAuraBG")
+                                    if bv then bv:Destroy() end
+                                    if bg then bg:Destroy() end
+                                    T.clickAffected[plr] = nil
+                                end
+                            end
+                        end
+                    end
+                    task.wait(0.05)
+                end
+            end)
+        else
+            if T.clickTask then task.cancel(T.clickTask) T.clickTask = nil end
+            for _, plr in ipairs(Players:GetPlayers()) do
+                if plr ~= LocalPlayer and plr.Character then
+                    local t = plr.Character:FindFirstChild("Torso") or plr.Character:FindFirstChild("UpperTorso")
+                    if t then
+                        local bv = t:FindFirstChild("ClickAuraBV")
+                        local bg = t:FindFirstChild("ClickAuraBG")
+                        if bv then bv:Destroy() end
+                        if bg then bg:Destroy() end
+                    end
+                end
+            end
+            T.clickAffected = {}
+        end
+    end,
+})
+
+auraAtkSec:AddToggle("FlingAura", {
+    Text = "弹飞光环", Default = false,
+    Callback = function(v)
+        S.FlingAura = v
+        if v then
+            if T.flingAuraTask then task.cancel(T.flingAuraTask) end
+            T.flingAuraTask = task.spawn(function()
+                while S.FlingAura do
+                    local r = auraGetRoot()
+                    if r then
+                        for _, plr in ipairs(Players:GetPlayers()) do
+                            if plr ~= LocalPlayer and plr.Character then
+                                pcall(function()
+                                    local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+                                    if hrp and (hrp.Position - r.Position).Magnitude <= S.AuraRadius then
+                                        auraSetNetworkOwner(hrp)
+                                        local bv = Instance.new("BodyVelocity", hrp)
+                                        bv.Velocity = Vector3.new(math.random(-1,1) * 5e10, 5e15, math.random(-1,1) * 5e10)
+                                        bv.MaxForce = Vector3.one * math.huge
+                                        Debris:AddItem(bv, 0.2)
+                                    end
+                                end)
+                            end
+                        end
+                    end
+                    task.wait()
+                end
+            end)
+        else
+            if T.flingAuraTask then task.cancel(T.flingAuraTask) T.flingAuraTask = nil end
+        end
+    end,
+})
+
+auraAtkSec:AddToggle("BringAura", {
+    Text = "拉近光环", Default = false,
+    Callback = function(v)
+        S.BringAura = v
+        if v then
+            if T.bringAuraTask then task.cancel(T.bringAuraTask) end
+            T.bringAuraTask = task.spawn(function()
+                while S.BringAura do
+                    local r = auraGetRoot()
+                    if r then
+                        for _, plr in ipairs(Players:GetPlayers()) do
+                            if plr ~= LocalPlayer and plr.Character then
+                                pcall(function()
+                                    local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+                                    if hrp and (hrp.Position - r.Position).Magnitude <= S.AuraRadius then
+                                        auraSetNetworkOwner(hrp)
+                                        hrp.CFrame = r.CFrame + r.CFrame.LookVector * 5
+                                    end
+                                end)
+                            end
+                        end
+                    end
+                    task.wait()
+                end
+            end)
+        else
+            if T.bringAuraTask then task.cancel(T.bringAuraTask) T.bringAuraTask = nil end
+        end
+    end,
+})
+
 local auraForceSec = Tabs.Aura:AddRightGroupbox("力场光环")
 local magnetAuraEnabled = false
 auraForceSec:AddToggle("MagnetAura", { Text = "磁铁光环", Default = false, Callback = function(enabled)
@@ -1810,7 +2065,7 @@ local function rebuildNameESP(plr)
     avatar.Name = "AvatarCircle"
     avatar.AnchorPoint = Vector2.new(0.5, 0)
     avatar.Position = UDim2.new(0.5, 0, 0, 0)
-    avatar.Size = UDim2.new(0, 36, 0, 36)
+    avatar.Size = UDim2.new(0, S.espAvatarSize, 0, S.espAvatarSize)
     avatar.BackgroundTransparency = 1
     avatar.Image = loadThumb(plr)
     avatar.ScaleType = Enum.ScaleType.Crop
@@ -1830,8 +2085,8 @@ local function rebuildNameESP(plr)
     local tl = Instance.new("TextLabel")
     tl.Name = "NameLabel"
     tl.AnchorPoint = Vector2.new(0.5, 0)
-    tl.Position = UDim2.new(0.5, 0, 0, 40)
-    tl.Size = UDim2.new(1, 0, 0, 16)
+    tl.Position = UDim2.new(0.5, 0, 0, S.espAvatarSize + 4)
+    tl.Size = UDim2.new(1, 0, 0, S.espNameSize + 2)
     tl.BackgroundTransparency = 1
     tl.Text = plr.DisplayName
     tl.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -1839,9 +2094,64 @@ local function rebuildNameESP(plr)
     tl.TextStrokeTransparency = 0.3
     tl.TextScaled = false
     tl.Font = Enum.Font.GothamBold
-    tl.TextSize = 14
+    tl.TextSize = S.espNameSize
     tl.Visible = S.nameESP
     tl.Parent = bb
+
+    local distLbl = Instance.new("TextLabel")
+    distLbl.Name = "DistanceLabel"
+    distLbl.AnchorPoint = Vector2.new(0.5, 0)
+    distLbl.Position = UDim2.new(0.5, 0, 0, S.espAvatarSize + S.espNameSize + 8)
+    distLbl.Size = UDim2.new(1, 0, 0, 14)
+    distLbl.BackgroundTransparency = 1
+    distLbl.Text = ""
+    distLbl.TextColor3 = Color3.fromRGB(255, 255, 100)
+    distLbl.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    distLbl.TextStrokeTransparency = 0.3
+    distLbl.Font = Enum.Font.GothamBold
+    distLbl.TextSize = 12
+    distLbl.Visible = S.espShowDistance
+    distLbl.Parent = bb
+
+    local tracer = Instance.new("Beam")
+    tracer.Name = "Tracer"
+    local att0 = Instance.new("Attachment")
+    att0.Name = "TracerA0"
+    local att1 = Instance.new("Attachment")
+    att1.Name = "TracerA1"
+    att0.Parent = hrp
+    att1.Parent = hrp
+    tracer.Attachment0 = att0
+    tracer.Attachment1 = att1
+    tracer.Width0 = S.espTracerThickness
+    tracer.Width1 = S.espTracerThickness
+    tracer.Color = ColorSequence.new(Color3.fromRGB(255, 80, 80))
+    tracer.Transparency = NumberSequence.new(0.3)
+    tracer.FaceCamera = true
+    tracer.Enabled = S.espTracer
+    tracer.Parent = hrp
+
+    local conn
+    conn = RunService.RenderStepped:Connect(function()
+        if not c or not c.Parent then
+            if conn then conn:Disconnect() end
+            return
+        end
+        local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if myRoot and att0.Parent and att1.Parent then
+            att0.WorldPosition = myRoot.Position
+            att1.WorldPosition = hrp.Position
+        end
+        if S.espShowDistance and myRoot then
+            local dist = (hrp.Position - myRoot.Position).Magnitude
+            distLbl.Text = string.format("%d 米", math.floor(dist))
+        end
+        tracer.Enabled = S.espTracer
+        distLbl.Visible = S.espShowDistance
+        tracer.Width0 = S.espTracerThickness
+        tracer.Width1 = S.espTracerThickness
+    end)
+    T.tracerConns[plr] = conn
 end
 
 local espSec = Tabs.Visuals:AddLeftGroupbox("透视")
@@ -1859,28 +2169,96 @@ espSec:AddToggle("AvatarESP", {
         for _, plr in ipairs(Players:GetPlayers()) do rebuildNameESP(plr) end
     end,
 })
+espSec:AddSlider("ESPAvatarSize", {
+    Text = "头像大小", Default = 36, Min = 36, Max = 120, Rounding = 0,
+    Callback = function(v)
+        S.espAvatarSize = v
+        for _, plr in ipairs(Players:GetPlayers()) do rebuildNameESP(plr) end
+    end,
+})
+espSec:AddSlider("ESPNameSize", {
+    Text = "名字大小", Default = 14, Min = 10, Max = 30, Rounding = 0,
+    Callback = function(v)
+        S.espNameSize = v
+        for _, plr in ipairs(Players:GetPlayers()) do rebuildNameESP(plr) end
+    end,
+})
+espSec:AddToggle("ESPShowDistance", {
+    Text = "显示距离", Default = false,
+    Callback = function(v) S.espShowDistance = v end,
+})
+espSec:AddToggle("ESPTracer", {
+    Text = "追踪线", Default = false,
+    Callback = function(v)
+        S.espTracer = v
+        for _, plr in ipairs(Players:GetPlayers()) do rebuildNameESP(plr) end
+    end,
+})
+espSec:AddSlider("ESPTracerThickness", {
+    Text = "追踪线大小", Default = 0.2, Min = 0.05, Max = 2, Rounding = 2,
+    Callback = function(v)
+        S.espTracerThickness = v
+        for _, plr in ipairs(Players:GetPlayers()) do rebuildNameESP(plr) end
+    end,
+})
 
-Players.PlayerAdded:Connect(function(plr)
-    plr.CharacterAdded:Connect(function()
-        task.wait(0.5)
-        rebuildNameESP(plr)
-    end)
-end)
-Players.PlayerRemoving:Connect(function(plr)
-    local c = plr.Character
-    local hrp = c and c:FindFirstChild("HumanoidRootPart")
-    if hrp then
-        local old = hrp:FindFirstChild("NameESP")
-        if old then old:Destroy() end
-    end
-end)
-for _, plr in ipairs(Players:GetPlayers()) do
-    if plr.Character then rebuildNameESP(plr) end
-    plr.CharacterAdded:Connect(function()
-        task.wait(0.5)
-        rebuildNameESP(plr)
-    end)
-end
+local visualSec = Tabs.Visuals:AddRightGroupbox("视觉辅助")
+visualSec:AddToggle("HighlightObjects", {
+    Text = "高亮物体", Default = false,
+    Callback = function(v)
+        S.HighlightObjects = v
+        if not v then
+            for _, obj in ipairs(Workspace:GetDescendants()) do
+                local hl = obj:FindFirstChild("HighlightObj_HL")
+                if hl then hl:Destroy() end
+            end
+            return
+        end
+        local targets = {
+            {path = {"Workspace", "Map", "AlwaysHereTweenedObjects", "InnerUFO", "Object", "ObjectModel"}, color = Color3.fromRGB(255, 100, 100)},
+            {path = {"Workspace", "Map", "AlwaysHereTweenedObjects", "OuterUFO", "Object", "ObjectModel"}, color = Color3.fromRGB(100, 255, 100)},
+            {path = {"Workspace", "Map", "AlwaysHereTweenedObjects", "CaveCart", "Object", "ObjectModel"}, color = Color3.fromRGB(100, 100, 255)},
+            {path = {"Workspace", "Map", "AlwaysHereTweenedObjects", "Train", "Object", "ObjectModel"}, color = Color3.fromRGB(255, 150, 50)},
+            {path = {"Workspace", "Map", "AlwaysHereTweenedObjects", "LrgDebris", "Object", "ObjectModel"}, color = Color3.fromRGB(255, 255, 100)},
+            {path = {"Workspace", "Map", "AlwaysHereTweenedObjects", "LrgDebris2", "Object", "ObjectModel"}, color = Color3.fromRGB(200, 100, 255)},
+        }
+        local function highlightPath(path, color)
+            local cur = game
+            for _, name in ipairs(path) do
+                if cur == game and name == "Workspace" then cur = Workspace
+                else cur = cur:FindFirstChild(name) end
+                if not cur then return end
+            end
+            for _, part in ipairs(cur:GetDescendants()) do
+                if part:IsA("BasePart") and not part:FindFirstChild("HighlightObj_HL") then
+                    local hl = Instance.new("Highlight")
+                    hl.Name = "HighlightObj_HL"
+                    hl.FillColor = color
+                    hl.OutlineColor = color:Lerp(Color3.new(0,0,0), 0.3)
+                    hl.FillTransparency = 0.5
+                    hl.OutlineTransparency = 0
+                    hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                    hl.Parent = part
+                end
+            end
+        end
+        for _, t in ipairs(targets) do highlightPath(t.path, t.color) end
+    end,
+})
+visualSec:AddToggle("FOVChanger", {
+    Text = "视野修改", Default = false,
+    Callback = function(v)
+        S.FOVChanger = v
+        Workspace.CurrentCamera.FieldOfView = v and S.FOVValue or 70
+    end,
+})
+visualSec:AddSlider("FOVValue", {
+    Text = "视野数值", Default = 70, Min = 40, Max = 120, Rounding = 0,
+    Callback = function(v)
+        S.FOVValue = v
+        if S.FOVChanger then Workspace.CurrentCamera.FieldOfView = v end
+    end,
+})
 
 -- ===== 杂项 =====
 local miscSec = Tabs.Misc:AddLeftGroupbox("工具")
@@ -1908,6 +2286,76 @@ miscSec:AddButton({ Text = "重置角色", Func = function()
     if h then h.Health = 0 end
 end})
 
+local perfSec = Tabs.Misc:AddRightGroupbox("性能优化")
+perfSec:AddToggle("FPSBooster", {
+    Text = "帧数优化", Default = false,
+    Callback = function(v)
+        S.FPSBooster = v
+        local terrain = Workspace.Terrain
+        if v then
+            T.originalLighting = {
+                GlobalShadows = Lighting.GlobalShadows,
+                Brightness = Lighting.Brightness,
+                WaterTransparency = terrain.WaterTransparency,
+                WaterWaveSize = terrain.WaterWaveSize,
+                WaterWaveSpeed = terrain.WaterWaveSpeed,
+            }
+            Lighting.GlobalShadows = false
+            Lighting.Brightness = 0
+            terrain.WaterTransparency = 1
+            terrain.WaterWaveSize = 0
+            terrain.WaterWaveSpeed = 0
+            for _, obj in pairs(Workspace:GetDescendants()) do
+                if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Smoke") or obj:IsA("Fire") or obj:IsA("Sparkles") then
+                    obj.Enabled = false
+                end
+            end
+        else
+            if T.originalLighting then
+                Lighting.GlobalShadows = T.originalLighting.GlobalShadows
+                Lighting.Brightness = T.originalLighting.Brightness
+                terrain.WaterTransparency = T.originalLighting.WaterTransparency
+                terrain.WaterWaveSize = T.originalLighting.WaterWaveSize
+                terrain.WaterWaveSpeed = T.originalLighting.WaterWaveSpeed
+                T.originalLighting = nil
+            end
+        end
+    end,
+})
+perfSec:AddToggle("NightMode", {
+    Text = "夜晚模式", Default = false,
+    Callback = function(v)
+        S.NightMode = v
+        if v then
+            T.originalNight = {
+                Brightness = Lighting.Brightness,
+                ClockTime = Lighting.ClockTime,
+                OutdoorAmbient = Lighting.OutdoorAmbient,
+            }
+            local sky = Instance.new("Sky")
+            sky.SkyboxBk = "rbxassetid://159454299"
+            sky.SkyboxDn = "rbxassetid://159454296"
+            sky.SkyboxFt = "rbxassetid://159454293"
+            sky.SkyboxLf = "rbxassetid://159454286"
+            sky.SkyboxRt = "rbxassetid://159454300"
+            sky.SkyboxUp = "rbxassetid://159454288"
+            sky.Parent = Lighting
+            T.nightSky = sky
+            Lighting.Brightness = 2
+            Lighting.ClockTime = 0
+            Lighting.OutdoorAmbient = Color3.fromRGB(50, 50, 80)
+        else
+            if T.nightSky then T.nightSky:Destroy() T.nightSky = nil end
+            if T.originalNight then
+                Lighting.Brightness = T.originalNight.Brightness
+                Lighting.ClockTime = T.originalNight.ClockTime
+                Lighting.OutdoorAmbient = T.originalNight.OutdoorAmbient
+                T.originalNight = nil
+            end
+        end
+    end,
+})
+
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
 SaveManager:IgnoreThemeSettings()
@@ -1916,4 +2364,4 @@ SaveManager:SetFolder("PlutonLite")
 SaveManager:BuildConfigSection(Tabs.Misc)
 ThemeManager:ApplyToTab(Tabs.Misc)
 
-warn("Pluton Lite (完整版 + 第三人称) 已加载")
+warn("Pluton Lite (完整版 + 新增强化包) 已加载")
