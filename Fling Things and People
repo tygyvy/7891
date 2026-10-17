@@ -1331,7 +1331,7 @@ playerFly:AddToggle("Fly", {
 })
 playerFly:AddSlider("FlySpeed", { Text = "飞行速度", Default = 50, Min = 10, Max = 300, Callback = function(v) S.FlySpeed = v end })
 
--- ===== 抓取 =====
+-- ===== 抓取（左栏抓取功能，右栏调试）=====
 local grabSec = Tabs.Grab:AddLeftGroupbox("抓取增强")
 grabSec:AddSlider("GrabStrength", {
     Text = "投掷力量", Default = 1000, Min = 300, Max = 40000,
@@ -1364,77 +1364,6 @@ grabSec:AddButton({ Text = "松开全部", Func = function()
         if w and w.Part1 then pcall(function() DestroyLine:FireServer(w.Part1) end) end
     end
 end})
-
--- 无限缩放（放在投掷力量下面）
-do
-    local infZoomValue = 0
-    local infZoomConn1, infZoomConn2, infZoomLoop = nil, nil, nil
-    local function applyInfZoom()
-        local grabParts = Workspace:FindFirstChild("GrabParts")
-        if not grabParts then return end
-        local dragPart = grabParts:FindFirstChild("DragPart")
-        local dragAttach = dragPart and dragPart:FindFirstChild("DragAttach")
-        if dragAttach then
-            dragAttach.Position = Workspace.CurrentCamera.CFrame.LookVector * infZoomValue
-        end
-    end
-    local function startInfZoomLoop()
-        if infZoomLoop then return end
-        infZoomLoop = RunService.RenderStepped:Connect(function()
-            if not S.InfZoom then return end
-            applyInfZoom()
-        end)
-    end
-    local function stopInfZoom()
-        if infZoomConn1 then infZoomConn1:Disconnect() infZoomConn1 = nil end
-        if infZoomConn2 then infZoomConn2:Disconnect() infZoomConn2 = nil end
-        if infZoomLoop then infZoomLoop:Disconnect() infZoomLoop = nil end
-        infZoomValue = 0
-    end
-    grabSec:AddToggle("InfZoom", {
-        Text = "无限缩放（滚轮拉远）",
-        Default = false,
-        Callback = function(v)
-            S.InfZoom = v
-            if v then
-                infZoomValue = 0
-                infZoomConn1 = UserInputService.InputChanged:Connect(function(input)
-                    if not S.InfZoom then return end
-                    if input.UserInputType == Enum.UserInputType.MouseWheel then
-                        if Workspace:FindFirstChild("GrabParts") then
-                            if input.Position.Z > 0 then
-                                infZoomValue = math.min(infZoomValue + S.InfZoomSpeed, S.InfZoomMax)
-                            else
-                                infZoomValue = math.max(infZoomValue - S.InfZoomSpeed, 0)
-                            end
-                        else
-                            infZoomValue = 0
-                        end
-                    end
-                end)
-                infZoomConn2 = Workspace.ChildAdded:Connect(function(child)
-                    if not S.InfZoom then return end
-                    if child.Name == "GrabParts" then
-                        infZoomValue = 0
-                    end
-                end)
-                startInfZoomLoop()
-                applyInfZoom()
-            else
-                stopInfZoom()
-            end
-        end,
-    })
-    grabSec:AddSlider("InfZoomSpeed", {
-        Text = "缩放速度", Default = 1.5, Min = 0.5, Max = 10, Rounding = 1,
-        Callback = function(v) S.InfZoomSpeed = v end,
-    })
-    grabSec:AddSlider("InfZoomMax", {
-        Text = "最大缩放距离", Default = 500, Min = 10, Max = 1000, Rounding = 0,
-        Callback = function(v) S.InfZoomMax = v end,
-    })
-end
-
 grabSec:AddToggle("MasslessGrab", {
     Text = "无质量抓取", Default = false,
     Callback = function(v)
@@ -1501,7 +1430,6 @@ grabSec:AddToggle("MasslessGrab", {
         end
     end,
 })
-
 grabSec:AddToggle("MasslessGrabToys", {
     Text = "无质量抓玩具", Default = false,
     Callback = function(v)
@@ -1564,7 +1492,6 @@ grabSec:AddToggle("MasslessGrabToys", {
         end
     end,
 })
-
 grabSec:AddToggle("MasslessGrabPlayers", {
     Text = "无质量抓玩家", Default = false,
     Callback = function(v)
@@ -1621,7 +1548,6 @@ grabSec:AddToggle("MasslessGrabPlayers", {
         end
     end,
 })
-
 grabSec:AddToggle("PhysicsGrab", {
     Text = "物理抓取", Default = false,
     Callback = function(v)
@@ -1656,6 +1582,77 @@ grabSec:AddToggle("PhysicsGrab", {
         end
     end,
 })
+
+-- 右栏：调试
+local grabDebugSec = Tabs.Grab:AddRightGroupbox("缩放调试")
+do
+    local infZoomValue = 0
+    local infZoomConn1, infZoomConn2, infZoomLoop = nil, nil, nil
+    local function applyInfZoom()
+        local grabParts = Workspace:FindFirstChild("GrabParts")
+        if not grabParts then return end
+        local dragPart = grabParts:FindFirstChild("DragPart")
+        local dragAttach = dragPart and dragPart:FindFirstChild("DragAttach")
+        if dragAttach then
+            dragAttach.Position = Workspace.CurrentCamera.CFrame.LookVector * infZoomValue
+        end
+    end
+    local function startInfZoomLoop()
+        if infZoomLoop then return end
+        infZoomLoop = RunService.RenderStepped:Connect(function()
+            if not S.InfZoom then return end
+            applyInfZoom()
+        end)
+    end
+    local function stopInfZoom()
+        if infZoomConn1 then infZoomConn1:Disconnect() infZoomConn1 = nil end
+        if infZoomConn2 then infZoomConn2:Disconnect() infZoomConn2 = nil end
+        if infZoomLoop then infZoomLoop:Disconnect() infZoomLoop = nil end
+        infZoomValue = 0
+    end
+    grabDebugSec:AddToggle("InfZoom", {
+        Text = "无限缩放（滚轮拉远）",
+        Default = false,
+        Callback = function(v)
+            S.InfZoom = v
+            if v then
+                infZoomValue = 0
+                infZoomConn1 = UserInputService.InputChanged:Connect(function(input)
+                    if not S.InfZoom then return end
+                    if input.UserInputType == Enum.UserInputType.MouseWheel then
+                        if Workspace:FindFirstChild("GrabParts") then
+                            if input.Position.Z > 0 then
+                                infZoomValue = math.min(infZoomValue + S.InfZoomSpeed, S.InfZoomMax)
+                            else
+                                infZoomValue = math.max(infZoomValue - S.InfZoomSpeed, 0)
+                            end
+                        else
+                            infZoomValue = 0
+                        end
+                    end
+                end)
+                infZoomConn2 = Workspace.ChildAdded:Connect(function(child)
+                    if not S.InfZoom then return end
+                    if child.Name == "GrabParts" then
+                        infZoomValue = 0
+                    end
+                end)
+                startInfZoomLoop()
+                applyInfZoom()
+            else
+                stopInfZoom()
+            end
+        end,
+    })
+    grabDebugSec:AddSlider("InfZoomSpeed", {
+        Text = "缩放速度", Default = 1.5, Min = 0.5, Max = 10, Rounding = 1,
+        Callback = function(v) S.InfZoomSpeed = v end,
+    })
+    grabDebugSec:AddSlider("InfZoomMax", {
+        Text = "最大缩放距离", Default = 500, Min = 10, Max = 1000, Rounding = 0,
+        Callback = function(v) S.InfZoomMax = v end,
+    })
+end
 
 -- ===== 光环 =====
 local auraSetSec = Tabs.Aura:AddLeftGroupbox("光环设置")
@@ -2519,4 +2516,4 @@ SaveManager:SetFolder("PlutonLite")
 SaveManager:BuildConfigSection(Tabs.Misc)
 ThemeManager:ApplyToTab(Tabs.Misc)
 
-warn("Pluton Lite (完整版 + 弹飞距离/力度 + 缩放速度/距离) 已加载")
+warn("Pluton Lite (完整版 + 抓取左右分栏 + 弹飞调试) 已加载")
