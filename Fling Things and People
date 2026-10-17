@@ -60,6 +60,7 @@ local S = {
     AntiGucci = false, AntiBananaSit = false, AntiRagdoll = false, AntiGucciTrain = false,
     FightBack = false, FightBackMode = "击杀",
     AuraRadius = 20, MagnetRange = 50, RepelForce = 100,
+    ShowAuraRadius = false,
     nameESP = false, avatarESP = false,
     espAvatarSize = 36,
     espNameSize = 14,
@@ -115,6 +116,8 @@ local T = {
     infZoomLoop = nil,
     infZoomValue = 0,
     playerWS = nil,
+    auraVisual = nil,
+    auraVisualConn = nil,
 }
 
 local function char() return LocalPlayer.Character end
@@ -1358,7 +1361,7 @@ grabSec:AddButton({ Text = "松开全部", Func = function()
     end
 end})
 
--- Inf Zoom（无限缩放）
+-- 无限缩放（放在投掷力量下面，第二排）
 do
     local infZoomValue = 0
     local infZoomConn1, infZoomConn2, infZoomLoop = nil, nil, nil
@@ -1645,6 +1648,46 @@ grabSec:AddToggle("PhysicsGrab", {
 -- ===== 光环 =====
 local auraSetSec = Tabs.Aura:AddLeftGroupbox("光环设置")
 auraSetSec:AddSlider("AuraRadius", { Text = "光环半径", Default = 20, Min = 1, Max = 30, Callback = function(v) S.AuraRadius = v end })
+auraSetSec:AddToggle("ShowAuraRadius", {
+    Text = "显示光环范围",
+    Default = false,
+    Callback = function(v)
+        S.ShowAuraRadius = v
+        if T.auraVisual then
+            T.auraVisual:Destroy()
+            T.auraVisual = nil
+        end
+        if T.auraVisualConn then
+            T.auraVisualConn:Disconnect()
+            T.auraVisualConn = nil
+        end
+        if not v then return end
+
+        local circle = Instance.new("Part")
+        circle.Name = "_PlutonAuraCircle"
+        circle.Shape = Enum.PartType.Cylinder
+        circle.Size = Vector3.new(0.1, S.AuraRadius * 2, S.AuraRadius * 2)
+        circle.Anchored = true
+        circle.CanCollide = false
+        circle.CanQuery = false
+        circle.CanTouch = false
+        circle.CastShadow = false
+        circle.Material = Enum.Material.Neon
+        circle.Color = Color3.fromRGB(0, 200, 255)
+        circle.Transparency = 0.6
+        circle.Parent = Workspace
+        T.auraVisual = circle
+
+        T.auraVisualConn = RunService.Heartbeat:Connect(function()
+            if not S.ShowAuraRadius then return end
+            local r = auraGetRoot()
+            if r and T.auraVisual and T.auraVisual.Parent then
+                T.auraVisual.Size = Vector3.new(0.1, S.AuraRadius * 2, S.AuraRadius * 2)
+                T.auraVisual.CFrame = CFrame.new(r.Position - Vector3.new(0, r.Size.Y / 2, 0)) * CFrame.Angles(0, 0, math.rad(90))
+            end
+        end)
+    end,
+})
 
 local auraAtkSec = Tabs.Aura:AddRightGroupbox("攻击光环")
 local runningSkyAura = false
@@ -2456,4 +2499,4 @@ SaveManager:SetFolder("PlutonLite")
 SaveManager:BuildConfigSection(Tabs.Misc)
 ThemeManager:ApplyToTab(Tabs.Misc)
 
-warn("Pluton Lite (完整版 + 速度/跳跃修正) 已加载")
+warn("Pluton Lite (完整版 + 光环显示 + 速度修正) 已加载")
