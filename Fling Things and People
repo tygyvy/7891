@@ -44,6 +44,7 @@ local S = {
     StrengthEnabled = false,
     MasslessGrab = false, MasslessGrabToys = false, MasslessGrabPlayers = false,
     PhysicsGrab = false,
+    InfZoom = false,
     SilentAim = false,
     Triggerbot = false,
     LegitAim = false,
@@ -53,6 +54,8 @@ local S = {
     AimHitbox = "身体",
     AimRange = 50,
     AimIgnoreFriends = false,
+    AimMode = "全部玩家",
+    AimTarget = nil,
     AntiOwnership = false, AntiOwnership2 = false, AntiExplosion = false, AntiFire = false,
     AntiGucci = false, AntiBananaSit = false, AntiRagdoll = false, AntiGucciTrain = false,
     FightBack = false, FightBackMode = "击杀",
@@ -107,6 +110,11 @@ local T = {
     nightSky = nil,
     originalNight = nil,
     originalLighting = nil,
+    infZoomConn1 = nil,
+    infZoomConn2 = nil,
+    infZoomLoop = nil,
+    infZoomValue = 0,
+    playerWS = nil,
 }
 
 local function char() return LocalPlayer.Character end
@@ -271,7 +279,7 @@ Workspace.ChildAdded:Connect(function(model)
     end
 end)
 
--- ===== Raycast 自瞄 =====
+-- ===== Raycast 自瞄（支持指定玩家）=====
 local S_OriginalRaycast = nil
 local S_RaycastModule = nil
 task.spawn(function()
@@ -288,6 +296,9 @@ task.spawn(function()
             local bestAngle = maxFov or 80
             for _, p in ipairs(Players:GetPlayers()) do
                 if p ~= lp and p.Character then
+                    if S.AimMode == "指定玩家" and S.AimTarget and p.Name ~= S.AimTarget then
+                        continue
+                    end
                     local r2 = p.Character:FindFirstChild("HumanoidRootPart") or p.Character:FindFirstChild("Torso") or p.Character:FindFirstChild("Head")
                     local h2 = p.Character:FindFirstChildOfClass("Humanoid")
                     if r2 and h2 and h2.Health > 0 then
@@ -640,6 +651,18 @@ combatSec:AddToggle("SilentAim", {
         if v and not S_RaycastModule then warn("[自瞄] RaycastModule 未加载") end
     end,
 })
+combatSec:AddDropdown("AimMode", {
+    Text = "自瞄模式", Values = {"全部玩家", "指定玩家"}, Default = 1,
+    Callback = function(v) S.AimMode = v end,
+})
+local aimTargetDD
+aimTargetDD = combatSec:AddDropdown("AimTargetDD", {
+    Text = "指定目标", Values = plist(), Default = 1,
+    Callback = function(v) S.AimTarget = tostring(v):match("@(.+)$") end,
+})
+combatSec:AddButton({ Text = "刷新目标列表", Func = function()
+    pcall(function() aimTargetDD:Refresh(plist()) end)
+end})
 combatSec:AddToggle("Triggerbot", {
     Text = "扳机机器人（扫到自动开火）", Default = false,
     Callback = function(v)
@@ -678,6 +701,10 @@ combatSec:AddToggle("Triggerbot", {
                 if not hit then return end
                 local model = hit.Instance:FindFirstAncestorOfClass("Model")
                 if not model or model == myChar then return end
+                if S.AimMode == "指定玩家" and S.AimTarget then
+                    local plr = Players:GetPlayerFromCharacter(model)
+                    if not plr or plr.Name ~= S.AimTarget then return end
+                end
                 local h = model:FindFirstChildOfClass("Humanoid")
                 if not h or h.Health <= 0 then return end
                 local r = model:FindFirstChild("HumanoidRootPart")
@@ -717,6 +744,9 @@ combatSec:AddToggle("LegitAim", {
                 local best, bestScore = nil, math.huge
                 for _, plr in ipairs(Players:GetPlayers()) do
                     if plr ~= LocalPlayer and plr.Character then
+                        if S.AimMode == "指定玩家" and S.AimTarget and plr.Name ~= S.AimTarget then
+                            continue
+                        end
                         if S.AimIgnoreFriends then
                             local isFriend = false
                             pcall(function() isFriend = LocalPlayer:IsFriendsWith(plr.UserId) end)
@@ -1138,26 +1168,24 @@ task.spawn(function()
     end
 end)
 
--- ===== 玩家 =====
+-- ===== 玩家：速度（你给的 CFrame 位移写法）=====
 local playerMove = Tabs.Player:AddLeftGroupbox("移动")
-local speedLoop = nil
-playerMove:AddToggle("WalkspeedToggle", {
-    Text = "速度调试",
+playerMove:AddToggle("PlayerWalkspeed", {
+    Text = "速度",
     Default = false,
     Callback = function(v)
         S.Walkspeed = v
-        if speedLoop then task.cancel(speedLoop) speedLoop = nil end
+        if T.playerWS then T.playerWS:Disconnect() T.playerWS = nil end
         if v then
-            speedLoop = task.spawn(function()
-                while S.Walkspeed do
-                    local h = hum()
-                    if h then h.WalkSpeed = S.WalkspeedValue end
-                    task.wait()
+            T.playerWS = RunService.Stepped:Connect(function()
+                local r = root()
+                local h = hum()
+                if r and h then
+                    local velY = r.AssemblyLinearVelocity.Y
+                    r.CFrame = r.CFrame + h.MoveDirection * (16 * S.WalkspeedValue / 100)
+                    r.AssemblyLinearVelocity = Vector3.new(r.AssemblyLinearVelocity.X, velY, r.AssemblyLinearVelocity.Z)
                 end
             end)
-        else
-            local h = hum()
-            if h then h.WalkSpeed = 16 end
         end
     end,
 })
@@ -1196,6 +1224,7 @@ playerMove:AddToggle("Noclip", {
     end,
 })
 
+-- ===== 玩家：跳跃 / 重力 =====
 local playerJumpSec = Tabs.Player:AddRightGroupbox("跳跃 / 重力")
 playerJumpSec:AddToggle("JumpPowerToggle", {
     Text = "跳跃力", Default = false,
@@ -1253,6 +1282,7 @@ playerJumpSec:AddSlider("GravityValue", {
     end,
 })
 
+-- ===== 玩家：飞行 =====
 local flyBV, flyBG, flyConn
 local playerFly = Tabs.Player:AddRightGroupbox("飞行")
 playerFly:AddToggle("Fly", {
@@ -1327,6 +1357,68 @@ grabSec:AddButton({ Text = "松开全部", Func = function()
         if w and w.Part1 then pcall(function() DestroyLine:FireServer(w.Part1) end) end
     end
 end})
+
+-- Inf Zoom（无限缩放）
+do
+    local infZoomValue = 0
+    local infZoomConn1, infZoomConn2, infZoomLoop = nil, nil, nil
+    local function applyInfZoom()
+        local grabParts = Workspace:FindFirstChild("GrabParts")
+        if not grabParts then return end
+        local dragPart = grabParts:FindFirstChild("DragPart")
+        local dragAttach = dragPart and dragPart:FindFirstChild("DragAttach")
+        if dragAttach then
+            dragAttach.Position = Workspace.CurrentCamera.CFrame.LookVector * infZoomValue
+        end
+    end
+    local function startInfZoomLoop()
+        if infZoomLoop then return end
+        infZoomLoop = RunService.RenderStepped:Connect(function()
+            if not S.InfZoom then return end
+            applyInfZoom()
+        end)
+    end
+    local function stopInfZoom()
+        if infZoomConn1 then infZoomConn1:Disconnect() infZoomConn1 = nil end
+        if infZoomConn2 then infZoomConn2:Disconnect() infZoomConn2 = nil end
+        if infZoomLoop then infZoomLoop:Disconnect() infZoomLoop = nil end
+        infZoomValue = 0
+    end
+    grabSec:AddToggle("InfZoom", {
+        Text = "无限缩放（滚轮拉远）",
+        Default = false,
+        Callback = function(v)
+            S.InfZoom = v
+            if v then
+                infZoomValue = 0
+                infZoomConn1 = UserInputService.InputChanged:Connect(function(input)
+                    if not S.InfZoom then return end
+                    if input.UserInputType == Enum.UserInputType.MouseWheel then
+                        if Workspace:FindFirstChild("GrabParts") then
+                            if input.Position.Z > 0 then
+                                infZoomValue = infZoomValue + 1.5
+                            else
+                                infZoomValue = infZoomValue - 1.5
+                            end
+                        else
+                            infZoomValue = 0
+                        end
+                    end
+                end)
+                infZoomConn2 = Workspace.ChildAdded:Connect(function(child)
+                    if not S.InfZoom then return end
+                    if child.Name == "GrabParts" then
+                        infZoomValue = 0
+                    end
+                end)
+                startInfZoomLoop()
+                applyInfZoom()
+            else
+                stopInfZoom()
+            end
+        end,
+    })
+end
 
 grabSec:AddToggle("MasslessGrab", {
     Text = "无质量抓取", Default = false,
@@ -2364,4 +2456,4 @@ SaveManager:SetFolder("PlutonLite")
 SaveManager:BuildConfigSection(Tabs.Misc)
 ThemeManager:ApplyToTab(Tabs.Misc)
 
-warn("Pluton Lite (完整版 + 新增强化包) 已加载")
+warn("Pluton Lite (完整版 + 速度/跳跃修正) 已加载")
