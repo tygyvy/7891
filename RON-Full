@@ -240,163 +240,752 @@ local function HideLabel(name)
     return (name:gsub("_", " "))
 end
 
--- ESP 扫描主循环（全部新逻辑，覆盖旧版）
-task.spawn(function()
-    while true do
-        task.wait(0.8)
+-- ================= 防滑 / 无加速（常驻，无开关）=================
+local AntiSlideBase = nil
 
-        -- 门 + 假门
-        if Cfg.ESPDoors or Cfg.ESPDupe then
-            local rooms = Workspace:FindFirstChild("CurrentRooms")
-            if rooms then
-                for _, room in ipairs(rooms:GetChildren()) do
-                    if Cfg.ESPDoors then
-                        local door = room:FindFirstChild("Door")
-                        if door and door:IsA("Model") then
-                            local num = tonumber(room.Name)
-                            Reg(door, "doors", "门 " .. (num and (num+1) or "?"))
-                        end
-                    end
-                    if Cfg.ESPDupe then
-                        for _, d in ipairs(room:GetDescendants()) do
-                            if d:IsA("Model") and (d.Name == "DoorFake" or d.Name == "FakeDoor" or d.Name:lower():find("dupe")) then
-                                Reg(d, "dupe", "假门")
-                            end
-                        end
-                    end
-                end
-            end
-        end
+RunService.Heartbeat:Connect(function()
+    local char = LocalPlayer.Character
+    if not char then return end
 
-        -- 楼梯
-        if Cfg.ESPStairs then
-            for _, d in ipairs(Workspace:GetDescendants()) do
-                if d:IsA("TrussPart") then Reg(d, "stairs", "梯子")
-                elseif d:IsA("Model") and d.Name:lower():find("stair") then Reg(d, "stairs", "楼梯") end
-            end
-        end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not hum or not root then return end
 
-        -- 金
-        if Cfg.ESPGold then
-            for _, d in ipairs(Workspace:GetDescendants()) do
-                if GOLD_NAMES[d.Name] then Reg(d, "gold", GOLD_NAMES[d.Name]) end
-            end
-        end
+    if AntiSlideBase == nil then
+        AntiSlideBase = hum.WalkSpeed
+    end
 
-        -- 钥匙 + 目标
-        if Cfg.ESPKeys or Cfg.ESPObjectives then
-            for _, d in ipairs(Workspace:GetDescendants()) do
-                if Cfg.ESPKeys and KEY_NAMES[d.Name] then Reg(d, "keys", KEY_NAMES[d.Name])
-                elseif Cfg.ESPObjectives and OBJECTIVE_NAMES[d.Name] then Reg(d, "objectives", OBJECTIVE_NAMES[d.Name]) end
-            end
-        end
+    if hum.WalkSpeed > AntiSlideBase then
+        hum.WalkSpeed = AntiSlideBase
+    end
 
-        -- 箱子/抽屉/储物柜
-        if Cfg.ESPChests or Cfg.ESPDrawers or Cfg.ESPLockers then
-            for _, d in ipairs(Workspace:GetDescendants()) do
-                if d:IsA("Model") then
-                    local n = d.Name
-                    if Cfg.ESPChests and CHEST_EXACT[n] then Reg(d, "chests", CHEST_EXACT[n])
-                    elseif Cfg.ESPDrawers and (n:lower():find("drawer") or n:lower():find("dresser") or n:lower():find("desk")) then Reg(d, "drawers", "抽屉")
-                    elseif Cfg.ESPLockers and (n:lower():find("locker") or n:lower():find("toolbox")) then Reg(d, "lockers", "储物柜") end
-                end
-            end
-        end
-
-        -- 衣柜（HidePrompt）
-        if Cfg.ESPWardrobes then
-            for _, p in ipairs(Workspace:GetDescendants()) do
-                if p:IsA("ProximityPrompt") and p.Name == "HidePrompt" and p.Enabled and p.Parent then
-                    local m = p:FindFirstAncestorWhichIsA("Model")
-                    if m and not Tracked[m] then Reg(m, "wardrobes", HideLabel(m.Name)) end
-                end
-            end
-        end
-
-        -- 物品
-        if Cfg.ESPItems then
-            for _, d in ipairs(Workspace:GetDescendants()) do
-                if d:IsA("ProximityPrompt") and d.Enabled and d.Parent then
-                    local pname = d.Name
-                    if pname == "ModulePrompt" or pname == "HerbPrompt" then
-                        local model = d.Parent:IsA("Model") and d.Parent or d.Parent:FindFirstAncestorWhichIsA("Model")
-                        if model and not Tracked[model] then
-                            local display = nil
-                            for _, c in ipairs({ model.Name, d.ObjectText, tostring(model:GetAttribute("DisplayName") or "") }) do
-                                if type(c) == "string" and ITEM_SET[c] then display = c break end
-                            end
-                            if display then
-                                if Cfg.ItemFilter[display] ~= false then Reg(model, "items", display) end
-                            elseif Cfg.UnlistedItems then Reg(model, "items", model.Name) end
-                        end
-                    end
-                end
-            end
-        end
-
-        -- 星尘/Glitch/Scanner/莲花
-        if Cfg.ESPStardust or Cfg.ESPGlitch or Cfg.ESPScanner or Cfg.ESPLotus then
-            for _, d in ipairs(Workspace:GetDescendants()) do
-                if d:IsA("Model") then
-                    local n = d.Name
-                    if Cfg.ESPStardust and STARDUST_NAMES[n] then Reg(d, "stardust", "星尘")
-                    elseif Cfg.ESPGlitch and (n:lower():find("glitchcube") or n:lower():find("glitchfragment")) then Reg(d, "glitch", "Glitch 碎片")
-                    elseif Cfg.ESPScanner and n:lower():find("scannermodule") then Reg(d, "scanner", "Scanner 模块")
-                    elseif Cfg.ESPLotus and n:lower():find("lotus") then Reg(d, "lotus", "莲花") end
-                end
-            end
-        end
-
-        -- 紧急出口
-        if Cfg.ESPExit then
-            for _, d in ipairs(Workspace:GetDescendants()) do
-                if d.Name == "ExitSignStairwell" then Reg(d, "exit", "紧急出口") end
-            end
-        end
-
-        -- 购物车
-        if Cfg.ESPCart then
-            for _, d in ipairs(Workspace:GetDescendants()) do
-                if d:IsA("Model") and d.Name == "ShoppingCart" then Reg(d, "cart", "购物车") end
-            end
-        end
-
-        -- 实体
-        if Cfg.ESPEntities then
-            for _, m in ipairs(Workspace:GetChildren()) do
-                if m:IsA("Model") and ENTITY_NAMES[m.Name] then
-                    local label = ENTITY_NAMES[m.Name]
-                    if Cfg.EntityFilter[label] ~= false then Reg(m, "entities", label) end
-                end
-            end
-        end
-
-        -- 玩家
-        if Cfg.ESPPlayers then
-            for _, p in ipairs(Players:GetPlayers()) do
-                if p ~= LocalPlayer and p.Character then
-                    local h = p.Character:FindFirstChildOfClass("Humanoid")
-                    if h and h.Health > 0 then Reg(p.Character, "players", p.DisplayName) end
-                end
-            end
-        end
-
-        -- 可交互物
-        if Cfg.ESPInteractables then
-            for _, d in ipairs(Workspace:GetDescendants()) do
-                if d:IsA("ProximityPrompt") and d.Enabled and d.Parent then
-                    local model = d.Parent:IsA("Model") and d.Parent or d.Parent:FindFirstAncestorWhichIsA("Model")
-                    if model and not Tracked[model] then Reg(model, "interactables", d.Name) end
-                end
-            end
-        end
-
-        -- 清理
-        for inst in pairs(Tracked) do
-            if not inst.Parent then DestroyESP(inst) end
-        end
+    local v = root.AssemblyLinearVelocity
+    local flat = Vector3.new(v.X, 0, v.Z)
+    if flat.Magnitude > AntiSlideBase then
+        root.AssemblyLinearVelocity = Vector3.new(
+            flat.Unit.X * AntiSlideBase,
+            v.Y,
+            flat.Unit.Z * AntiSlideBase
+        )
     end
 end)
+
+-- ============================================================
+-- RON 扫描模块 · 完整版（照抄原版扫描链）
+-- 依赖：Workspace, RunService, Players, LocalPlayer
+-- ============================================================
+
+local Scan = {}
+
+-- ==================== 基础 ====================
+local S_Tracked = Tracked
+local Active = { doors=true, dupe=true, stairs=true, gold=true, keys=true, chests=true,
+    drawers=true, lockers=true, items=true, stardust=true, glitch=true, scanner=true,
+    lotus=true, wardrobes=true, objectives=true, exit=true, cart=true, entities=true,
+    players=true, interactables=true }
+local Mode = { Name = "Unknown", Raw = "", Gen = 0 }
+local Watch = { Limited = { Stem=true, Drone=true }, M = {}, Loop = false,
+    Gold = setmetatable({}, { __mode = "k" }) }
+local CurrentRooms = nil
+local SCfg = { MaxDistance = 400, MaxObjects = 70, RoomEntities = true }
+
+-- ==================== 名称表 ====================
+local S_KEY_NAMES = {
+    KeyObtain="Key", ElectricalKeyObtain="Electrical Key", FuseObtain="Fuse",
+}
+local S_OBJECTIVE_NAMES = {
+    LeverForGate="Lever", TimerLever="Timer Lever", LiveHintBook="Library Book",
+    LiveBreakerPolePickup="Breaker Pole", StairwellFireAlarm="Fire Alarm",
+    ["Sally's Toy"]="Sally's Toy", SallysToy="Sally's Toy", WaterPump="Water Pump",
+}
+local S_STARDUST_NAMES = { Stardust="Stardust", StardustPickup="Stardust" }
+local S_GOLD_NAMES = { GoldPile="Gold" }
+local S_HIDE_NAMES = { Wardrobe="Closet", Bed="Bed", Toolshed="Tool Shed", Locker="Locker" }
+local S_HIDE_EXACT = { Wardrobe="Closet", Toolshed="Tool Shed" }
+local S_CHEST_EXACT = { ChestBox="Chest", ChestBoxLocked="Locked Chest" }
+local SPECIAL_CATS = {
+    ["Glitch Fragment"]="glitch", ["Lotus Petal"]="lotus",
+    ["Scanner Module"]="scanner", ["Stardust"]="stardust",
+}
+local STAIR_ASSETS = {
+    ExitSignStairwell={ "exit", "Emergency Exit" },
+    ShoppingCart={ "cart", "Shopping Cart" },
+    StairwellScrapper={ "interactables", "Depot" },
+}
+local S_ENTITY_NAMES = {
+    RushMoving="Rush", AmbushMoving="Ambush", Eyes="Eyes", Halt="Halt",
+    JeffTheKiller="Jeff", Snare="Snare", SeekMoving="Seek", SeekRig="Seek",
+    FigureRig="Figure", FigureRagdoll="Figure", Timothy="Timothy", Void="Void",
+    Dread="Dread", Grumble="Grumble", QueenGrumble="Queen Grumble", Giggle="Giggle",
+    A60="A-60", A120="A-120", Bash="A-60", Scribbles="Scribbles",
+    GlitchRush="Glitched Rush", GlitchAmbush="Glitched Ambush",
+    BackdoorRush="Blitz", Lookman="Lookman",
+}
+local S_ITEM_NAMES = {
+    "Alarm Clock","Bandage","Battery","Boxing Gloves","Bread","Candle",
+    "Compass","Crucifix","Flashlight","Glowstick","Gold Gun","Green Herb",
+    "Holy Hand Grenade","Lantern","Laser Pointer","Lighter","Lockpicks",
+    "Multitool","NVCS-3000","Pizza","Pocket Mirror","Shears",
+    "Skeleton Key","Smoothie","Vitamins","Bulklight","Shakelight",
+}
+local ITEM_LOOKUP = {}
+for _, n in ipairs(S_ITEM_NAMES) do
+    ITEM_LOOKUP[n:lower():gsub("[^%w]", "")] = n
+end
+
+-- ==================== 工具 ====================
+local function Norm(s) return (tostring(s):lower():gsub("[^%w]", "")) end
+
+local function S_GetPart(inst)
+    if inst:IsA("BasePart") then return inst end
+    if inst:IsA("Model") then
+        return inst.PrimaryPart or inst:FindFirstChildWhichIsA("BasePart", true)
+    end
+end
+
+local function ResolveItem(cands)
+    for _, cand in ipairs(cands) do
+        if type(cand) == "string" and cand ~= "" then
+            local n = Norm(cand)
+            if ITEM_LOOKUP[n] then return ITEM_LOOKUP[n] end
+        end
+    end
+    for _, cand in ipairs(cands) do
+        if type(cand) == "string" and #cand >= 4 then
+            local n = Norm(cand)
+            local best, bestLen
+            for k, name in pairs(ITEM_LOOKUP) do
+                if #k >= 6 and n:find(k, 1, true) then
+                    if not bestLen or #k > bestLen then best, bestLen = name, #k end
+                end
+            end
+            if best then return best end
+        end
+    end
+end
+
+local function S_HideLabel(name)
+    if S_HIDE_NAMES[name] then return S_HIDE_NAMES[name] end
+    local n = Norm(name)
+    if n:find("wardrobe", 1, true) or n:find("closet", 1, true) then return "Closet" end
+    if n:find("cupboard", 1, true) then return "Cupboard" end
+    if n:find("locker", 1, true) then return "Locker" end
+    if n:find("shed", 1, true) then return "Tool Shed" end
+    if n:find("bed", 1, true) then return "Bed" end
+    return (name:gsub("_", " "))
+end
+
+local function EntityLabel(name, strict)
+    if S_ENTITY_NAMES[name] then return S_ENTITY_NAMES[name] end
+    return nil
+end
+
+local function CleanName(name)
+    return (name:gsub("_", " "):gsub("(%l)(%u)", "%1 %2"))
+end
+
+-- ==================== 注册 ====================
+local function RemoveEntry(inst)
+    local e = S_Tracked[inst]
+    if not e then return end
+    S_Tracked[inst] = nil
+    if e.Conn then pcall(e.Conn.Disconnect, e.Conn) e.Conn = nil end
+    if e.HL then pcall(function() e.HL:Destroy() end) end
+    if e.BB then pcall(function() e.BB:Destroy() end) end
+end
+
+local function Register(inst, cat, label, opts)
+    if not inst or not inst.Parent then return end
+    if not Active[cat] then return end
+
+    if cat == "entities" and label == "Mandrake" and not (opts and opts.Direct) then
+        if not S_Tracked[inst] and not Watch.M[inst] and not Watch.IsBurrowName(inst.Name) then
+            Watch.M[inst] = { Opts = opts }
+            Watch.Run()
+        end
+        return
+    end
+
+    local existing = S_Tracked[inst]
+    if existing then
+        if cat == existing.Cat then return end
+        RemoveEntry(inst)
+    end
+
+    local part = (opts and opts.Part) or S_GetPart(inst)
+    if not part then return end
+
+    local conn = inst.AncestryChanged:Connect(function(_, parent)
+        if not parent then RemoveEntry(inst) end
+    end)
+
+    local color = COLORS[cat] or Color3.new(1,1,1)
+    local esp = CreateESP(inst, label or cat, color, Cfg.ESPRange)
+    if not esp then return end
+    esp.Cat = cat
+    esp.Inst = inst
+    esp.Part = part
+    esp.Label = label or cat
+    esp.Conn = conn
+    esp.Known = opts and opts.Known
+    esp.Key = opts and opts.Key
+    esp.Prompt = opts and opts.Prompt
+    esp.GeoT = 0
+    esp.NoGeo = false
+    esp.RoomNum = opts and opts.RoomNum
+    esp.Door = opts and opts.Door
+    esp.Dist = 0
+    esp.Shown = false
+    S_Tracked[inst] = esp
+end
+
+local function RegisterWhenReady(inst, cat, label)
+    Register(inst, cat, label)
+    if S_Tracked[inst] or S_GetPart(inst) then return end
+    task.spawn(function()
+        for _ = 1, 30 do
+            task.wait(0.2)
+            if not inst.Parent or S_Tracked[inst] then return end
+            if S_GetPart(inst) then Register(inst, cat, label) return end
+        end
+    end)
+end
+
+local function RegisterByName(target)
+    local n = target.Name
+    if S_KEY_NAMES[n] then
+        Register(target, "keys", S_KEY_NAMES[n])
+    elseif S_OBJECTIVE_NAMES[n] then
+        RegisterWhenReady(target, "objectives", S_OBJECTIVE_NAMES[n])
+    elseif S_STARDUST_NAMES[n] then
+        Register(target, "stardust", S_STARDUST_NAMES[n])
+    elseif S_GOLD_NAMES[n] then
+        Watch.RegisterGold(target)
+    else
+        return false
+    end
+    return true
+end
+
+local function HasTrackedAncestor(inst)
+    local p = inst.Parent
+    while p and p ~= CurrentRooms and p ~= Workspace do
+        if S_Tracked[p] then return true end
+        p = p.Parent
+    end
+    return false
+end
+
+local function IsDupeName(name)
+    local l = name:lower()
+    if l:find("dupl", 1, true) then return false end
+    return l == "doorfake" or l == "fakedoor" or l:match("^dupe") ~= nil
+end
+
+-- ==================== Watch（Mandrake 延迟注册）====================
+local BURROW_WORDS = { "burrow","hole","den","mound","nest","tunnel","lair","pit","dirt","hill","spawn","madriguera" }
+function Watch.IsBurrowName(name)
+    local n = name:lower()
+    for _, w in ipairs(BURROW_WORDS) do
+        if n:find(w, 1, true) then return true end
+    end
+    return false
+end
+
+function Watch.IsBurrow(inst)
+    local p, i = inst, 0
+    while p and p ~= Workspace and i < 5 do
+        local n = p.Name:lower()
+        if n:find("burrow", 1, true) or n:find("madriguera", 1, true) or n:find("mandrake", 1, true) then
+            return true
+        end
+        p, i = p.Parent, i + 1
+    end
+    return false
+end
+
+function Watch.Run()
+    if Watch.Loop then return end
+    Watch.Loop = true
+    task.spawn(function()
+        while next(Watch.M) do
+            task.wait(0.2)
+            local char = LocalPlayer.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            for inst, w in pairs(Watch.M) do
+                if not inst.Parent then
+                    Watch.M[inst] = nil
+                elseif hrp then
+                    local ok, pos = pcall(function()
+                        return inst:IsA("Model") and inst:GetPivot().Position or inst.Position
+                    end)
+                    if ok and pos then
+                        if not w.Start then
+                            w.Start = pos
+                        elseif (pos - w.Start).Magnitude > 3 and (pos - hrp.Position).Magnitude <= 50 then
+                            Watch.M[inst] = nil
+                            Watch.Promote(inst, w.Opts)
+                        end
+                    end
+                end
+            end
+        end
+        Watch.Loop = false
+    end)
+end
+
+function Watch.Promote(inst, opts)
+    local o = {}
+    for k, v in pairs(opts or {}) do o[k] = v end
+    o.Direct = true
+    Register(inst, "entities", "Mandrake", o)
+end
+
+function Watch.RegisterGold(target)
+    if S_Tracked[target] or Watch.Gold[target] or Watch.IsBurrow(target) then return end
+    Watch.Gold[target] = true
+    task.spawn(function()
+        for _ = 1, 15 do
+            if not target.Parent then break end
+            local prompt = target:FindFirstChildWhichIsA("ProximityPrompt", true)
+            if prompt and S_GetPart(target) then
+                local visible = false
+                local list = target:IsA("BasePart") and { target } or target:GetDescendants()
+                for _, d in ipairs(list) do
+                    if d:IsA("BasePart") and d.Transparency < 0.95 then visible = true break end
+                end
+                if visible and prompt.Enabled and prompt.MaxActivationDistance > 0 then
+                    local value = target:GetAttribute("GoldValue")
+                    Register(target, "gold", value and ("Gold [" .. value .. "]") or "Gold", { Prompt = prompt })
+                end
+                break
+            end
+            task.wait(0.3)
+        end
+        Watch.Gold[target] = nil
+    end)
+end
+
+-- ==================== RegisterDoor / ScanRoom ====================
+local function RegisterDoor(room, door)
+    if not door:IsA("Model") or door.Name ~= "Door" then return end
+    local num = tonumber(room.Name)
+    local label = "Door " .. (num and (num + 1) or room.Name)
+    local panels = {}
+    for _, c in ipairs(door:GetChildren()) do
+        if c.Name == "Door" and c:IsA("BasePart") then panels[#panels + 1] = c end
+    end
+    if #panels == 2 then
+        local hm = door:FindFirstChild("R4N_HighlightModel")
+        if not hm then
+            hm = Instance.new("Model")
+            hm.Name = "R4N_HighlightModel"
+            for _, p in ipairs(panels) do
+                local hp = Instance.new("Part")
+                hp.Name = "HighlightPart"
+                hp.Transparency = 0.999
+                hp.Size = p.Size
+                hp.CFrame = p.CFrame
+                hp.CanCollide, hp.CanQuery, hp.CanTouch, hp.CastShadow = false, false, false, false
+                hp.Massless = true
+                hp.Anchored = false
+                hp.Parent = hm
+                local w = Instance.new("WeldConstraint")
+                w.Part0, w.Part1 = hp, p
+                w.Parent = hp
+            end
+            hm.Parent = door
+        end
+        local first = hm:FindFirstChild("HighlightPart")
+        if first then
+            if S_Tracked[door] then RemoveEntry(door) end
+            Register(hm, "doors", label, { Part = first, RoomNum = num, Door = door })
+            return
+        end
+    end
+    local leaf = door:FindFirstChild("Door")
+    if leaf and leaf:IsA("BasePart") then
+        local hp = door:FindFirstChild("HighlightPart")
+        if not hp then
+            hp = Instance.new("Part")
+            hp.Name = "HighlightPart"
+            hp.Transparency = 0.999
+            hp.Size = leaf.Size
+            hp.CFrame = leaf.CFrame
+            hp.CanCollide, hp.CanQuery, hp.CanTouch, hp.CastShadow = false, false, false, false
+            hp.Massless = true
+            hp.Anchored = false
+            local w = Instance.new("WeldConstraint")
+            w.Part0, w.Part1 = hp, leaf
+            w.Parent = hp
+            hp.Parent = door
+        end
+        if S_Tracked[door] then RemoveEntry(door) end
+        Register(hp, "doors", label, { Part = hp, RoomNum = num, Door = door })
+        return
+    end
+    Register(door, "doors", label, { Part = door:FindFirstChild("Door") or S_GetPart(door), RoomNum = num, Door = door })
+end
+
+local function ScanRoom(room)
+    task.spawn(function()
+        local found = room:WaitForChild("Door", 10)
+        for _, c in ipairs(room:GetChildren()) do RegisterDoor(room, c) end
+        if found and found.Parent == room then return end
+        local conn
+        conn = room.ChildAdded:Connect(function(c)
+            RegisterDoor(room, c)
+            if c.Name == "Door" and conn then conn:Disconnect() conn = nil end
+        end)
+        room.AncestryChanged:Once(function() if conn then conn:Disconnect() conn = nil end end)
+    end)
+end
+
+-- ==================== 容器分类 ====================
+local CONTAINER_WORDS = { "drawer", "dresser", "desk", "table", "cabinet", "shelf", "nightstand", "makeshift" }
+
+local function ClassifyContainer(name)
+    local n = Norm(name)
+    if n:find("toolbox", 1, true) then return "lockers", "Toolbox" end
+    if n:find("locker", 1, true) then
+        if n:find("small", 1, true) or n:find("mini", 1, true) then return "lockers", "Small Locker" end
+        return "lockers", "Item Locker"
+    end
+    for _, w in ipairs(CONTAINER_WORDS) do
+        if n:find(w, 1, true) then
+            return "drawers", (w == "makeshift") and "Makeshift Drawer" or "Drawer"
+        end
+    end
+end
+
+local function IsKnownObject(name)
+    if S_KEY_NAMES[name] or S_OBJECTIVE_NAMES[name] or S_STARDUST_NAMES[name] or S_GOLD_NAMES[name] then return true end
+    if Norm(name):find("sally", 1, true) then return true end
+    return ResolveItem({ name }) ~= nil
+end
+
+local function IsContainerModel(m)
+    if not m then return false end
+    if ClassifyContainer(m.Name) then return true end
+    local e = S_Tracked[m]
+    return e ~= nil and (e.Cat == "drawers" or e.Cat == "lockers" or e.Cat == "chests" or e.Cat == "wardrobes")
+end
+
+local GENERIC_PARTS = { Handle=true, Hitbox=true, Base=true, Main=true, Part=true, Model=true }
+
+local function ResolveTarget(prompt)
+    local t = prompt.Parent
+    if t and t:IsA("Attachment") then t = t.Parent end
+    if not t then return nil end
+    if IsKnownObject(t.Name) then return t end
+    if t:IsA("BasePart") then
+        local pm = t.Parent
+        if pm and pm:IsA("Model") and pm.Parent ~= CurrentRooms and not IsContainerModel(pm) then t = pm end
+    end
+    while GENERIC_PARTS[t.Name] and t.Parent and t.Parent:IsA("Model") and t.Parent.Parent ~= CurrentRooms
+        and not IsContainerModel(t.Parent) and not IsKnownObject(t.Name) do
+        t = t.Parent
+    end
+    return t
+end
+
+local function StairOwner(inst)
+    local p, i, found, cat, label = inst, 0, nil, nil, nil
+    while p and p ~= Workspace and i < 10 do
+        local def = STAIR_ASSETS[p.Name]
+        if def and (p:IsA("Model") or p:IsA("BasePart")) then
+            found, cat, label = p, def[1], def[2]
+        end
+        p, i = p.Parent, i + 1
+    end
+    return found, cat, label
+end
+
+local function ProcessContainerPrompt(prompt)
+    local so, sc, sl = StairOwner(prompt)
+    if so then
+        if Active[sc] then RegisterWhenReady(so, sc, sl) end
+        return
+    end
+    local t = ResolveTarget(prompt)
+    if not t or t == Workspace then return end
+    if Watch.IsBurrow(t) then return end
+    if CurrentRooms and t.Parent == CurrentRooms and not S_OBJECTIVE_NAMES[t.Name] then return end
+    if RegisterByName(t) then return end
+    if HasTrackedAncestor(t) then return end
+    local low = Norm(t.Name)
+    if low == "door" or low == "lock" or low:find("dupe", 1, true) then return end
+    if t:FindFirstChild("HidePrompt", true) then return end
+    local cat, label = ClassifyContainer(t.Name)
+    if cat then
+        Register(t, cat, label, { Prompt = prompt })
+    elseif prompt.Name == "LootPrompt" then
+        Register(t, "drawers", CleanName(t.Name), { Prompt = prompt })
+    else
+        Register(t, "interactables", CleanName(t.Name), { Prompt = prompt })
+    end
+end
+
+-- ==================== Process（完整）====================
+local KNOWN_PROMPTS = {
+    HidePrompt=true, ModulePrompt=true, HerbPrompt=true, ActivateEventPrompt=true,
+    LootPrompt=true, UnlockPrompt=true, SkullPrompt=true, Prompt=true,
+    HintPrompt=true, InteractPrompt=true,
+}
+
+local function Process(inst)
+    if inst:IsA("ProximityPrompt") then
+        local pn = inst.Name
+        if pn == "HidePrompt" then
+            if not Active.wardrobes then return end
+            local m = inst:FindFirstAncestorWhichIsA("Model")
+            if m and m ~= CurrentRooms and m.Parent ~= CurrentRooms then
+                Register(m, "wardrobes", S_HideLabel(m.Name))
+            end
+        elseif pn == "ModulePrompt" or pn == "HerbPrompt" then
+            if not (Active.items or Active.keys or Active.objectives or Active.gold
+                or Active.stardust or Active.glitch or Active.lotus or Active.scanner) then return end
+            local t = ResolveTarget(inst)
+            if not t then return end
+            if Watch.IsBurrow(t) or Watch.IsBurrow(inst) then return end
+            if RegisterByName(t) then return end
+            if S_Tracked[t] and not IsContainerModel(t) then return end
+            local nn = Norm(t.Name)
+            if nn:find("sally", 1, true) then
+                RegisterWhenReady(t, "objectives", "Sally's Toy")
+                return
+            end
+            local objText = inst.ObjectText
+            local cands = { t.Name, t:GetAttribute("DisplayName"), objText }
+            if pn == "HerbPrompt" then cands[#cands + 1] = "Green Herb" end
+            local display = ResolveItem(cands)
+            if not display then
+                local blob = Norm(t.Name) .. "|" .. Norm(tostring(t:GetAttribute("DisplayName") or "")) .. "|" .. Norm(tostring(objText or ""))
+                if blob:find("glitch", 1, true) then display = "Glitch Fragment"
+                elseif blob:find("stardust", 1, true) then display = "Stardust"
+                elseif blob:find("module", 1, true) and blob:find("scan", 1, true) then display = "Scanner Module" end
+            end
+            if not display and Mode.Name == "Outdoors" then return end
+            local special = display and SPECIAL_CATS[display]
+            if special then
+                Register(t, special, display, { Known = true, Key = display })
+            else
+                Register(t, "items", display or CleanName(t.Name), { Known = display ~= nil, Key = display })
+            end
+        elseif pn == "ActivateEventPrompt" or pn == "LootPrompt" then
+            if not (Active.drawers or Active.lockers or Active.interactables) then return end
+            ProcessContainerPrompt(inst)
+        elseif not KNOWN_PROMPTS[pn] then
+            -- unknown prompt
+        end
+        return
+    end
+
+    if inst:IsA("Model") or inst:IsA("BasePart") then
+        if inst.Name == "Crusher" then
+            local pr = inst.Parent
+            if Active.entities and pr and pr.Name == "StairwellCrusher" and CurrentRooms and inst:IsDescendantOf(CurrentRooms) then
+                RegisterCrusher(inst)
+                return
+            end
+        else
+            local sd = STAIR_ASSETS[inst.Name]
+            if sd and Active[sd[1]] then
+                local owner = StairOwner(inst)
+                if owner then RegisterWhenReady(owner, sd[1], sd[2]) end
+                return
+            end
+        end
+        if RegisterByName(inst) then return end
+        if inst:IsA("Model") then
+            local n = inst.Name
+            local lab = (Active.entities and SCfg.RoomEntities and inst.Parent ~= Workspace) and EntityLabel(n, true) or nil
+            if S_HIDE_EXACT[n] then
+                Register(inst, "wardrobes", S_HIDE_EXACT[n])
+            elseif lab and not HasTrackedAncestor(inst) then
+                Register(inst, "entities", lab, { Known = true, Key = lab })
+            else
+                local cl = S_CHEST_EXACT[n]
+                if type(cl) == "string" then
+                    Register(inst, "chests", cl)
+                else
+                    if cl == nil then
+                        local low = n:lower()
+                        cl = false
+                        if low:find("chest", 1, true) then
+                            local label = "Chest"
+                            if low:find("locked", 1, true) then label = "Locked Chest"
+                            elseif low:find("vine", 1, true) then label = "Vine Chest" end
+                            cl = { label }
+                        end
+                        S_CHEST_EXACT[n] = cl
+                    end
+                    if cl and not HasTrackedAncestor(inst) then Register(inst, "chests", cl[1]) end
+                end
+            end
+        end
+    end
+end
+
+-- ==================== RegisterCrusher ====================
+local function RegisterCrusher(inst)
+    local function try()
+        if S_Tracked[inst] then return true end
+        if S_GetPart(inst) then
+            Register(inst, "entities", "Crusher", { Known = true, Key = "Crusher" })
+            return true
+        end
+    end
+    if try() then return end
+    task.spawn(function()
+        for _ = 1, 30 do
+            task.wait(0.2)
+            if not inst.Parent then return end
+            if try() then return end
+        end
+    end)
+end
+
+-- ==================== 其他 Process ====================
+local function ProcessStairs(d)
+    if not Active.stairs or S_Tracked[d] then return end
+    if d:IsA("TrussPart") then
+        local owner = d
+        local p = d.Parent
+        if p and p:IsA("Model") and p ~= Workspace and p ~= CurrentRooms
+            and not (CurrentRooms and p.Parent == CurrentRooms) and not Players:GetPlayerFromCharacter(p) then
+            owner = p
+        end
+        if not S_Tracked[owner] and not HasTrackedAncestor(owner) then Register(owner, "stairs", "Ladder") end
+    elseif d:IsA("Model") then
+        local n = Norm(d.Name)
+        if (n == "stairs" or n == "stair" or n:find("staircase", 1, true)) and not HasTrackedAncestor(d) then
+            Register(d, "stairs", "Stairs")
+        end
+    end
+end
+
+local function ProcessDupe(m)
+    if not Active.dupe or not m:IsA("Model") or S_Tracked[m] then return end
+    if not CurrentRooms or not m:IsDescendantOf(CurrentRooms) then return end
+    if m.Name == "Door" or not IsDupeName(m.Name) then return end
+    local room = m
+    while room.Parent and room.Parent ~= CurrentRooms do room = room.Parent end
+    Register(m, "dupe", "Dupe [Fake Door]", { Known = true, Key = "Dupe", RoomNum = tonumber(room.Name) })
+end
+
+local function ProcessEntity(m, initial)
+    if not Active.entities then return end
+    if not m:IsA("Model") or S_Tracked[m] then return end
+    if Players:GetPlayerFromCharacter(m) then return end
+    local label = EntityLabel(m.Name, false)
+    if label then Register(m, "entities", label, { Known = true, Key = label }) end
+end
+
+local function ProcessRig(m)
+    if not Active.entities or not SCfg.RoomEntities then return end
+    if not m or not m:IsA("Model") or m == Workspace or S_Tracked[m] then return end
+    if Players:GetPlayerFromCharacter(m) or HasTrackedAncestor(m) then return end
+    local label = EntityLabel(m.Name, true)
+    if not label then return end
+    Register(m, "entities", label, { Known = true, Key = label })
+end
+
+local function ProcessNoise(d) end
+local function ProcessLoose(d) end
+
+-- ==================== OnDescendant ====================
+local function OnDescendant(d)
+    if not (d:IsA("ProximityPrompt") or d:IsA("Model") or d:IsA("BasePart") or d:IsA("Humanoid") or d:IsA("AnimationController")) then return end
+    Process(d)
+    ProcessStairs(d)
+    ProcessNoise(d)
+    ProcessLoose(d)
+    if d:IsA("Model") then
+        if IsDupeName(d.Name) then ProcessDupe(d) end
+    elseif d:IsA("Humanoid") or d:IsA("AnimationController") then
+        ProcessRig(d.Parent)
+    end
+end
+
+-- ==================== Rescan ====================
+local function Rescan()
+    Mode.Gen = (Mode.Gen or 0) + 1
+    local gen = Mode.Gen
+    task.spawn(function()
+        local n, t0 = 0, os.clock()
+        for _, d in ipairs(Workspace:GetDescendants()) do
+            pcall(OnDescendant, d)
+            n = n + 1
+            if n % 100 == 0 and os.clock() - t0 > 0.004 then
+                task.wait()
+                t0 = os.clock()
+                if Mode.Gen ~= gen then return end
+            end
+        end
+        for _, c in ipairs(Workspace:GetChildren()) do pcall(ProcessEntity, c, true) end
+        if CurrentRooms then
+            for _, room in ipairs(CurrentRooms:GetChildren()) do
+                for _, c in ipairs(room:GetChildren()) do pcall(RegisterDoor, room, c) end
+            end
+        end
+    end)
+end
+
+-- ==================== 增量扫描 ====================
+do
+    local queue, head, tail = {}, 1, 0
+    Workspace.DescendantAdded:Connect(function(d)
+        if d:IsA("ProximityPrompt") or d:IsA("Model") or d:IsA("BasePart") or d:IsA("Humanoid") or d:IsA("AnimationController") then
+            if d.Name == "R4N_HighlightModel" or d.Name == "HighlightPart" then return end
+            tail = tail + 1
+            queue[tail] = d
+        end
+    end)
+    RunService.Heartbeat:Connect(function()
+        if head > tail then return end
+        local t0 = os.clock()
+        while head <= tail do
+            local d = queue[head]
+            queue[head] = nil
+            head = head + 1
+            if d.Parent then pcall(OnDescendant, d) end
+            if head % 5 == 0 and os.clock() - t0 > 0.0025 then break end
+        end
+        if head > tail then head, tail = 1, 0 end
+    end)
+end
+Workspace.ChildAdded:Connect(function(c) pcall(ProcessEntity, c, false) end)
+
+-- ==================== 启动 ====================
+CurrentRooms = Workspace:FindFirstChild("CurrentRooms")
+task.spawn(function()
+    if not CurrentRooms then
+        CurrentRooms = Workspace:WaitForChild("CurrentRooms", 60)
+        if CurrentRooms then Rescan() end
+    end
+    if not CurrentRooms then return end
+    for _, room in ipairs(CurrentRooms:GetChildren()) do ScanRoom(room) end
+    CurrentRooms.ChildAdded:Connect(ScanRoom)
+end)
+Rescan()
+
+-- ==================== 接口 ====================
+getgenv().RON_Scan = {
+    Tracked = S_Tracked, Active = Active, Register = Register,
+    RemoveEntry = RemoveEntry, Rescan = Rescan, Cfg = SCfg, Mode = Mode,
+}
+
+Scan.Tracked = S_Tracked
+Scan.Active = Active
+Scan.Register = Register
+Scan.RemoveEntry = RemoveEntry
+Scan.Rescan = Rescan
+Scan.Cfg = SCfg
+Scan.Mode = Mode
+Scan.CurrentRooms = CurrentRooms
+Scan.ScanRoom = ScanRoom
+Scan.RegisterDoor = RegisterDoor
 
 -- ================= 移动 =================
 local MoveConn = RunService.Heartbeat:Connect(function()
