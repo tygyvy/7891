@@ -1,6 +1,5 @@
 --[[
     RON-Full | DOORS 完整版 | Obsidian UI
-    功能: ESP + 玩家 + 自动化 + 反作弊 + 楼层绕过 + 楼层跳过 + 档案室 + 楼梯间 + 实体报警 + 相机/视野/光照 + 快速互动 + 物品勾选 + 追踪线 + 速通计时器 + 自杀/返回大厅/重开 + 杂项
     适用: 6516141723 (Lobby) / 6839171747 (Game)
 ]]
 
@@ -29,8 +28,10 @@ local function GetChar() return LocalPlayer.Character end
 local function GetHRP() local c = GetChar() return c and c:FindFirstChild("HumanoidRootPart") end
 local function GetHum() local c = GetChar() return c and c:FindFirstChildOfClass("Humanoid") end
 local function GetPart(inst)
+    if not inst then return nil end
     if inst:IsA("BasePart") then return inst end
     if inst:IsA("Model") then return inst.PrimaryPart or inst:FindFirstChildWhichIsA("BasePart", true) end
+    return nil
 end
 
 -- ================= 配置 =================
@@ -51,13 +52,12 @@ local Cfg = {
     NoCamShake=false, NoCamBob=false,
     Fullbright=false, FBBrightness=2, FBAmbient=70, NoFog=false,
     ACM=false,
-    AutoDoor=false, AutoInteract=false, AutoHide=false,
+    AutoInteract=false, AutoHide=false,
     InstantPrompt=false, PromptReach=1, PromptClip=false, DoorReach=false, DisableIdleKick=false,
     EntityNotify=false, NotifyCooldown=5, NotifyOxygen=false, NotifyHaste=false,
     BypassGiggle=false, BypassDupe=false, BypassSnare=false, BypassJeff=false,
     BypassVacuum=false, BypassGloombatEggs=false, BypassKillbricks=false,
     BypassSeekingWall=false, BypassBanana=false, BypassSeekObstructions=false,
-    BypassEyes=false, BypassLookman=false,
     RemoveScreech=false, RemoveHalt=false, RemoveA90=false, RemoveDread=false,
     NoScreechDamage=false, NoHaltDamage=false, NoA90Damage=false,
     RemoveSeekTrigger=false, RemoveFigure=false, AutoRevive=false,
@@ -85,7 +85,7 @@ local Cfg = {
     TimerStopRoom=0, TimerAutoEnd=false, TimerStopOnDeath=true,
 }
 
--- ================= 全新 ESP 核心 =================
+-- ================= ESP 核心 =================
 local ESPFolder = Instance.new("Folder")
 ESPFolder.Name = "RON_ESP"
 pcall(function() ESPFolder.Parent = (gethui and gethui()) or game:GetService("CoreGui") end)
@@ -106,32 +106,40 @@ local COLORS = {
     players = Color3.fromHex("#3b82f6"), interactables = Color3.fromHex("#7fffd4"),
 }
 
-local ITEM_NAMES = {
-    "Alarm Clock","Bandage","Battery","Boxing Gloves","Bread","Candle",
-    "Compass","Crucifix","Flashlight","Glowstick","Gold Gun","Green Herb",
-    "Holy Hand Grenade","Lantern","Laser Pointer","Lighter","Lockpicks",
-    "Multitool","NVCS-3000","Pizza","Pocket Mirror","Shears",
-    "Skeleton Key","Smoothie","Vitamins","Bulklight","Shakelight",
+-- Active 表：由 UI 开关实时驱动
+local Active = {
+    doors=false, dupe=false, stairs=false, gold=false, keys=false, chests=false,
+    drawers=false, lockers=false, items=false, stardust=false, glitch=false,
+    scanner=false, lotus=false, wardrobes=false, objectives=false, exit=false,
+    cart=false, entities=false, players=false, interactables=false,
 }
-local ENTITY_NAMES = {
-    RushMoving="Rush", AmbushMoving="Ambush", Eyes="Eyes", Halt="Halt",
-    JeffTheKiller="Jeff", Snare="Snare", SeekMoving="Seek", SeekRig="Seek",
-    FigureRig="Figure", FigureRagdoll="Figure", Timothy="Timothy", Void="Void",
-    Dread="Dread", Grumble="Grumble", QueenGrumble="Queen Grumble", Giggle="Giggle",
-    A60="A-60", A120="A-120", Bash="A-60", Scribbles="Scribbles",
-    GlitchRush="Glitched Rush", GlitchAmbush="Glitched Ambush",
-    BackdoorRush="Blitz", Lookman="Lookman",
-}
-local ENTITY_LIST = {
-    "Rush","Ambush","Eyes","Halt","Jeff","Snare","Seek","Figure",
-    "Timothy","Void","Dread","Grumble","Queen Grumble","Giggle",
-    "A-60","A-120","Scribbles","Glitched Rush","Glitched Ambush",
-    "Blitz","Lookman",
-}
-for _, n in ipairs(ENTITY_LIST) do Cfg.EntityFilter[n] = true end
-for _, n in ipairs(ITEM_NAMES) do Cfg.ItemFilter[n] = true end
 
-local function CreateESP(inst, label, color, maxDist)
+-- 把 Cfg 的 ESP 开关同步到 Active
+local function SyncActive()
+    Active.doors = Cfg.ESPDoors
+    Active.dupe = Cfg.ESPDupe
+    Active.stairs = Cfg.ESPStairs
+    Active.gold = Cfg.ESPGold
+    Active.keys = Cfg.ESPKeys
+    Active.chests = Cfg.ESPChests
+    Active.drawers = Cfg.ESPDrawers
+    Active.lockers = Cfg.ESPLockers
+    Active.items = Cfg.ESPItems
+    Active.stardust = Cfg.ESPStardust
+    Active.glitch = Cfg.ESPGlitch
+    Active.scanner = Cfg.ESPScanner
+    Active.lotus = Cfg.ESPLotus
+    Active.wardrobes = Cfg.ESPWardrobes
+    Active.objectives = Cfg.ESPObjectives
+    Active.exit = Cfg.ESPExit
+    Active.cart = Cfg.ESPCart
+    Active.entities = Cfg.ESPEntities
+    Active.players = Cfg.ESPPlayers
+    Active.interactables = Cfg.ESPInteractables
+end
+SyncActive()
+
+local function CreateESP(inst, label, color, maxDist, cat)
     if not inst or not inst.Parent then return nil end
     local part = GetPart(inst)
     if not part then return nil end
@@ -159,7 +167,11 @@ local function CreateESP(inst, label, color, maxDist)
     tl.TextSize = 16
     tl.Text = label
     tl.Parent = bb
-    return { Inst = inst, Part = part, HL = hl, BB = bb, TL = tl, Label = label, MaxDist = maxDist or 400 }
+    return {
+        Inst = inst, Part = part, HL = hl, BB = bb, TL = tl,
+        Label = label, MaxDist = maxDist or 400, Cat = cat,
+        Pending = false,
+    }
 end
 
 local function DestroyESP(inst)
@@ -170,14 +182,20 @@ local function DestroyESP(inst)
     Tracked[inst] = nil
 end
 
-local function UpdateESP()
+-- 每帧：补建 Pending / 更新可见性 / 清理
+local UpdateConn = RunService.Heartbeat:Connect(function()
     local hrp = GetHRP()
     for inst, e in pairs(Tracked) do
         if not inst.Parent then
             DestroyESP(inst)
-        elseif not e.Part.Parent then
+        elseif not e.Part or not e.Part.Parent then
             local p = GetPart(inst)
-            if p then e.Part = p e.BB.Adornee = p else DestroyESP(inst) end
+            if p then
+                e.Part = p
+                e.BB.Adornee = p
+            else
+                DestroyESP(inst)
+            end
         elseif hrp then
             local d = (e.Part.Position - hrp.Position).Magnitude
             local vis = d <= e.MaxDist
@@ -186,54 +204,34 @@ local function UpdateESP()
             if vis then e.TL.Text = string.format("%s [%dm]", e.Label, math.floor(d * 0.28)) end
         end
     end
-end
-
-local UpdateConn = RunService.Heartbeat:Connect(UpdateESP)
+end)
 
 -- ================= 防滑 / 无加速（常驻，无开关）=================
 local AntiSlideBase = nil
-
 RunService.Heartbeat:Connect(function()
     local char = LocalPlayer.Character
     if not char then return end
-
     local hum = char:FindFirstChildOfClass("Humanoid")
     local root = char:FindFirstChild("HumanoidRootPart")
     if not hum or not root then return end
-
-    if AntiSlideBase == nil then
-        AntiSlideBase = hum.WalkSpeed
-    end
-
-    if hum.WalkSpeed > AntiSlideBase then
-        hum.WalkSpeed = AntiSlideBase
-    end
-
+    if AntiSlideBase == nil then AntiSlideBase = hum.WalkSpeed end
+    if hum.WalkSpeed > AntiSlideBase then hum.WalkSpeed = AntiSlideBase end
     local v = root.AssemblyLinearVelocity
     local flat = Vector3.new(v.X, 0, v.Z)
     if flat.Magnitude > AntiSlideBase then
         root.AssemblyLinearVelocity = Vector3.new(
-            flat.Unit.X * AntiSlideBase,
-            v.Y,
-            flat.Unit.Z * AntiSlideBase
+            flat.Unit.X * AntiSlideBase, v.Y, flat.Unit.Z * AntiSlideBase
         )
     end
 end)
 
 -- ============================================================
--- RON 扫描模块 · 完整版（照抄原版扫描链）
+-- RON 扫描链 · 完整版
 -- ============================================================
-
-local Scan = {}
-local S_Tracked = Tracked
-local Active = { doors=true, dupe=true, stairs=true, gold=true, keys=true, chests=true,
-    drawers=true, lockers=true, items=true, stardust=true, glitch=true, scanner=true,
-    lotus=true, wardrobes=true, objectives=true, exit=true, cart=true, entities=true,
-    players=true, interactables=true }
+local CurrentRooms = nil
 local Mode = { Name = "Unknown", Raw = "", Gen = 0 }
 local Watch = { Limited = { Stem=true, Drone=true }, M = {}, Loop = false,
     Gold = setmetatable({}, { __mode = "k" }) }
-local CurrentRooms = nil
 local SCfg = { MaxDistance = 400, MaxObjects = 70, RoomEntities = true }
 
 local S_KEY_NAMES = {
@@ -281,13 +279,6 @@ end
 
 local function Norm(s) return (tostring(s):lower():gsub("[^%w]", "")) end
 
-local function S_GetPart(inst)
-    if inst:IsA("BasePart") then return inst end
-    if inst:IsA("Model") then
-        return inst.PrimaryPart or inst:FindFirstChildWhichIsA("BasePart", true)
-    end
-end
-
 local function ResolveItem(cands)
     for _, cand in ipairs(cands) do
         if type(cand) == "string" and cand ~= "" then
@@ -320,19 +311,19 @@ local function S_HideLabel(name)
     return (name:gsub("_", " "))
 end
 
-local function EntityLabel(name, strict)
-    if S_ENTITY_NAMES[name] then return S_ENTITY_NAMES[name] end
-    return nil
+local function EntityLabel(name)
+    return S_ENTITY_NAMES[name]
 end
 
 local function CleanName(name)
     return (name:gsub("_", " "):gsub("(%l)(%u)", "%1 %2"))
 end
 
+-- ================= 注册（带 Active 判断与补建）=================
 local function RemoveEntry(inst)
-    local e = S_Tracked[inst]
+    local e = Tracked[inst]
     if not e then return end
-    S_Tracked[inst] = nil
+    Tracked[inst] = nil
     if e.Conn then pcall(e.Conn.Disconnect, e.Conn) e.Conn = nil end
     if e.HL then pcall(function() e.HL:Destroy() end) end
     if e.BB then pcall(function() e.BB:Destroy() end) end
@@ -340,57 +331,55 @@ end
 
 local function Register(inst, cat, label, opts)
     if not inst or not inst.Parent then return end
-    if not Active[cat] then return end
+    if not Active[cat] then return end  -- ★ 实时开关判断
 
     if cat == "entities" and label == "Mandrake" and not (opts and opts.Direct) then
-        if not S_Tracked[inst] and not Watch.M[inst] and not Watch.IsBurrowName(inst.Name) then
+        if not Tracked[inst] and not Watch.M[inst] and not Watch.IsBurrowName(inst.Name) then
             Watch.M[inst] = { Opts = opts }
             Watch.Run()
         end
         return
     end
 
-    local existing = S_Tracked[inst]
+    local existing = Tracked[inst]
     if existing then
         if cat == existing.Cat then return end
         RemoveEntry(inst)
     end
 
-    local part = (opts and opts.Part) or S_GetPart(inst)
-    if not part then return end
-
-    local conn = inst.AncestryChanged:Connect(function(_, parent)
-        if not parent then RemoveEntry(inst) end
-    end)
+    local part = (opts and opts.Part) or GetPart(inst)
+    -- ★ 没有 Part 时先占位，UpdateConn 会补建
+    if not part then
+        Tracked[inst] = {
+            Inst = inst, Cat = cat, Label = label or cat, Part = nil,
+            HL = nil, BB = nil, TL = nil, MaxDist = Cfg.ESPRange,
+            Pending = true, Conn = nil,
+        }
+        return
+    end
 
     local color = COLORS[cat] or Color3.new(1,1,1)
-    local esp = CreateESP(inst, label or cat, color, Cfg.ESPRange)
+    local esp = CreateESP(inst, label or cat, color, Cfg.ESPRange, cat)
     if not esp then return end
-    esp.Cat = cat
-    esp.Inst = inst
-    esp.Part = part
-    esp.Label = label or cat
-    esp.Conn = conn
     esp.Known = opts and opts.Known
     esp.Key = opts and opts.Key
     esp.Prompt = opts and opts.Prompt
-    esp.GeoT = 0
-    esp.NoGeo = false
     esp.RoomNum = opts and opts.RoomNum
     esp.Door = opts and opts.Door
-    esp.Dist = 0
-    esp.Shown = false
-    S_Tracked[inst] = esp
+    esp.Conn = inst.AncestryChanged:Connect(function(_, parent)
+        if not parent then RemoveEntry(inst) end
+    end)
+    Tracked[inst] = esp
 end
 
 local function RegisterWhenReady(inst, cat, label)
     Register(inst, cat, label)
-    if S_Tracked[inst] or S_GetPart(inst) then return end
+    if Tracked[inst] then return end
     task.spawn(function()
         for _ = 1, 30 do
             task.wait(0.2)
-            if not inst.Parent or S_Tracked[inst] then return end
-            if S_GetPart(inst) then Register(inst, cat, label) return end
+            if not inst.Parent or Tracked[inst] then return end
+            if GetPart(inst) then Register(inst, cat, label) return end
         end
     end)
 end
@@ -414,7 +403,7 @@ end
 local function HasTrackedAncestor(inst)
     local p = inst.Parent
     while p and p ~= CurrentRooms and p ~= Workspace do
-        if S_Tracked[p] then return true end
+        if Tracked[p] then return true end
         p = p.Parent
     end
     return false
@@ -426,6 +415,7 @@ local function IsDupeName(name)
     return l == "doorfake" or l == "fakedoor" or l:match("^dupe") ~= nil
 end
 
+-- ================= Watch =================
 local BURROW_WORDS = { "burrow","hole","den","mound","nest","tunnel","lair","pit","dirt","hill","spawn","madriguera" }
 function Watch.IsBurrowName(name)
     local n = name:lower()
@@ -485,13 +475,13 @@ function Watch.Promote(inst, opts)
 end
 
 function Watch.RegisterGold(target)
-    if S_Tracked[target] or Watch.Gold[target] or Watch.IsBurrow(target) then return end
+    if Tracked[target] or Watch.Gold[target] or Watch.IsBurrow(target) then return end
     Watch.Gold[target] = true
     task.spawn(function()
         for _ = 1, 15 do
             if not target.Parent then break end
             local prompt = target:FindFirstChildWhichIsA("ProximityPrompt", true)
-            if prompt and S_GetPart(target) then
+            if prompt and GetPart(target) then
                 local visible = false
                 local list = target:IsA("BasePart") and { target } or target:GetDescendants()
                 for _, d in ipairs(list) do
@@ -509,6 +499,7 @@ function Watch.RegisterGold(target)
     end)
 end
 
+-- ================= 门 / 房间 =================
 local function RegisterDoor(room, door)
     if not door:IsA("Model") or door.Name ~= "Door" then return end
     local num = tonumber(room.Name)
@@ -540,7 +531,7 @@ local function RegisterDoor(room, door)
         end
         local first = hm:FindFirstChild("HighlightPart")
         if first then
-            if S_Tracked[door] then RemoveEntry(door) end
+            if Tracked[door] then RemoveEntry(door) end
             Register(hm, "doors", label, { Part = first, RoomNum = num, Door = door })
             return
         end
@@ -562,11 +553,11 @@ local function RegisterDoor(room, door)
             w.Parent = hp
             hp.Parent = door
         end
-        if S_Tracked[door] then RemoveEntry(door) end
+        if Tracked[door] then RemoveEntry(door) end
         Register(hp, "doors", label, { Part = hp, RoomNum = num, Door = door })
         return
     end
-    Register(door, "doors", label, { Part = door:FindFirstChild("Door") or S_GetPart(door), RoomNum = num, Door = door })
+    Register(door, "doors", label, { Part = door:FindFirstChild("Door") or GetPart(door), RoomNum = num, Door = door })
 end
 
 local function ScanRoom(room)
@@ -583,6 +574,7 @@ local function ScanRoom(room)
     end)
 end
 
+-- ================= 容器 / 目标解析 =================
 local CONTAINER_WORDS = { "drawer", "dresser", "desk", "table", "cabinet", "shelf", "nightstand", "makeshift" }
 
 local function ClassifyContainer(name)
@@ -608,7 +600,7 @@ end
 local function IsContainerModel(m)
     if not m then return false end
     if ClassifyContainer(m.Name) then return true end
-    local e = S_Tracked[m]
+    local e = Tracked[m]
     return e ~= nil and (e.Cat == "drawers" or e.Cat == "lockers" or e.Cat == "chests" or e.Cat == "wardrobes")
 end
 
@@ -667,16 +659,11 @@ local function ProcessContainerPrompt(prompt)
     end
 end
 
-local KNOWN_PROMPTS = {
-    HidePrompt=true, ModulePrompt=true, HerbPrompt=true, ActivateEventPrompt=true,
-    LootPrompt=true, UnlockPrompt=true, SkullPrompt=true, Prompt=true,
-    HintPrompt=true, InteractPrompt=true,
-}
-
+-- ================= Process =================
 local function RegisterCrusher(inst)
     local function try()
-        if S_Tracked[inst] then return true end
-        if S_GetPart(inst) then
+        if Tracked[inst] then return true end
+        if GetPart(inst) then
             Register(inst, "entities", "Crusher", { Known = true, Key = "Crusher" })
             return true
         end
@@ -707,7 +694,7 @@ local function Process(inst)
             if not t then return end
             if Watch.IsBurrow(t) or Watch.IsBurrow(inst) then return end
             if RegisterByName(t) then return end
-            if S_Tracked[t] and not IsContainerModel(t) then return end
+            if Tracked[t] and not IsContainerModel(t) then return end
             local nn = Norm(t.Name)
             if nn:find("sally", 1, true) then
                 RegisterWhenReady(t, "objectives", "Sally's Toy")
@@ -755,7 +742,7 @@ local function Process(inst)
         if RegisterByName(inst) then return end
         if inst:IsA("Model") then
             local n = inst.Name
-            local lab = (Active.entities and SCfg.RoomEntities and inst.Parent ~= Workspace) and EntityLabel(n, true) or nil
+            local lab = (Active.entities and SCfg.RoomEntities and inst.Parent ~= Workspace) and EntityLabel(n) or nil
             if S_HIDE_EXACT[n] then
                 Register(inst, "wardrobes", S_HIDE_EXACT[n])
             elseif lab and not HasTrackedAncestor(inst) then
@@ -784,7 +771,7 @@ local function Process(inst)
 end
 
 local function ProcessStairs(d)
-    if not Active.stairs or S_Tracked[d] then return end
+    if not Active.stairs or Tracked[d] then return end
     if d:IsA("TrussPart") then
         local owner = d
         local p = d.Parent
@@ -792,7 +779,7 @@ local function ProcessStairs(d)
             and not (CurrentRooms and p.Parent == CurrentRooms) and not Players:GetPlayerFromCharacter(p) then
             owner = p
         end
-        if not S_Tracked[owner] and not HasTrackedAncestor(owner) then Register(owner, "stairs", "Ladder") end
+        if not Tracked[owner] and not HasTrackedAncestor(owner) then Register(owner, "stairs", "Ladder") end
     elseif d:IsA("Model") then
         local n = Norm(d.Name)
         if (n == "stairs" or n == "stair" or n:find("staircase", 1, true)) and not HasTrackedAncestor(d) then
@@ -802,7 +789,7 @@ local function ProcessStairs(d)
 end
 
 local function ProcessDupe(m)
-    if not Active.dupe or not m:IsA("Model") or S_Tracked[m] then return end
+    if not Active.dupe or not m:IsA("Model") or Tracked[m] then return end
     if not CurrentRooms or not m:IsDescendantOf(CurrentRooms) then return end
     if m.Name == "Door" or not IsDupeName(m.Name) then return end
     local room = m
@@ -810,19 +797,19 @@ local function ProcessDupe(m)
     Register(m, "dupe", "Dupe [Fake Door]", { Known = true, Key = "Dupe", RoomNum = tonumber(room.Name) })
 end
 
-local function ProcessEntity(m, initial)
+local function ProcessEntity(m)
     if not Active.entities then return end
-    if not m:IsA("Model") or S_Tracked[m] then return end
+    if not m:IsA("Model") or Tracked[m] then return end
     if Players:GetPlayerFromCharacter(m) then return end
-    local label = EntityLabel(m.Name, false)
+    local label = EntityLabel(m.Name)
     if label then Register(m, "entities", label, { Known = true, Key = label }) end
 end
 
 local function ProcessRig(m)
     if not Active.entities or not SCfg.RoomEntities then return end
-    if not m or not m:IsA("Model") or m == Workspace or S_Tracked[m] then return end
+    if not m or not m:IsA("Model") or m == Workspace or Tracked[m] then return end
     if Players:GetPlayerFromCharacter(m) or HasTrackedAncestor(m) then return end
-    local label = EntityLabel(m.Name, true)
+    local label = EntityLabel(m.Name)
     if not label then return end
     Register(m, "entities", label, { Known = true, Key = label })
 end
@@ -852,7 +839,7 @@ local function Rescan()
                 if Mode.Gen ~= gen then return end
             end
         end
-        for _, c in ipairs(Workspace:GetChildren()) do pcall(ProcessEntity, c, true) end
+        for _, c in ipairs(Workspace:GetChildren()) do pcall(ProcessEntity, c) end
         if CurrentRooms then
             for _, room in ipairs(CurrentRooms:GetChildren()) do
                 for _, c in ipairs(room:GetChildren()) do pcall(RegisterDoor, room, c) end
@@ -861,6 +848,7 @@ local function Rescan()
     end)
 end
 
+-- 增量扫描
 do
     local queue, head, tail = {}, 1, 0
     Workspace.DescendantAdded:Connect(function(d)
@@ -883,8 +871,9 @@ do
         if head > tail then head, tail = 1, 0 end
     end)
 end
-Workspace.ChildAdded:Connect(function(c) pcall(ProcessEntity, c, false) end)
+Workspace.ChildAdded:Connect(function(c) pcall(ProcessEntity, c) end)
 
+-- 启动
 CurrentRooms = Workspace:FindFirstChild("CurrentRooms")
 task.spawn(function()
     if not CurrentRooms then
@@ -898,36 +887,23 @@ end)
 Rescan()
 
 getgenv().RON_Scan = {
-    Tracked = S_Tracked, Active = Active, Register = Register,
+    Tracked = Tracked, Active = Active, Register = Register,
     RemoveEntry = RemoveEntry, Rescan = Rescan, Cfg = SCfg, Mode = Mode,
+    SyncActive = SyncActive,
 }
 
-Scan.Tracked = S_Tracked
-Scan.Active = Active
-Scan.Register = Register
-Scan.RemoveEntry = RemoveEntry
-Scan.Rescan = Rescan
-Scan.Cfg = SCfg
-Scan.Mode = Mode
-Scan.CurrentRooms = CurrentRooms
-Scan.ScanRoom = ScanRoom
-Scan.RegisterDoor = RegisterDoor
-
 -- ================= 移动 =================
-local MoveConn = RunService.Heartbeat:Connect(function()
+RunService.Heartbeat:Connect(function()
     local hum = GetHum()
     local hrp = GetHRP()
     if not hum or not hrp then return end
-
     if Cfg.SpeedEnabled then hum.WalkSpeed = Cfg.SpeedValue else hum.WalkSpeed = 16 end
-
     if Cfg.JumpEnabled then
         if hum.UseJumpPower then hum.JumpPower = Cfg.JumpPower
         else hum.JumpHeight = math.clamp(Cfg.JumpPower / 10, 7.2, 50) end
     else
         if hum.UseJumpPower then hum.JumpPower = 50 else hum.JumpHeight = 7.2 end
     end
-
     if Cfg.Noclip then
         local char = GetChar()
         if char then
@@ -936,7 +912,6 @@ local MoveConn = RunService.Heartbeat:Connect(function()
             end
         end
     end
-
     if Cfg.FlyEnabled then
         local mv = hum.MoveDirection
         local vy = 0
@@ -955,9 +930,8 @@ UIS.JumpRequest:Connect(function()
     if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
 end)
 
--- ================= 相机 / 视野 / 第三人称 =================
+-- ================= 相机 =================
 local tpParts, tpChar, tpWasOn = {}, nil, false
-
 local function RefreshTPParts(char)
     table.clear(tpParts)
     tpChar = char
@@ -976,7 +950,6 @@ RunService.RenderStepped:Connect(function()
     local cam = Workspace.CurrentCamera
     if not cam then return end
     if Cfg.CustomFOV then cam.FieldOfView = Cfg.FOVValue end
-
     pcall(function()
         if Cfg.ThirdPerson then
             local char = LocalPlayer.Character
@@ -993,22 +966,6 @@ RunService.RenderStepped:Connect(function()
             end
         end
     end)
-
-    if Cfg.NoCamShake or Cfg.NoCamBob then
-        pcall(function()
-            local pg = LocalPlayer:FindFirstChild("PlayerGui")
-            local ui = pg and pg:FindFirstChild("MainUI")
-            local ini = ui and ui:FindFirstChild("Initiator")
-            local sc = ini and ini:FindFirstChild("Main_Game")
-            if sc and require then
-                local ok, m = pcall(require, sc)
-                if ok and type(m) == "table" then
-                    if Cfg.NoCamShake then m.csgo = CFrame.new() end
-                    if Cfg.NoCamBob and m.spring then m.spring.Speed = 9e9 end
-                end
-            end
-        end)
-    end
 end)
 
 -- ================= 光照 =================
@@ -1076,24 +1033,26 @@ task.spawn(function()
     end
 end)
 
--- ================= 自动互动 =================
-local AutoInteractConn = RunService.Heartbeat:Connect(function()
-    if not Cfg.AutoInteract then return end
-    local hrp = GetHRP()
-    if not hrp then return end
-    for _, p in ipairs(Workspace:GetDescendants()) do
-        if p:IsA("ProximityPrompt") and p.Enabled and p.Parent then
-            local parent = p.Parent
-            if parent:IsA("BasePart") and (parent.Position - hrp.Position).Magnitude <= p.MaxActivationDistance then
-                pcall(fireproximityprompt, p)
+-- ================= 自动互动 / 躲柜 =================
+local DANGER = { RushMoving=1, AmbushMoving=1, A60=1, A120=1, GlitchRush=1, GlitchAmbush=1, BackdoorRush=1 }
+
+RunService.Heartbeat:Connect(function()
+    if Cfg.AutoInteract then
+        local hrp = GetHRP()
+        if hrp then
+            for _, p in ipairs(Workspace:GetDescendants()) do
+                if p:IsA("ProximityPrompt") and p.Enabled and p.Parent then
+                    local parent = p.Parent
+                    if parent:IsA("BasePart") and (parent.Position - hrp.Position).Magnitude <= p.MaxActivationDistance then
+                        pcall(fireproximityprompt, p)
+                    end
+                end
             end
         end
     end
 end)
 
--- ================= 自动躲柜 =================
-local DANGER = { RushMoving=1, AmbushMoving=1, A60=1, A120=1, GlitchRush=1, GlitchAmbush=1, BackdoorRush=1 }
-local AutoHideConn = RunService.Heartbeat:Connect(function()
+RunService.Heartbeat:Connect(function()
     if not Cfg.AutoHide then return end
     local char = GetChar()
     if not char or char:GetAttribute("Hiding") then return end
@@ -1277,96 +1236,6 @@ Workspace.ChildAdded:Connect(function(m)
     pcall(function() Library:Notify("⚠ 实体出现", label .. " 已出现！", 5) end)
 end)
 
-task.spawn(function()
-    while true do
-        task.wait(0.5)
-        if Cfg.NotifyOxygen then
-            local char = GetChar()
-            if char then
-                local oxy = char:GetAttribute("Oxygen")
-                if type(oxy) == "number" and oxy < 50 and oxy > 0 then
-                    pcall(function() Library:Notify("氧气", "剩余 " .. math.floor(oxy) .. "%", 2) end)
-                end
-            end
-        end
-    end
-end)
-
-task.spawn(function()
-    while true do
-        task.wait(1)
-        if Cfg.NotifyHaste then
-            local fr = RS:FindFirstChild("FloorReplicated")
-            local t = fr and fr:FindFirstChild("DigitalTimer")
-            if t and t.Value and t.Value > 0 and t.Value < 15 then
-                pcall(function() Library:Notify("Haste", "剩余 " .. math.floor(t.Value) .. " 秒", 2) end)
-            end
-        end
-    end
-end)
-
--- ================= 追踪线 =================
-local tracerGui = Instance.new("ScreenGui")
-tracerGui.Name = "RON_Tracer"
-tracerGui.ResetOnSpawn = false
-tracerGui.IgnoreGuiInset = true
-tracerGui.DisplayOrder = 60
-pcall(function() tracerGui.Parent = (gethui and gethui()) or game:GetService("CoreGui") end)
-if not tracerGui.Parent then tracerGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
-
-local tracerLabel = Instance.new("TextLabel")
-tracerLabel.AnchorPoint = Vector2.new(0.5, 1)
-tracerLabel.Position = UDim2.new(0.5, 0, 0.90, 0)
-tracerLabel.Size = UDim2.new(0.9, 0, 0, 26)
-tracerLabel.BackgroundTransparency = 1
-tracerLabel.Font = Enum.Font.GothamBold
-tracerLabel.TextSize = 20
-tracerLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
-tracerLabel.TextStrokeTransparency = 0.3
-tracerLabel.Visible = false
-tracerLabel.Parent = tracerGui
-
-task.spawn(function()
-    while true do
-        task.wait(0.15)
-        local hrp = GetHRP()
-        if not hrp or not Cfg.ESPEntities then
-            tracerLabel.Visible = false
-            continue
-        end
-        local best, bd, bestName
-        for _, m in ipairs(Workspace:GetChildren()) do
-            if m:IsA("Model") and ENTITY_NAMES[m.Name] then
-                local label = ENTITY_NAMES[m.Name]
-                if Cfg.EntityFilter[label] ~= false then
-                    local p = GetPart(m)
-                    if p then
-                        local d = (p.Position - hrp.Position).Magnitude
-                        if not bd or d < bd then
-                            best, bd, bestName = m, d, label
-                        end
-                    end
-                end
-            end
-        end
-        if best then
-            local p = GetPart(best)
-            local dir = (p.Position - hrp.Position).Unit
-            local look = hrp.CFrame.LookVector
-            local dot = look:Dot(dir)
-            local cross = look:Cross(dir)
-            local arrow = "↑"
-            if dot < -0.3 then arrow = "↓"
-            elseif cross.Y > 0.3 then arrow = "←"
-            elseif cross.Y < -0.3 then arrow = "→" end
-            tracerLabel.Text = string.format("%s %s  %dm", arrow, bestName or "?", math.floor(bd * 0.28))
-            tracerLabel.Visible = true
-        else
-            tracerLabel.Visible = false
-        end
-    end
-end)
-
 -- ================= ACM =================
 local ACMBody
 local function ApplyACM(on)
@@ -1386,7 +1255,6 @@ end
 
 -- ================= 楼层绕过 =================
 local fakeRemotes = {}
-
 local function GetRemotesFolder()
     return RS:FindFirstChild("RemotesFolder") or RS:FindFirstChild("EntityInfo") or RS:FindFirstChild("Bricks")
 end
@@ -1495,10 +1363,8 @@ local function ApplyAntis()
             if Cfg.BypassKillbricks and c.Name == "Lava" then HandleObstruction(c.Name, c, true) end
             if Cfg.BypassSeekingWall and c.Name == "ScaryWall" then HandleObstruction(c.Name, c, true) end
             if Cfg.BypassBanana and c.Name == "BananaPeel" then HandleObstruction(c.Name, c, true) end
-            if Cfg.BypassSeekObstructions then
-                if c.Name == "SeekFloodline" or c.Name == "Seek_Arm" or c.Name == "ChandelierObstruction" then
-                    HandleObstruction(c.Name, c, true)
-                end
+            if Cfg.BypassSeekObstructions and (c.Name == "SeekFloodline" or c.Name == "Seek_Arm" or c.Name == "ChandelierObstruction") then
+                HandleObstruction(c.Name, c, true)
             end
         end
     end
@@ -1597,29 +1463,6 @@ task.spawn(function()
     end
 end)
 
-task.spawn(function()
-    while true do
-        task.wait(0.3)
-        if Cfg.FigureGodmode then
-            local fig = Workspace:FindFirstChild("FigureRig") or Workspace:FindFirstChild("Figure")
-            local hrp = GetHRP()
-            if fig and hrp then
-                local figPart = GetPart(fig)
-                if figPart and (figPart.Position - hrp.Position).Magnitude < 30 then
-                    if not Cfg._figGodActive then
-                        Cfg._figGodActive = true
-                        hrp.CFrame = hrp.CFrame * CFrame.new(0, -2.346, 0)
-                    end
-                else
-                    Cfg._figGodActive = false
-                end
-            else
-                Cfg._figGodActive = false
-            end
-        end
-    end
-end)
-
 -- ================= 楼层功能 =================
 local function GetCurrentFloor()
     local gd = RS:FindFirstChild("GameData")
@@ -1651,14 +1494,11 @@ local function DoFloorSkip()
     if not targetRoom then return false end
     local hrp = GetHRP()
     if not hrp then return false end
-    local safe = true
     for _, m in ipairs(Workspace:GetChildren()) do
         if m:IsA("Model") and DANGER[m.Name] and m:GetAttribute("Inactive") ~= true then
-            safe = false
-            break
+            return false
         end
     end
-    if not safe then return false end
     local char = GetChar()
     if char then
         char:PivotTo(targetRoom:GetPivot() * CFrame.new(0, -1, 0))
@@ -1674,7 +1514,7 @@ task.spawn(function()
     end
 end)
 
--- ================= 档案室功能 =================
+-- ================= 档案室 =================
 local function IsBoxName(n) return n == "ArchivesStorageBox" or n == "ArchivesStorageBoxCorrect" end
 local Hon = { Deposits = {}, Boxes = {}, Drops = {} }
 
@@ -1725,19 +1565,19 @@ task.spawn(function()
             if Cfg.HonchoESP then
                 for id, d in pairs(Hon.Deposits) do
                     if d.Parent and not Tracked[d] then
-                        local esp = CreateESP(d, "Deposit (" .. id .. ")", Color3.fromHex("#00ff00"), 9999)
+                        local esp = CreateESP(d, "Deposit (" .. id .. ")", Color3.fromHex("#00ff00"), 9999, "honcho")
                         if esp then Tracked[d] = esp end
                     end
                 end
                 for c, id in pairs(Hon.Boxes) do
                     if c.Parent and not Tracked[c] then
-                        local esp = CreateESP(c, "正确箱 (" .. id .. ")", Color3.fromHex("#00ff00"), 9999)
+                        local esp = CreateESP(c, "正确箱 (" .. id .. ")", Color3.fromHex("#00ff00"), 9999, "honcho")
                         if esp then Tracked[c] = esp end
                     end
                 end
                 for c, id in pairs(Hon.Drops) do
                     if c.Parent and not Tracked[c] then
-                        local esp = CreateESP(c, "掉落箱 (" .. id .. ")", Color3.fromHex("#ffff00"), 9999)
+                        local esp = CreateESP(c, "掉落箱 (" .. id .. ")", Color3.fromHex("#ffff00"), 9999, "honcho")
                         if esp then Tracked[c] = esp end
                     end
                 end
@@ -1793,7 +1633,7 @@ task.spawn(function()
                         for _, d in ipairs(room:GetDescendants()) do
                             if (d:IsA("Model") or d:IsA("BasePart")) and (d:GetAttribute("Anomaly") == true or d.Name:lower():find("anomal")) then
                                 if Cfg.FMNAnomalyESP and not Tracked[d] then
-                                    local esp = CreateESP(d, "FMN Anomaly", Color3.fromHex("#ff00ff"), 9999)
+                                    local esp = CreateESP(d, "FMN Anomaly", Color3.fromHex("#ff00ff"), 9999, "fmn")
                                     if esp then Tracked[d] = esp end
                                 end
                                 if Cfg.FMNAnomalyNotify and not fmnSeen[d] then
@@ -1933,12 +1773,6 @@ task.spawn(function()
                 end
             end
         end
-    end
-end)
-
-task.spawn(function()
-    while true do
-        task.wait(0.5)
         if Cfg.AntiRansom then
             for _, c in ipairs(Workspace:GetChildren()) do
                 if c.Name == "Ransom" then c:Destroy() end
@@ -2042,7 +1876,7 @@ task.spawn(function()
     end
 end)
 
--- ================= 楼梯间功能 =================
+-- ================= 楼梯间 =================
 local function GetRooms() return Workspace:FindFirstChild("CurrentRooms") end
 local function GetCurRoom() return tonumber(LocalPlayer:GetAttribute("CurrentRoom")) or 0 end
 local function GetDrops() return Workspace:FindFirstChild("Drops") end
@@ -2458,13 +2292,12 @@ task.spawn(function()
     end
 end)
 
--- ================= 速通计时器 =================
+-- ================= 计时器（前置） =================
 local PRESET_NAMES = { "Top Left", "Top Center", "Top Right", "Bottom Left", "Bottom Center", "Bottom Right" }
+local timerGui, timerLabel, timerSplitLabel, timerBtnFrame
 local timerRunning, timerPaused = false, false
 local timerStart, timerElapsed, timerPauseAt = 0, 0, 0
 local timerSplitsList, lastSplitRoom = {}, -1
-local timerGui, timerLabel, timerSplitLabel, timerBtnFrame
-local timerRunStart = 0
 
 local function FormatTime(t)
     local m = math.floor(t / 60)
@@ -2499,15 +2332,9 @@ local function Layout()
     if not timerGui then return end
     local sc = (Cfg.TimerScale or 100) / 100
     timerGui.Visible = Cfg.TimerShow and true or false
-    if timerLabel then
-        timerLabel.TextSize = math.floor(32 * sc)
-    end
-    if timerBtnFrame then
-        timerBtnFrame.Visible = Cfg.TimerButtons and true or false
-    end
-    if timerSplitLabel then
-        timerSplitLabel.Visible = Cfg.TimerSplits and true or false
-    end
+    if timerLabel then timerLabel.TextSize = math.floor(32 * sc) end
+    if timerBtnFrame then timerBtnFrame.Visible = Cfg.TimerButtons and true or false end
+    if timerSplitLabel then timerSplitLabel.Visible = Cfg.TimerSplits and true or false end
 end
 
 local function Toggle()
@@ -2663,15 +2490,9 @@ task.spawn(function()
             end
         end
     end)
-
-    RunService.Heartbeat:Connect(function()
-        if timerGui and timerBtnFrame then
-            timerBtnFrame.Visible = Cfg.TimerButtons and timerGui.Visible or false
-        end
-    end)
 end)
 
--- ================= 杂项功能 =================
+-- ================= 杂项函数 =================
 local function KillCharacter()
     local hum = GetHum()
     if hum then hum.Health = 0 return true end
@@ -2704,7 +2525,7 @@ local function RestartRun()
     return false
 end
 
--- ================= Obsidian UI =================
+-- ================= UI =================
 local Window = Library:CreateWindow({
     Title = "RON-Full",
     Footer = "Obsidian UI | DOORS 完整版",
@@ -2725,97 +2546,55 @@ local T = {
     Misc = Window:AddTab("杂项", "settings"),
 }
 
--- ===== 透视页 =====
+-- 透视
 local vLeft = T.Visuals:AddLeftGroupbox("导航")
-vLeft:AddToggle("espDoors", { Text = "门", Default = false, Callback = function(v) Cfg.ESPDoors = v end })
-vLeft:AddToggle("espDupe", { Text = "假门 (Dupe)", Default = false, Callback = function(v) Cfg.ESPDupe = v end })
-vLeft:AddToggle("espStairs", { Text = "楼梯 / 梯子", Default = false, Callback = function(v) Cfg.ESPStairs = v end })
-vLeft:AddToggle("espExit", { Text = "紧急出口", Default = false, Callback = function(v) Cfg.ESPExit = v end })
-vLeft:AddToggle("espCart", { Text = "购物车", Default = false, Callback = function(v) Cfg.ESPCart = v end })
+vLeft:AddToggle("espDoors", { Text = "门", Default = false, Callback = function(v) Cfg.ESPDoors = v SyncActive() end })
+vLeft:AddToggle("espDupe", { Text = "假门 (Dupe)", Default = false, Callback = function(v) Cfg.ESPDupe = v SyncActive() end })
+vLeft:AddToggle("espStairs", { Text = "楼梯 / 梯子", Default = false, Callback = function(v) Cfg.ESPStairs = v SyncActive() end })
+vLeft:AddToggle("espExit", { Text = "紧急出口", Default = false, Callback = function(v) Cfg.ESPExit = v SyncActive() end })
+vLeft:AddToggle("espCart", { Text = "购物车", Default = false, Callback = function(v) Cfg.ESPCart = v SyncActive() end })
 
 local vRight = T.Visuals:AddRightGroupbox("战利品")
-vRight:AddToggle("espGold", { Text = "金堆", Default = false, Callback = function(v) Cfg.ESPGold = v end })
-vRight:AddToggle("espKeys", { Text = "钥匙 / 保险丝", Default = false, Callback = function(v) Cfg.ESPKeys = v end })
-vRight:AddToggle("espChests", { Text = "箱子", Default = false, Callback = function(v) Cfg.ESPChests = v end })
-vRight:AddToggle("espDrawers", { Text = "抽屉", Default = false, Callback = function(v) Cfg.ESPDrawers = v end })
-vRight:AddToggle("espLockers", { Text = "储物柜", Default = false, Callback = function(v) Cfg.ESPLockers = v end })
-vRight:AddToggle("espItems", { Text = "物品", Default = false, Callback = function(v) Cfg.ESPItems = v end })
-vRight:AddToggle("espStardust", { Text = "星尘", Default = false, Callback = function(v) Cfg.ESPStardust = v end })
-vRight:AddToggle("espGlitch", { Text = "Glitch 碎片", Default = false, Callback = function(v) Cfg.ESPGlitch = v end })
-vRight:AddToggle("espScanner", { Text = "Scanner 模块", Default = false, Callback = function(v) Cfg.ESPScanner = v end })
-vRight:AddToggle("espLotus", { Text = "莲花花瓣", Default = false, Callback = function(v) Cfg.ESPLotus = v end })
+vRight:AddToggle("espGold", { Text = "金堆", Default = false, Callback = function(v) Cfg.ESPGold = v SyncActive() end })
+vRight:AddToggle("espKeys", { Text = "钥匙 / 保险丝", Default = false, Callback = function(v) Cfg.ESPKeys = v SyncActive() end })
+vRight:AddToggle("espChests", { Text = "箱子", Default = false, Callback = function(v) Cfg.ESPChests = v SyncActive() end })
+vRight:AddToggle("espDrawers", { Text = "抽屉", Default = false, Callback = function(v) Cfg.ESPDrawers = v SyncActive() end })
+vRight:AddToggle("espLockers", { Text = "储物柜", Default = false, Callback = function(v) Cfg.ESPLockers = v SyncActive() end })
+vRight:AddToggle("espItems", { Text = "物品", Default = false, Callback = function(v) Cfg.ESPItems = v SyncActive() end })
+vRight:AddToggle("espStardust", { Text = "星尘", Default = false, Callback = function(v) Cfg.ESPStardust = v SyncActive() end })
+vRight:AddToggle("espGlitch", { Text = "Glitch 碎片", Default = false, Callback = function(v) Cfg.ESPGlitch = v SyncActive() end })
+vRight:AddToggle("espScanner", { Text = "Scanner 模块", Default = false, Callback = function(v) Cfg.ESPScanner = v SyncActive() end })
+vRight:AddToggle("espLotus", { Text = "莲花花瓣", Default = false, Callback = function(v) Cfg.ESPLotus = v SyncActive() end })
 
 local v3 = T.Visuals:AddLeftGroupbox("藏身处 / 目标")
-v3:AddToggle("espWardrobes", { Text = "衣柜 / 藏身处", Default = false, Callback = function(v) Cfg.ESPWardrobes = v end })
-v3:AddToggle("espObjectives", { Text = "目标 / 机关", Default = false, Callback = function(v) Cfg.ESPObjectives = v end })
+v3:AddToggle("espWardrobes", { Text = "衣柜 / 藏身处", Default = false, Callback = function(v) Cfg.ESPWardrobes = v SyncActive() end })
+v3:AddToggle("espObjectives", { Text = "目标 / 机关", Default = false, Callback = function(v) Cfg.ESPObjectives = v SyncActive() end })
 
 local v3r = T.Visuals:AddRightGroupbox("实体 / 玩家 / 交互")
-v3r:AddToggle("espEntities", { Text = "实体", Default = false, Callback = function(v) Cfg.ESPEntities = v end })
-v3r:AddToggle("espPlayers", { Text = "玩家", Default = false, Callback = function(v) Cfg.ESPPlayers = v end })
-v3r:AddToggle("espInteractables", { Text = "可交互物", Default = false, Callback = function(v) Cfg.ESPInteractables = v end })
+v3r:AddToggle("espEntities", { Text = "实体", Default = false, Callback = function(v) Cfg.ESPEntities = v SyncActive() end })
+v3r:AddToggle("espPlayers", { Text = "玩家", Default = false, Callback = function(v) Cfg.ESPPlayers = v SyncActive() end })
+v3r:AddToggle("espInteractables", { Text = "可交互物", Default = false, Callback = function(v) Cfg.ESPInteractables = v SyncActive() end })
 
 local vSet = T.Visuals:AddLeftGroupbox("ESP 设置")
 vSet:AddSlider("espRange", { Text = "ESP 范围", Default = 400, Min = 50, Max = 2000, Rounding = 0, Callback = function(v) Cfg.ESPRange = v end })
 
-local vItem = T.Visuals:AddRightGroupbox("物品勾选")
-local ItemDD = vItem:AddDropdown("itemFilter", {
-    Text = "显示的物品", Values = ITEM_NAMES, Default = ITEM_NAMES, Multi = true,
-    Callback = function(sel)
-        local map = {}
-        for _, n in ipairs(sel or {}) do map[n] = true end
-        Cfg.ItemFilter = map
-    end,
-})
-vItem:AddButton({ Text = "全选物品", Func = function()
-    local map = {}
-    for _, n in ipairs(ITEM_NAMES) do map[n] = true end
-    Cfg.ItemFilter = map
-    pcall(function() ItemDD:SetValue(ITEM_NAMES) end)
-end })
-vItem:AddButton({ Text = "全清物品", Func = function()
-    Cfg.ItemFilter = {}
-    pcall(function() ItemDD:SetValue({}) end)
-end })
-vItem:AddToggle("unlistedItems", { Text = "显示未列出的物品", Default = false, Callback = function(v) Cfg.UnlistedItems = v end })
-
-local vEntity = T.Visuals:AddLeftGroupbox("实体勾选")
-local EntityDD = vEntity:AddDropdown("entityFilter", {
-    Text = "显示的实体", Values = ENTITY_LIST, Default = ENTITY_LIST, Multi = true,
-    Callback = function(sel)
-        local map = {}
-        for _, n in ipairs(sel or {}) do map[n] = true end
-        Cfg.EntityFilter = map
-    end,
-})
-vEntity:AddButton({ Text = "全选实体", Func = function()
-    local map = {}
-    for _, n in ipairs(ENTITY_LIST) do map[n] = true end
-    Cfg.EntityFilter = map
-    pcall(function() EntityDD:SetValue(ENTITY_LIST) end)
-end })
-vEntity:AddButton({ Text = "全清实体", Func = function()
-    Cfg.EntityFilter = {}
-    pcall(function() EntityDD:SetValue({}) end)
-end })
-vEntity:AddToggle("unlistedEntities", { Text = "显示未列出的实体", Default = false, Callback = function(v) Cfg.UnlistedEntities = v end })
-
+-- 相机
 local camLeft = T.Visuals:AddRightGroupbox("相机")
 camLeft:AddToggle("customFOV", { Text = "自定义 FOV", Default = false, Callback = function(v) Cfg.CustomFOV = v end })
 camLeft:AddSlider("fovValue", { Text = "视野大小", Default = 70, Min = 1, Max = 120, Rounding = 0, Callback = function(v) Cfg.FOVValue = v end })
 camLeft:AddToggle("thirdPerson", { Text = "第三人称", Default = false, Callback = function(v) Cfg.ThirdPerson = v end })
-camLeft:AddSlider("tpX", { Text = "第三人称 X 偏移", Default = 2, Min = -10, Max = 10, Rounding = 0, Callback = function(v) Cfg.TPOffsetX = v end })
-camLeft:AddSlider("tpY", { Text = "第三人称 Y 偏移", Default = 1, Min = -10, Max = 10, Rounding = 0, Callback = function(v) Cfg.TPOffsetY = v end })
-camLeft:AddSlider("tpZ", { Text = "第三人称 Z 偏移", Default = 5, Min = -10, Max = 10, Rounding = 0, Callback = function(v) Cfg.TPOffsetZ = v end })
-camLeft:AddToggle("noCamShake", { Text = "移除相机抖动", Default = false, Callback = function(v) Cfg.NoCamShake = v end })
-camLeft:AddToggle("noCamBob", { Text = "移除相机晃动", Default = false, Callback = function(v) Cfg.NoCamBob = v end })
+camLeft:AddSlider("tpX", { Text = "X 偏移", Default = 2, Min = -10, Max = 10, Rounding = 0, Callback = function(v) Cfg.TPOffsetX = v end })
+camLeft:AddSlider("tpY", { Text = "Y 偏移", Default = 1, Min = -10, Max = 10, Rounding = 0, Callback = function(v) Cfg.TPOffsetY = v end })
+camLeft:AddSlider("tpZ", { Text = "Z 偏移", Default = 5, Min = -10, Max = 10, Rounding = 0, Callback = function(v) Cfg.TPOffsetZ = v end })
 
+-- 光照
 local lightRight = T.Visuals:AddLeftGroupbox("光照")
 lightRight:AddToggle("fullbright", { Text = "全亮", Default = false, Callback = function(v) Cfg.Fullbright = v ApplyFullbright(v) end })
 lightRight:AddSlider("fbBrightness", { Text = "全亮亮度", Default = 2, Min = 0, Max = 10, Rounding = 0, Callback = function(v) Cfg.FBBrightness = v end })
 lightRight:AddSlider("fbAmbient", { Text = "环境光 (%)", Default = 70, Min = 0, Max = 100, Rounding = 0, Callback = function(v) Cfg.FBAmbient = v end })
 lightRight:AddToggle("noFog", { Text = "移除雾气", Default = false, Callback = function(v) Cfg.NoFog = v ApplyNoFog(v) end })
 
--- ===== 玩家页 =====
+-- 玩家
 local pl = T.Player:AddLeftGroupbox("移动")
 pl:AddToggle("speedOn", { Text = "加速", Default = false, Callback = function(v) Cfg.SpeedEnabled = v end })
 pl:AddSlider("speedVal", { Text = "速度值", Default = 30, Min = 16, Max = 200, Rounding = 0, Callback = function(v) Cfg.SpeedValue = v end })
@@ -2826,7 +2605,7 @@ pl:AddToggle("noclip", { Text = "Noclip", Default = false, Callback = function(v
 pl:AddToggle("flyOn", { Text = "飞行", Default = false, Callback = function(v) Cfg.FlyEnabled = v end })
 pl:AddSlider("flySpeed", { Text = "飞行速度", Default = 40, Min = 10, Max = 200, Rounding = 0, Callback = function(v) Cfg.FlySpeed = v end })
 
--- ===== 自动化页 =====
+-- 自动化
 local al = T.Automation:AddLeftGroupbox("自动化")
 al:AddToggle("autoInteract", { Text = "自动互动", Default = false, Callback = function(v) Cfg.AutoInteract = v end })
 al:AddToggle("autoHide", { Text = "自动躲柜", Default = false, Callback = function(v) Cfg.AutoHide = v end })
@@ -2834,23 +2613,19 @@ al:AddToggle("autoHide", { Text = "自动躲柜", Default = false, Callback = fu
 local al2 = T.Automation:AddRightGroupbox("实体报警")
 al2:AddToggle("entityNotify", { Text = "实体出现通知", Default = false, Callback = function(v) Cfg.EntityNotify = v end })
 al2:AddSlider("notifyCooldown", { Text = "通知冷却(秒)", Default = 5, Min = 1, Max = 30, Rounding = 0, Callback = function(v) Cfg.NotifyCooldown = v end })
-al2:AddToggle("notifyOxygen", { Text = "氧气不足提醒", Default = false, Callback = function(v) Cfg.NotifyOxygen = v end })
-al2:AddToggle("notifyHaste", { Text = "Haste 倒计时提醒", Default = false, Callback = function(v) Cfg.NotifyHaste = v end })
 
 local qiLeft = T.Automation:AddLeftGroupbox("快速互动")
 qiLeft:AddToggle("instantPrompt", { Text = "快速互动", Default = false, Callback = function(v) Cfg.InstantPrompt = v ApplyInstantPrompt(v) end })
 qiLeft:AddSlider("promptReach", { Text = "互动范围倍数", Default = 1, Min = 1, Max = 3, Rounding = 1, Callback = function(v) Cfg.PromptReach = v ApplyReachAll() end })
 qiLeft:AddToggle("promptClip", { Text = "穿墙互动", Default = false, Callback = function(v) Cfg.PromptClip = v ApplyReachAll() end })
 qiLeft:AddToggle("doorReach", { Text = "门范围扩展", Default = false, Callback = function(v) Cfg.DoorReach = v end })
+qiLeft:AddToggle("disableIdleKick", { Text = "防挂机踢", Default = false, Callback = function(v) Cfg.DisableIdleKick = v ApplyIdleKick(v) end })
 
-local qiRight = T.Automation:AddRightGroupbox("其他")
-qiRight:AddToggle("disableIdleKick", { Text = "防挂机踢", Default = false, Callback = function(v) Cfg.DisableIdleKick = v ApplyIdleKick(v) end })
-
--- ===== 反作弊页 =====
+-- 反作弊
 local ac = T.Anticheat:AddLeftGroupbox("Anticheat Manipulator")
 ac:AddToggle("acm", { Text = "ACM (穿墙)", Default = false, Callback = function(v) Cfg.ACM = v ApplyACM(v) end })
 
--- ===== 楼层绕过页 =====
+-- 楼层绕过
 local an = T.Antis:AddLeftGroupbox("实体绕过")
 an:AddToggle("bypassGiggle", { Text = "绕过 Giggle", Default = false, Callback = function(v) Cfg.BypassGiggle = v end })
 an:AddToggle("bypassDupe", { Text = "绕过 Dupe 假门", Default = false, Callback = function(v) Cfg.BypassDupe = v end })
@@ -2885,7 +2660,7 @@ an4:AddToggle("removeSkeletonDoor", { Text = "移除骷髅门", Default = false,
 an4:AddToggle("removeCutscenes", { Text = "跳过过场动画", Default = false, Callback = function(v) Cfg.RemoveCutscenes = v end })
 an4:AddToggle("disableJumpscares", { Text = "禁用实体跳脸", Default = false, Callback = function(v) Cfg.DisableEntityJumpscares = v end })
 
--- ===== 楼层功能页 =====
+-- 楼层
 local fl = T.Floor:AddLeftGroupbox("楼层跳过")
 fl:AddToggle("floorSkip", { Text = "自动跳过楼层", Default = false, Callback = function(v) Cfg.FloorSkip = v end })
 fl:AddSlider("floorSkipDistance", { Text = "跳过距离", Default = 500, Min = 100, Max = 2000, Rounding = 0, Callback = function(v) Cfg.FloorSkipDistance = v end })
@@ -2918,7 +2693,7 @@ fl2:AddButton({ Text = "传送到下一门", Func = function()
     end
 end })
 
--- ===== 档案室页 =====
+-- 档案室
 local ar1 = T.Archives:AddLeftGroupbox("Honcho 箱子")
 ar1:AddToggle("honchoESP", { Text = "箱子 ESP", Default = false, Callback = function(v) Cfg.HonchoESP = v end })
 ar1:AddToggle("honchoAutoDeposit", { Text = "自动存入", Default = false, Callback = function(v) Cfg.HonchoAutoDeposit = v end })
@@ -2943,7 +2718,7 @@ local ar5 = T.Archives:AddLeftGroupbox("时钟")
 ar5:AddToggle("timeShower", { Text = "显示时间", Default = false, Callback = function(v) Cfg.TimeShower = v end })
 ar5:AddToggle("stopTimeStampede", { Text = "停止时间踩踏", Default = false, Callback = function(v) Cfg.StopTimeStampede = v end })
 
--- ===== 楼梯间页 =====
+-- 楼梯间
 local sw1 = T.Stairwell:AddLeftGroupbox("Meld / Crusher")
 sw1:AddToggle("meldStopGrowth", { Text = "Meld 阻止生长", Default = false, Callback = function(v) Cfg.MeldStopGrowth = v end })
 sw1:AddToggle("meldRemove", { Text = "Meld 移除", Default = false, Callback = function(v) Cfg.MeldRemove = v end })
@@ -2966,10 +2741,7 @@ sw4:AddSlider("orbitHeight", { Text = "环绕高度", Default = 2, Min = 0, Max 
 sw4:AddSlider("orbitDistance", { Text = "环绕距离", Default = 5, Min = 1, Max = 20, Rounding = 1, Callback = function(v) Cfg.OrbitDistance = v end })
 sw4:AddSlider("orbitSpeed", { Text = "环绕速度", Default = 2, Min = 0.5, Max = 10, Rounding = 1, Callback = function(v) Cfg.OrbitSpeed = v end })
 
-local sw5 = T.Stairwell:AddLeftGroupbox("额外")
-sw5:AddToggle("stairwellExtraESP", { Text = "楼梯间额外门 ESP", Default = false, Callback = function(v) Cfg.StairwellExtraESP = v end })
-
--- ===== 杂项页 =====
+-- 杂项
 local tmLeft = T.Misc:AddLeftGroupbox("速通计时器")
 tmLeft:AddToggle("timerShow", { Text = "显示计时器", Default = false, Callback = function(v) Cfg.TimerShow = v Layout() end })
 tmLeft:AddButton({ Text = "开始 / 暂停 / 恢复", Func = Toggle })
@@ -2985,9 +2757,7 @@ tmRight:AddSlider("timerScale", { Text = "大小 (%)", Default = 100, Min = 50, 
 tmRight:AddSlider("timerOpacity", { Text = "背景不透明度 (%)", Default = 80, Min = 0, Max = 100, Rounding = 0, Callback = function(v) Cfg.TimerOpacity = v Layout() end })
 tmRight:AddToggle("timerSplits", { Text = "显示分段", Default = true, Callback = function(v) Cfg.TimerSplits = v Layout() end })
 tmRight:AddToggle("timerButtons", { Text = "显示按钮", Default = true, Callback = function(v) Cfg.TimerButtons = v Layout() end })
-tmRight:AddToggle("timerAutoStart", { Text = "自动开始（首次移动）", Default = false, Callback = function(v) Cfg.TimerAutoStart = v end })
 tmRight:AddToggle("timerAutoSplit", { Text = "自动分房间", Default = false, Callback = function(v) Cfg.TimerAutoSplit = v end })
-tmRight:AddToggle("timerAutoEnd", { Text = "自动结束", Default = false, Callback = function(v) Cfg.TimerAutoEnd = v end })
 tmRight:AddToggle("timerStopOnDeath", { Text = "死亡停止", Default = true, Callback = function(v) Cfg.TimerStopOnDeath = v end })
 tmRight:AddSlider("timerStopRoom", { Text = "到达指定房间停止 (0=关)", Default = 0, Min = 0, Max = 300, Rounding = 0, Callback = function(v) Cfg.TimerStopRoom = v end })
 
@@ -3003,8 +2773,8 @@ mx:AddButton({ Text = "重新开始", Func = function()
 end })
 
 local mx2 = T.Misc:AddRightGroupbox("其他")
-mx2:AddToggle("autoRevive", { Text = "自动复活", Default = false, Callback = function(v) Cfg.AutoRevive = v end })
-mx2:AddToggle("disableIdleKick", { Text = "防挂机踢", Default = false, Callback = function(v)
+mx2:AddToggle("autoRevive2", { Text = "自动复活", Default = false, Callback = function(v) Cfg.AutoRevive = v end })
+mx2:AddToggle("disableIdleKick2", { Text = "防挂机踢", Default = false, Callback = function(v)
     Cfg.DisableIdleKick = v
     ApplyIdleKick(v)
 end })
@@ -3021,11 +2791,6 @@ ThemeManager:ApplyToTab(T.Misc)
 Library:OnUnload(function()
     for inst in pairs(Tracked) do DestroyESP(inst) end
     if UpdateConn then UpdateConn:Disconnect() end
-    if MoveConn then MoveConn:Disconnect() end
-    if AutoInteractConn then AutoInteractConn:Disconnect() end
-    if AutoHideConn then AutoHideConn:Disconnect() end
-    if promptConn then promptConn:Disconnect() end
-    if idledConn then idledConn:Disconnect() end
     if ACMBody then ACMBody:Destroy() end
     if Cfg.Fullbright then ApplyFullbright(false) end
     if Cfg.NoFog then ApplyNoFog(false) end
@@ -3040,4 +2805,4 @@ Library:OnUnload(function()
     for name in pairs(fakeRemotes) do RestoreRemote(name) end
 end)
 
-Library:Notify("RON-Full", "完整版已加载 | 9 个 Tab | 扫描链已替换 | 计时器已修复", 5)
+Library:Notify("RON-Full", "完整版已加载 | ESP 开关已实时绑定扫描链", 5)
