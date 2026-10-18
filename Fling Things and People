@@ -63,6 +63,8 @@ local S = {
     FightBack = false, FightBackMode = "击杀",
     AuraRadius = 20, MagnetRange = 50, RepelForce = 100,
     ShowAuraRadius = false,
+    AuraPlayerSelect = false,
+    AuraTargetName = nil,
     FlingAuraDistance = 20,
     FlingAuraForce = 5e10,
     nameESP = false, avatarESP = false,
@@ -153,6 +155,12 @@ local function auraBodyVelocity(part, vel, lifetime)
     bv.Velocity = vel
     bv.Parent = part
     Debris:AddItem(bv, lifetime or 1)
+end
+
+-- 光环目标过滤：未开启选择时对所有人生效；开启时只对选中玩家生效
+local function auraPlayerAllowed(player)
+    if not S.AuraPlayerSelect then return true end
+    return player and S.AuraTargetName and player.Name == S.AuraTargetName
 end
 
 -- ===== 第三人称 =====
@@ -481,7 +489,7 @@ local function startKickAura()
             end
             local nearby = {}
             for _, plr in ipairs(Players:GetPlayers()) do
-                if plr ~= LocalPlayer and not T.kickAuraKickedPlayers[plr.UserId] and plr.Character then
+                if plr ~= LocalPlayer and not T.kickAuraKickedPlayers[plr.UserId] and plr.Character and auraPlayerAllowed(plr) then
                     local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
                     local h = plr.Character:FindFirstChildOfClass("Humanoid")
                     if hrp and h and h.Health > 0 then
@@ -731,8 +739,7 @@ combatSec:AddToggle("Triggerbot", {
             end)
         else
             if T.triggerConn then T.triggerConn:Disconnect() T.triggerConn = nil end
-        end
-    end,
+        end    end,
 })
 combatSec:AddToggle("LegitAim", {
     Text = "合法自瞄（会转动视角）", Default = false,
@@ -1157,6 +1164,37 @@ antiSec:AddToggle("AntiInputLag", {
             end)
         else
             if T.antiInputLag then pcall(function() task.cancel(T.antiInputLag) end) T.antiInputLag = nil end
+        end
+    end,
+})
+antiSec:AddToggle("AntiFire", {
+    Text = "防火", Default = false,
+    Callback = function(v)
+        S.AntiFire = v
+        if v then
+            local ext = Workspace:FindFirstChild("Map") and Workspace.Map:FindFirstChild("Hole") and Workspace.Map.Hole:FindFirstChild("PoisonBigHole") and Workspace.Map.Hole.PoisonBigHole:FindFirstChild("ExtinguishPart")
+            if ext then
+                T.antiFireOriginalCF = ext.CFrame
+                local lastFireUpdate = 0
+                T.antiFireConn = RunService.Heartbeat:Connect(function()
+                    if not S.AntiFire then return end
+                    local now = tick()
+                    if now - lastFireUpdate < 0.05 then return end
+                    lastFireUpdate = now
+                    local c = LocalPlayer.Character
+                    local r = c and c:FindFirstChild("HumanoidRootPart")
+                    if not r then return end
+                    local burning = r:FindFirstChild("FireLight") or r:FindFirstChild("FireParticleEmitter")
+                    if burning then ext.CFrame = r.CFrame
+                    elseif T.antiFireOriginalCF then ext.CFrame = T.antiFireOriginalCF end
+                end)
+            end
+        else
+            if T.antiFireConn then T.antiFireConn:Disconnect() T.antiFireConn = nil end
+            if T.antiFireOriginalCF then
+                local ext = Workspace:FindFirstChild("Map") and Workspace.Map:FindFirstChild("Hole") and Workspace.Map.Hole:FindFirstChild("PoisonBigHole") and Workspace.Map.Hole.PoisonBigHole:FindFirstChild("ExtinguishPart")
+                if ext then ext.CFrame = T.antiFireOriginalCF end
+            end
         end
     end,
 })
@@ -1697,6 +1735,22 @@ auraSetSec:AddToggle("ShowAuraRadius", {
         end)
     end,
 })
+auraSetSec:AddToggle("AuraPlayerSelect", {
+    Text = "启用玩家光环选择",
+    Default = false,
+    Callback = function(v)
+        S.AuraPlayerSelect = v
+        if not v then S.AuraTargetName = nil end
+    end,
+})
+local auraTargetDD
+auraTargetDD = auraSetSec:AddDropdown("AuraTargetDD", {
+    Text = "目标玩家", Values = plist(), Default = 1,
+    Callback = function(v) S.AuraTargetName = tostring(v):match("@(.+)$") end,
+})
+auraSetSec:AddButton({ Text = "刷新目标列表", Func = function()
+    pcall(function() auraTargetDD:Refresh(plist()) end)
+end})
 
 local auraAtkSec = Tabs.Aura:AddRightGroupbox("攻击光环")
 local runningSkyAura = false
@@ -1707,7 +1761,7 @@ auraAtkSec:AddToggle("SkyAura", { Text = "天空光环", Default = false, Callba
             local r = auraGetRoot()
             if r then
                 for _, player in pairs(Players:GetPlayers()) do
-                    if player ~= LocalPlayer and player.Character then
+                    if player ~= LocalPlayer and player.Character and auraPlayerAllowed(player) then
                         pcall(function()
                             local hrp = player.Character:FindFirstChild("HumanoidRootPart")
                             if hrp and (hrp.Position - r.Position).Magnitude <= S.AuraRadius then
@@ -1733,7 +1787,7 @@ auraAtkSec:AddToggle("VoidAura", { Text = "虚空光环", Default = false, Callb
             local r = auraGetRoot()
             if r then
                 for _, player in pairs(Players:GetPlayers()) do
-                    if player ~= LocalPlayer and player.Character then
+                    if player ~= LocalPlayer and player.Character and auraPlayerAllowed(player) then
                         pcall(function()
                             local hrp = player.Character:FindFirstChild("HumanoidRootPart")
                             if hrp and (hrp.Position - r.Position).Magnitude <= S.AuraRadius then
@@ -1772,7 +1826,7 @@ auraAtkSec:AddToggle("ClickAura", {
                     local r = auraGetRoot()
                     if r then
                         for _, plr in ipairs(Players:GetPlayers()) do
-                            if plr ~= LocalPlayer and plr.Character then
+                            if plr ~= LocalPlayer and plr.Character and auraPlayerAllowed(plr) then
                                 local t = plr.Character:FindFirstChild("Torso")
                                     or plr.Character:FindFirstChild("UpperTorso")
                                     or plr.Character:FindFirstChild("HumanoidRootPart")
@@ -1836,7 +1890,7 @@ auraAtkSec:AddToggle("FlingAura", {
                     local r = auraGetRoot()
                     if r then
                         for _, plr in ipairs(Players:GetPlayers()) do
-                            if plr ~= LocalPlayer and plr.Character then
+                            if plr ~= LocalPlayer and plr.Character and auraPlayerAllowed(plr) then
                                 pcall(function()
                                     local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
                                     if hrp and (hrp.Position - r.Position).Magnitude <= S.FlingAuraDistance then
@@ -1878,7 +1932,7 @@ auraAtkSec:AddToggle("BringAura", {
                     local r = auraGetRoot()
                     if r then
                         for _, plr in ipairs(Players:GetPlayers()) do
-                            if plr ~= LocalPlayer and plr.Character then
+                            if plr ~= LocalPlayer and plr.Character and auraPlayerAllowed(plr) then
                                 pcall(function()
                                     local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
                                     if hrp and (hrp.Position - r.Position).Magnitude <= S.AuraRadius then
@@ -1907,7 +1961,7 @@ auraForceSec:AddToggle("MagnetAura", { Text = "磁铁光环", Default = false, C
             local r = auraGetRoot()
             if r then
                 for _, player in pairs(Players:GetPlayers()) do
-                    if player ~= LocalPlayer and player.Character then
+                    if player ~= LocalPlayer and player.Character and auraPlayerAllowed(player) then
                         local hrp = player.Character:FindFirstChild("HumanoidRootPart")
                         if hrp and (hrp.Position - r.Position).Magnitude <= S.MagnetRange then
                             pcall(function()
@@ -1933,7 +1987,7 @@ auraForceSec:AddToggle("RepelAura", { Text = "排斥光环", Default = false, Ca
             local r = auraGetRoot()
             if r then
                 for _, player in pairs(Players:GetPlayers()) do
-                    if player ~= LocalPlayer and player.Character then
+                    if player ~= LocalPlayer and player.Character and auraPlayerAllowed(player) then
                         pcall(function()
                             local hrp = player.Character:FindFirstChild("HumanoidRootPart")
                             if hrp and (hrp.Position - r.Position).Magnitude <= S.AuraRadius then
@@ -1999,7 +2053,7 @@ auraAtkSec:AddToggle("FreezeAura", { Text = "冻结光环", Default = false, Cal
             local r = auraGetRoot()
             if r then
                 for _, player in pairs(Players:GetPlayers()) do
-                    if player ~= LocalPlayer and player.Character then
+                    if player ~= LocalPlayer and player.Character and auraPlayerAllowed(player) then
                         pcall(function()
                             local torso = player.Character:FindFirstChild("Torso") or player.Character:FindFirstChild("HumanoidRootPart")
                             if torso and (torso.Position - r.Position).Magnitude <= S.AuraRadius then
@@ -2516,4 +2570,4 @@ SaveManager:SetFolder("PlutonLite")
 SaveManager:BuildConfigSection(Tabs.Misc)
 ThemeManager:ApplyToTab(Tabs.Misc)
 
-warn("Pluton Lite (完整版 + 抓取左右分栏 + 弹飞调试) 已加载")
+warn("Pluton Lite (完整版 + 光环目标选择 + 防火) 已加载")
