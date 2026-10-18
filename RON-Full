@@ -1,6 +1,6 @@
 --[[
     RON-Full | DOORS 完整版 | Obsidian UI
-    功能: ESP（全新重构） + 玩家 + 自动化 + 反作弊 + 楼层绕过 + 楼层跳过 + 档案室 + 楼梯间 + 实体报警 + 相机/视野/光照 + 快速互动 + 物品勾选 + 追踪线 + 速通计时器 + 自杀/返回大厅/重开 + 杂项
+    功能: ESP + 玩家 + 自动化 + 反作弊 + 楼层绕过 + 楼层跳过 + 档案室 + 楼梯间 + 实体报警 + 相机/视野/光照 + 快速互动 + 物品勾选 + 追踪线 + 速通计时器 + 自杀/返回大厅/重开 + 杂项
     适用: 6516141723 (Lobby) / 6839171747 (Game)
 ]]
 
@@ -35,7 +35,6 @@ end
 
 -- ================= 配置 =================
 local Cfg = {
-    -- ESP
     ESPDoors=false, ESPDupe=false, ESPStairs=false, ESPGold=false, ESPKeys=false,
     ESPChests=false, ESPDrawers=false, ESPLockers=false, ESPItems=false,
     ESPStardust=false, ESPGlitch=false, ESPScanner=false, ESPLotus=false,
@@ -44,25 +43,17 @@ local Cfg = {
     ESPRange=400,
     ItemFilter={}, UnlistedItems=false,
     EntityFilter={}, UnlistedEntities=false,
-    -- Player
     SpeedEnabled=false, SpeedValue=30,
     JumpEnabled=false, JumpPower=50, InfJump=false,
     FlyEnabled=false, FlySpeed=40, Noclip=false,
-    -- Camera
     CustomFOV=false, FOVValue=70,
     ThirdPerson=false, TPOffsetX=2, TPOffsetY=1, TPOffsetZ=5,
     NoCamShake=false, NoCamBob=false,
-    -- Lighting
     Fullbright=false, FBBrightness=2, FBAmbient=70, NoFog=false,
-    -- Anticheat
     ACM=false,
-    -- Automation
     AutoDoor=false, AutoInteract=false, AutoHide=false,
-    -- 快速互动
     InstantPrompt=false, PromptReach=1, PromptClip=false, DoorReach=false, DisableIdleKick=false,
-    -- 实体报警
     EntityNotify=false, NotifyCooldown=5, NotifyOxygen=false, NotifyHaste=false,
-    -- Antis（楼层绕过）
     BypassGiggle=false, BypassDupe=false, BypassSnare=false, BypassJeff=false,
     BypassVacuum=false, BypassGloombatEggs=false, BypassKillbricks=false,
     BypassSeekingWall=false, BypassBanana=false, BypassSeekObstructions=false,
@@ -73,9 +64,7 @@ local Cfg = {
     FigureGodmode=false, RemoveBasementGate=false, RemovePaintingsDoor=false,
     RemoveSkeletonDoor=false,
     RemoveCutscenes=false, DisableEntityJumpscares=false,
-    -- 楼层跳过
     FloorSkip=false, FloorSkipDistance=500,
-    -- 档案室
     HonchoESP=false, HonchoAutoDeposit=false,
     FMNAnomalyESP=false, FMNAnomalyNotify=false,
     AutoAlmaMinigame=false,
@@ -83,7 +72,6 @@ local Cfg = {
     BypassDrones=false, BypassAlma=false, NoScribblesDamage=false,
     AntiRansom=false, BypassWater=false,
     TimeShower=false, StopTimeStampede=false,
-    -- 楼梯间
     MeldStopGrowth=false, MeldRemove=false,
     CrusherOff=false, CrusherDelete=false,
     NoiseTVBreaker=false, AntiNoise=false,
@@ -92,7 +80,6 @@ local Cfg = {
     DropCounter=false, DropOrbit=false,
     OrbitHeight=2, OrbitDistance=5, OrbitSpeed=2,
     StairwellExtraESP=false,
-    -- 速通计时器
     TimerShow=false, TimerPosition="Top Right", TimerScale=100, TimerOpacity=80,
     TimerSplits=true, TimerButtons=true, TimerAutoStart=false, TimerAutoSplit=false,
     TimerStopRoom=0, TimerAutoEnd=false, TimerStopOnDeath=true,
@@ -119,16 +106,6 @@ local COLORS = {
     players = Color3.fromHex("#3b82f6"), interactables = Color3.fromHex("#7fffd4"),
 }
 
-local KEY_NAMES = { KeyObtain="钥匙", ElectricalKeyObtain="电房钥匙", FuseObtain="保险丝" }
-local OBJECTIVE_NAMES = {
-    LeverForGate="拉杆", TimerLever="计时拉杆", LiveHintBook="图书馆书",
-    LiveBreakerPolePickup="断路器杆", StairwellFireAlarm="消防警报",
-    ["Sally's Toy"]="Sally 的玩具", SallysToy="Sally 的玩具", WaterPump="水泵",
-}
-local STARDUST_NAMES = { Stardust="星尘", StardustPickup="星尘" }
-local GOLD_NAMES = { GoldPile="金" }
-local HIDE_NAMES = { Wardrobe="Closet", Bed="Bed", Toolshed="Tool Shed", Locker="Locker" }
-local CHEST_EXACT = { ChestBox="Chest", ChestBoxLocked="Locked Chest" }
 local ITEM_NAMES = {
     "Alarm Clock","Bandage","Battery","Boxing Gloves","Bread","Candle",
     "Compass","Crucifix","Flashlight","Glowstick","Gold Gun","Green Herb",
@@ -136,9 +113,6 @@ local ITEM_NAMES = {
     "Multitool","NVCS-3000","Pizza","Pocket Mirror","Shears",
     "Skeleton Key","Smoothie","Vitamins","Bulklight","Shakelight",
 }
-local ITEM_SET = {}
-for _, v in ipairs(ITEM_NAMES) do ITEM_SET[v] = true end
-
 local ENTITY_NAMES = {
     RushMoving="Rush", AmbushMoving="Ambush", Eyes="Eyes", Halt="Halt",
     JeffTheKiller="Jeff", Snare="Snare", SeekMoving="Seek", SeekRig="Seek",
@@ -148,14 +122,12 @@ local ENTITY_NAMES = {
     GlitchRush="Glitched Rush", GlitchAmbush="Glitched Ambush",
     BackdoorRush="Blitz", Lookman="Lookman",
 }
-
 local ENTITY_LIST = {
     "Rush","Ambush","Eyes","Halt","Jeff","Snare","Seek","Figure",
     "Timothy","Void","Dread","Grumble","Queen Grumble","Giggle",
     "A-60","A-120","Scribbles","Glitched Rush","Glitched Ambush",
     "Blitz","Lookman",
 }
-
 for _, n in ipairs(ENTITY_LIST) do Cfg.EntityFilter[n] = true end
 for _, n in ipairs(ITEM_NAMES) do Cfg.ItemFilter[n] = true end
 
@@ -218,28 +190,6 @@ end
 
 local UpdateConn = RunService.Heartbeat:Connect(UpdateESP)
 
-local function Reg(inst, cat, label)
-    if not inst or not inst.Parent then return end
-    if Tracked[inst] then return end
-    local color = COLORS[cat] or Color3.new(1,1,1)
-    local esp = CreateESP(inst, label or cat, color, Cfg.ESPRange)
-    if esp then
-        esp.Cat = cat
-        Tracked[inst] = esp
-    end
-end
-
-local function HideLabel(name)
-    if HIDE_NAMES[name] then return HIDE_NAMES[name] end
-    local n = name:lower():gsub("[^%w]", "")
-    if n:find("wardrobe", 1, true) or n:find("closet", 1, true) then return "Closet" end
-    if n:find("cupboard", 1, true) then return "Cupboard" end
-    if n:find("locker", 1, true) then return "Locker" end
-    if n:find("shed", 1, true) then return "Tool Shed" end
-    if n:find("bed", 1, true) then return "Bed" end
-    return (name:gsub("_", " "))
-end
-
 -- ================= 防滑 / 无加速（常驻，无开关）=================
 local AntiSlideBase = nil
 
@@ -272,12 +222,9 @@ end)
 
 -- ============================================================
 -- RON 扫描模块 · 完整版（照抄原版扫描链）
--- 依赖：Workspace, RunService, Players, LocalPlayer
 -- ============================================================
 
 local Scan = {}
-
--- ==================== 基础 ====================
 local S_Tracked = Tracked
 local Active = { doors=true, dupe=true, stairs=true, gold=true, keys=true, chests=true,
     drawers=true, lockers=true, items=true, stardust=true, glitch=true, scanner=true,
@@ -289,7 +236,6 @@ local Watch = { Limited = { Stem=true, Drone=true }, M = {}, Loop = false,
 local CurrentRooms = nil
 local SCfg = { MaxDistance = 400, MaxObjects = 70, RoomEntities = true }
 
--- ==================== 名称表 ====================
 local S_KEY_NAMES = {
     KeyObtain="Key", ElectricalKeyObtain="Electrical Key", FuseObtain="Fuse",
 }
@@ -333,7 +279,6 @@ for _, n in ipairs(S_ITEM_NAMES) do
     ITEM_LOOKUP[n:lower():gsub("[^%w]", "")] = n
 end
 
--- ==================== 工具 ====================
 local function Norm(s) return (tostring(s):lower():gsub("[^%w]", "")) end
 
 local function S_GetPart(inst)
@@ -384,7 +329,6 @@ local function CleanName(name)
     return (name:gsub("_", " "):gsub("(%l)(%u)", "%1 %2"))
 end
 
--- ==================== 注册 ====================
 local function RemoveEntry(inst)
     local e = S_Tracked[inst]
     if not e then return end
@@ -482,7 +426,6 @@ local function IsDupeName(name)
     return l == "doorfake" or l == "fakedoor" or l:match("^dupe") ~= nil
 end
 
--- ==================== Watch（Mandrake 延迟注册）====================
 local BURROW_WORDS = { "burrow","hole","den","mound","nest","tunnel","lair","pit","dirt","hill","spawn","madriguera" }
 function Watch.IsBurrowName(name)
     local n = name:lower()
@@ -566,7 +509,6 @@ function Watch.RegisterGold(target)
     end)
 end
 
--- ==================== RegisterDoor / ScanRoom ====================
 local function RegisterDoor(room, door)
     if not door:IsA("Model") or door.Name ~= "Door" then return end
     local num = tonumber(room.Name)
@@ -641,7 +583,6 @@ local function ScanRoom(room)
     end)
 end
 
--- ==================== 容器分类 ====================
 local CONTAINER_WORDS = { "drawer", "dresser", "desk", "table", "cabinet", "shelf", "nightstand", "makeshift" }
 
 local function ClassifyContainer(name)
@@ -726,12 +667,29 @@ local function ProcessContainerPrompt(prompt)
     end
 end
 
--- ==================== Process（完整）====================
 local KNOWN_PROMPTS = {
     HidePrompt=true, ModulePrompt=true, HerbPrompt=true, ActivateEventPrompt=true,
     LootPrompt=true, UnlockPrompt=true, SkullPrompt=true, Prompt=true,
     HintPrompt=true, InteractPrompt=true,
 }
+
+local function RegisterCrusher(inst)
+    local function try()
+        if S_Tracked[inst] then return true end
+        if S_GetPart(inst) then
+            Register(inst, "entities", "Crusher", { Known = true, Key = "Crusher" })
+            return true
+        end
+    end
+    if try() then return end
+    task.spawn(function()
+        for _ = 1, 30 do
+            task.wait(0.2)
+            if not inst.Parent then return end
+            if try() then return end
+        end
+    end)
+end
 
 local function Process(inst)
     if inst:IsA("ProximityPrompt") then
@@ -775,8 +733,6 @@ local function Process(inst)
         elseif pn == "ActivateEventPrompt" or pn == "LootPrompt" then
             if not (Active.drawers or Active.lockers or Active.interactables) then return end
             ProcessContainerPrompt(inst)
-        elseif not KNOWN_PROMPTS[pn] then
-            -- unknown prompt
         end
         return
     end
@@ -827,26 +783,6 @@ local function Process(inst)
     end
 end
 
--- ==================== RegisterCrusher ====================
-local function RegisterCrusher(inst)
-    local function try()
-        if S_Tracked[inst] then return true end
-        if S_GetPart(inst) then
-            Register(inst, "entities", "Crusher", { Known = true, Key = "Crusher" })
-            return true
-        end
-    end
-    if try() then return end
-    task.spawn(function()
-        for _ = 1, 30 do
-            task.wait(0.2)
-            if not inst.Parent then return end
-            if try() then return end
-        end
-    end)
-end
-
--- ==================== 其他 Process ====================
 local function ProcessStairs(d)
     if not Active.stairs or S_Tracked[d] then return end
     if d:IsA("TrussPart") then
@@ -891,16 +827,10 @@ local function ProcessRig(m)
     Register(m, "entities", label, { Known = true, Key = label })
 end
 
-local function ProcessNoise(d) end
-local function ProcessLoose(d) end
-
--- ==================== OnDescendant ====================
 local function OnDescendant(d)
     if not (d:IsA("ProximityPrompt") or d:IsA("Model") or d:IsA("BasePart") or d:IsA("Humanoid") or d:IsA("AnimationController")) then return end
     Process(d)
     ProcessStairs(d)
-    ProcessNoise(d)
-    ProcessLoose(d)
     if d:IsA("Model") then
         if IsDupeName(d.Name) then ProcessDupe(d) end
     elseif d:IsA("Humanoid") or d:IsA("AnimationController") then
@@ -908,7 +838,6 @@ local function OnDescendant(d)
     end
 end
 
--- ==================== Rescan ====================
 local function Rescan()
     Mode.Gen = (Mode.Gen or 0) + 1
     local gen = Mode.Gen
@@ -932,7 +861,6 @@ local function Rescan()
     end)
 end
 
--- ==================== 增量扫描 ====================
 do
     local queue, head, tail = {}, 1, 0
     Workspace.DescendantAdded:Connect(function(d)
@@ -957,7 +885,6 @@ do
 end
 Workspace.ChildAdded:Connect(function(c) pcall(ProcessEntity, c, false) end)
 
--- ==================== 启动 ====================
 CurrentRooms = Workspace:FindFirstChild("CurrentRooms")
 task.spawn(function()
     if not CurrentRooms then
@@ -970,7 +897,6 @@ task.spawn(function()
 end)
 Rescan()
 
--- ==================== 接口 ====================
 getgenv().RON_Scan = {
     Tracked = S_Tracked, Active = Active, Register = Register,
     RemoveEntry = RemoveEntry, Rescan = Rescan, Cfg = SCfg, Mode = Mode,
@@ -1249,7 +1175,6 @@ task.spawn(function()
     end
 end)
 
--- 交互范围扩展
 local reachOrig = setmetatable({}, { __mode = "k" })
 
 local function ApplyReach(pp)
@@ -1278,7 +1203,6 @@ local function ApplyReachAll()
     end)
 end
 
--- 门范围扩展
 local doorCooldown = setmetatable({}, { __mode = "k" })
 task.spawn(function()
     while true do
@@ -1309,7 +1233,6 @@ task.spawn(function()
     end
 end)
 
--- 防挂机踢
 local idledConn = nil
 local function ApplyIdleKick(on)
     if on then
@@ -1382,7 +1305,7 @@ task.spawn(function()
     end
 end)
 
--- ================= 追踪线（屏幕下方） =================
+-- ================= 追踪线 =================
 local tracerGui = Instance.new("ScreenGui")
 tracerGui.Name = "RON_Tracer"
 tracerGui.ResetOnSpawn = false
@@ -1461,7 +1384,7 @@ local function ApplyACM(on)
     end
 end
 
--- ================= 楼层绕过（Antis）=================
+-- ================= 楼层绕过 =================
 local fakeRemotes = {}
 
 local function GetRemotesFolder()
@@ -1855,7 +1778,6 @@ RunService.Heartbeat:Connect(function()
     end)
 end)
 
--- FMN
 local fmnSeen = setmetatable({}, { __mode = "k" })
 task.spawn(function()
     while true do
@@ -1889,7 +1811,6 @@ task.spawn(function()
     end
 end)
 
--- Alma
 local lastAlmaFire = setmetatable({}, { __mode = "k" })
 task.spawn(function()
     while true do
@@ -1923,7 +1844,6 @@ task.spawn(function()
     end
 end)
 
--- Teller
 local TICKET_ATTRS = { "Number", "Current", "Serving", "CurrentNumber", "Ticket", "Count", "TicketNumber" }
 local lastNow = setmetatable({}, { __mode = "k" })
 
@@ -1987,7 +1907,6 @@ task.spawn(function()
     end
 end)
 
--- 档案室绕过
 task.spawn(function()
     while true do
         task.wait(0.5)
@@ -2028,7 +1947,6 @@ task.spawn(function()
     end
 end)
 
--- Bypass Water
 task.spawn(function()
     local waterParts = {}
     while true do
@@ -2065,7 +1983,6 @@ task.spawn(function()
     end
 end)
 
--- Time Shower
 local timeHud
 task.spawn(function()
     while true do
@@ -2147,35 +2064,6 @@ end
 local function MoveObj(obj, cf)
     if obj:IsA("Model") then obj:PivotTo(cf)
     elseif obj:IsA("BasePart") then obj.CFrame = cf end
-end
-
-local function NearestOf(list)
-    local hrp = GetHRP()
-    if not hrp then return nil end
-    local best, bd
-    for _, d in ipairs(list) do
-        local p = GetPart(d)
-        if p then
-            local dist = (p.Position - hrp.Position).Magnitude
-            if not bd or dist < bd then best, bd = d, dist end
-        end
-    end
-    return best
-end
-
-local function FindInRooms(pred)
-    local rooms, out = GetRooms(), {}
-    if not rooms then return out end
-    local n = 0
-    for _, room in ipairs(rooms:GetChildren()) do
-        for _, d in ipairs(room:GetDescendants()) do
-            local ok, hit = pcall(pred, d)
-            if ok and hit then out[#out + 1] = d end
-            n = n + 1
-            if n % 600 == 0 then task.wait() end
-        end
-    end
-    return out
 end
 
 task.spawn(function()
@@ -2570,34 +2458,251 @@ task.spawn(function()
     end
 end)
 
-local seenExtra = setmetatable({}, { __mode = "k" })
+-- ================= 速通计时器 =================
+local PRESET_NAMES = { "Top Left", "Top Center", "Top Right", "Bottom Left", "Bottom Center", "Bottom Right" }
+local timerRunning, timerPaused = false, false
+local timerStart, timerElapsed, timerPauseAt = 0, 0, 0
+local timerSplitsList, lastSplitRoom = {}, -1
+local timerGui, timerLabel, timerSplitLabel, timerBtnFrame
+local timerRunStart = 0
+
+local function FormatTime(t)
+    local m = math.floor(t / 60)
+    local s = t - m * 60
+    return string.format("%02d:%05.2f", m, s)
+end
+
+local function Place(name)
+    local posMap = {
+        ["Top Left"] = UDim2.new(0, 20, 0, 20),
+        ["Top Center"] = UDim2.new(0.5, 0, 0, 20),
+        ["Top Right"] = UDim2.new(1, -20, 0, 20),
+        ["Bottom Left"] = UDim2.new(0, 20, 1, -20),
+        ["Bottom Center"] = UDim2.new(0.5, 0, 1, -20),
+        ["Bottom Right"] = UDim2.new(1, -20, 1, -20),
+    }
+    local anchorMap = {
+        ["Top Left"] = Vector2.new(0, 0),
+        ["Top Center"] = Vector2.new(0.5, 0),
+        ["Top Right"] = Vector2.new(1, 0),
+        ["Bottom Left"] = Vector2.new(0, 1),
+        ["Bottom Center"] = Vector2.new(0.5, 1),
+        ["Bottom Right"] = Vector2.new(1, 1),
+    }
+    if timerGui then
+        timerGui.AnchorPoint = anchorMap[name] or Vector2.new(0, 0)
+        timerGui.Position = posMap[name] or UDim2.new(0, 20, 0, 20)
+    end
+end
+
+local function Layout()
+    if not timerGui then return end
+    local sc = (Cfg.TimerScale or 100) / 100
+    timerGui.Visible = Cfg.TimerShow and true or false
+    if timerLabel then
+        timerLabel.TextSize = math.floor(32 * sc)
+    end
+    if timerBtnFrame then
+        timerBtnFrame.Visible = Cfg.TimerButtons and true or false
+    end
+    if timerSplitLabel then
+        timerSplitLabel.Visible = Cfg.TimerSplits and true or false
+    end
+end
+
+local function Toggle()
+    if not timerRunning then
+        timerRunning = true
+        timerPaused = false
+        timerStart = os.clock()
+        timerElapsed = 0
+        timerSplitsList = {}
+        lastSplitRoom = -1
+    elseif timerPaused then
+        timerPaused = false
+        timerStart = os.clock() - timerElapsed
+    else
+        timerPaused = true
+        timerPauseAt = os.clock()
+    end
+end
+
+local function Finish()
+    if timerRunning then
+        if not timerPaused then
+            timerElapsed = os.clock() - timerStart
+        else
+            timerElapsed = timerPauseAt - timerStart
+        end
+        timerRunning = false
+        timerPaused = false
+    end
+end
+
+local function Reset()
+    timerRunning = false
+    timerPaused = false
+    timerElapsed = 0
+    timerStart = 0
+    timerSplitsList = {}
+    lastSplitRoom = -1
+end
+
 task.spawn(function()
-    while true do
-        task.wait(4)
-        if Cfg.StairwellExtraESP then
-            local rooms = GetRooms()
-            if rooms then
-                local cur = GetCurRoom()
-                for _, rn in ipairs({ cur - 1, cur, cur + 1, cur + 2 }) do
-                    local room = rooms:FindFirstChild(tostring(rn))
-                    if room then
-                        for _, d in ipairs(room:GetDescendants()) do
-                            if d:IsA("Model") and not Tracked[d] and not seenExtra[d] then
-                                local n = d.Name:lower()
-                                if n:find("door", 1, true) and not n:find("fake", 1, true) and Cfg.ESPDoors then
-                                    seenExtra[d] = true
-                                    local num = tonumber(room.Name)
-                                    local esp = CreateESP(d, "门 " .. (num and (num + 1) or "?"), Color3.fromHex("#00eaff"), Cfg.ESPRange)
-                                    if esp then Tracked[d] = esp end
-                                end
+    local g = Instance.new("ScreenGui")
+    g.Name = "RON_Timer"
+    g.ResetOnSpawn = false
+    g.IgnoreGuiInset = true
+    g.DisplayOrder = 70
+    g.Visible = false
+    pcall(function() g.Parent = (gethui and gethui()) or game:GetService("CoreGui") end)
+    if not g.Parent then g.Parent = LocalPlayer:WaitForChild("PlayerGui") end
+    timerGui = g
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 260, 0, 100)
+    frame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    frame.BackgroundTransparency = (100 - (Cfg.TimerOpacity or 80)) / 100
+    frame.BorderSizePixel = 0
+    frame.AnchorPoint = Vector2.new(0, 0)
+    frame.Position = UDim2.new(0, 20, 0, 20)
+    frame.Parent = g
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = frame
+
+    timerLabel = Instance.new("TextLabel")
+    timerLabel.Size = UDim2.new(1, -12, 0, 40)
+    timerLabel.Position = UDim2.new(0, 6, 0, 6)
+    timerLabel.BackgroundTransparency = 1
+    timerLabel.Font = Enum.Font.GothamBold
+    timerLabel.TextSize = 32
+    timerLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    timerLabel.Text = "00:00.00"
+    timerLabel.TextXAlignment = Enum.TextXAlignment.Left
+    timerLabel.Parent = frame
+
+    timerSplitLabel = Instance.new("TextLabel")
+    timerSplitLabel.Size = UDim2.new(1, -12, 0, 40)
+    timerSplitLabel.Position = UDim2.new(0, 6, 0, 44)
+    timerSplitLabel.BackgroundTransparency = 1
+    timerSplitLabel.Font = Enum.Font.Gotham
+    timerSplitLabel.TextSize = 16
+    timerSplitLabel.TextColor3 = Color3.fromRGB(180, 180, 200)
+    timerSplitLabel.Text = ""
+    timerSplitLabel.TextXAlignment = Enum.TextXAlignment.Left
+    timerSplitLabel.Visible = false
+    timerSplitLabel.Parent = frame
+
+    timerBtnFrame = Instance.new("Frame")
+    timerBtnFrame.Size = UDim2.new(1, -12, 0, 24)
+    timerBtnFrame.Position = UDim2.new(0, 6, 1, -30)
+    timerBtnFrame.BackgroundTransparency = 1
+    timerBtnFrame.Visible = false
+    timerBtnFrame.Parent = frame
+
+    local function mkBtn(txt, x)
+        local b = Instance.new("TextButton")
+        b.Size = UDim2.new(0, 72, 1, 0)
+        b.Position = UDim2.new(0, x, 0, 0)
+        b.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+        b.BorderSizePixel = 0
+        b.Font = Enum.Font.GothamBold
+        b.TextSize = 12
+        b.TextColor3 = Color3.fromRGB(255, 255, 255)
+        b.Text = txt
+        b.Parent = timerBtnFrame
+        local c = Instance.new("UICorner")
+        c.CornerRadius = UDim.new(0, 4)
+        c.Parent = b
+        return b
+    end
+
+    local bToggle = mkBtn("开始/暂停", 0)
+    local bFinish = mkBtn("完成", 80)
+    local bReset = mkBtn("重置", 160)
+    bToggle.MouseButton1Click:Connect(Toggle)
+    bFinish.MouseButton1Click:Connect(Finish)
+    bReset.MouseButton1Click:Connect(Reset)
+
+    Place(Cfg.TimerPosition or "Top Right")
+    Layout()
+
+    task.spawn(function()
+        while true do
+            task.wait(0.03)
+            if timerRunning and not timerPaused then
+                local el = os.clock() - timerStart
+                if timerLabel then timerLabel.Text = FormatTime(el) end
+                if Cfg.TimerAutoSplit then
+                    local cur = GetCurRoom()
+                    if cur ~= lastSplitRoom then
+                        lastSplitRoom = cur
+                        table.insert(timerSplitsList, { room = cur, time = el })
+                        if timerSplitLabel then
+                            local parts = {}
+                            for i = math.max(1, #timerSplitsList - 3), #timerSplitsList do
+                                table.insert(parts, "R" .. timerSplitsList[i].room .. ":" .. FormatTime(timerSplitsList[i].time))
                             end
+                            timerSplitLabel.Text = table.concat(parts, "  ")
                         end
                     end
                 end
+                if Cfg.TimerStopRoom and Cfg.TimerStopRoom > 0 and GetCurRoom() >= Cfg.TimerStopRoom then
+                    Finish()
+                end
+                if Cfg.TimerStopOnDeath then
+                    local hum = GetHum()
+                    if hum and hum.Health <= 0 then Finish() end
+                end
+            elseif timerPaused and timerLabel then
+                timerLabel.Text = FormatTime(timerElapsed)
+            elseif not timerRunning and timerElapsed > 0 and timerLabel then
+                timerLabel.Text = FormatTime(timerElapsed)
             end
         end
-    end
+    end)
+
+    RunService.Heartbeat:Connect(function()
+        if timerGui and timerBtnFrame then
+            timerBtnFrame.Visible = Cfg.TimerButtons and timerGui.Visible or false
+        end
+    end)
 end)
+
+-- ================= 杂项功能 =================
+local function KillCharacter()
+    local hum = GetHum()
+    if hum then hum.Health = 0 return true end
+    return false
+end
+
+local function ReturnToLobby()
+    local rf = GetRemotesFolder()
+    if not rf then return false end
+    for _, name in ipairs({ "ReturnToLobby", "LeaveGame", "ReturnLobby" }) do
+        local r = rf:FindFirstChild(name)
+        if r and r:IsA("RemoteEvent") then
+            pcall(function() r:FireServer() end)
+            return true
+        end
+    end
+    return false
+end
+
+local function RestartRun()
+    local rf = GetRemotesFolder()
+    if not rf then return false end
+    for _, name in ipairs({ "Restart", "RestartRun", "ResetRun" }) do
+        local r = rf:FindFirstChild(name)
+        if r and r:IsA("RemoteEvent") then
+            pcall(function() r:FireServer() end)
+            return true
+        end
+    end
+    return false
+end
 
 -- ================= Obsidian UI =================
 local Window = Library:CreateWindow({
@@ -2694,7 +2799,6 @@ vEntity:AddButton({ Text = "全清实体", Func = function()
 end })
 vEntity:AddToggle("unlistedEntities", { Text = "显示未列出的实体", Default = false, Callback = function(v) Cfg.UnlistedEntities = v end })
 
--- 相机
 local camLeft = T.Visuals:AddRightGroupbox("相机")
 camLeft:AddToggle("customFOV", { Text = "自定义 FOV", Default = false, Callback = function(v) Cfg.CustomFOV = v end })
 camLeft:AddSlider("fovValue", { Text = "视野大小", Default = 70, Min = 1, Max = 120, Rounding = 0, Callback = function(v) Cfg.FOVValue = v end })
@@ -2705,7 +2809,6 @@ camLeft:AddSlider("tpZ", { Text = "第三人称 Z 偏移", Default = 5, Min = -1
 camLeft:AddToggle("noCamShake", { Text = "移除相机抖动", Default = false, Callback = function(v) Cfg.NoCamShake = v end })
 camLeft:AddToggle("noCamBob", { Text = "移除相机晃动", Default = false, Callback = function(v) Cfg.NoCamBob = v end })
 
--- 光照
 local lightRight = T.Visuals:AddLeftGroupbox("光照")
 lightRight:AddToggle("fullbright", { Text = "全亮", Default = false, Callback = function(v) Cfg.Fullbright = v ApplyFullbright(v) end })
 lightRight:AddSlider("fbBrightness", { Text = "全亮亮度", Default = 2, Min = 0, Max = 10, Rounding = 0, Callback = function(v) Cfg.FBBrightness = v end })
@@ -2867,7 +2970,6 @@ local sw5 = T.Stairwell:AddLeftGroupbox("额外")
 sw5:AddToggle("stairwellExtraESP", { Text = "楼梯间额外门 ESP", Default = false, Callback = function(v) Cfg.StairwellExtraESP = v end })
 
 -- ===== 杂项页 =====
--- 速通计时器 UI
 local tmLeft = T.Misc:AddLeftGroupbox("速通计时器")
 tmLeft:AddToggle("timerShow", { Text = "显示计时器", Default = false, Callback = function(v) Cfg.TimerShow = v Layout() end })
 tmLeft:AddButton({ Text = "开始 / 暂停 / 恢复", Func = Toggle })
@@ -2889,7 +2991,6 @@ tmRight:AddToggle("timerAutoEnd", { Text = "自动结束", Default = false, Call
 tmRight:AddToggle("timerStopOnDeath", { Text = "死亡停止", Default = true, Callback = function(v) Cfg.TimerStopOnDeath = v end })
 tmRight:AddSlider("timerStopRoom", { Text = "到达指定房间停止 (0=关)", Default = 0, Min = 0, Max = 300, Rounding = 0, Callback = function(v) Cfg.TimerStopRoom = v end })
 
--- 自杀 / 大厅 / 重开 UI
 local mx = T.Misc:AddLeftGroupbox("角色操作")
 mx:AddButton({ Text = "自杀", Func = function()
     if KillCharacter() then Library:Notify("自杀", "已执行", 2) end
@@ -2932,8 +3033,11 @@ Library:OnUnload(function()
     if Cfg.DisableIdleKick then ApplyIdleKick(false) end
     for _, v in ipairs(ESPFolder:GetChildren()) do v:Destroy() end
     if tracerGui then tracerGui:Destroy() end
+    if timerGui then timerGui:Destroy() end
+    if timeHud and timeHud.Gui then timeHud.Gui:Destroy() end
+    if creakHud and creakHud.Gui then creakHud.Gui:Destroy() end
+    if dropHud and dropHud.Gui then dropHud.Gui:Destroy() end
     for name in pairs(fakeRemotes) do RestoreRemote(name) end
-    if gui then gui:Destroy() end
 end)
 
-Library:Notify("RON-Full", "完整版已加载 | 9 个 Tab | 全新 ESP 已覆盖旧版", 5)
+Library:Notify("RON-Full", "完整版已加载 | 9 个 Tab | 扫描链已替换 | 计时器已修复", 5)
