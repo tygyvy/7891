@@ -1,6 +1,7 @@
 --[[
-    RON-Full | DOORS 完整版 | Obsidian UI
-    功能: ESP + 玩家 + 自动化 + 反作弊 + 楼层绕过 + 楼层跳过 + 档案室 + 楼梯间 + 实体报警 + 相机/视野/光照 + 快速互动 + 物品勾选 + 追踪线 + 杂项
+    RON-Full | DOORS 完整版 | Obsidian UI (整合版)
+    透视(新) + 速通计时器(新) + 自杀/返回大厅/重开(新) + 无加速(新)
+    其余：玩家移动 / 自动化 / 反作弊 / 楼层 / 档案室 / 楼梯间 保留
     适用: 6516141723 (Lobby) / 6839171747 (Game)
 ]]
 
@@ -35,19 +36,19 @@ end
 
 -- ================= 配置 =================
 local Cfg = {
-    -- ESP
-    ESPDoors=false, ESPDupe=false, ESPStairs=false, ESPGold=false, ESPKeys=false,
-    ESPChests=false, ESPDrawers=false, ESPLockers=false, ESPItems=false,
+    -- ESP (新)
+    ESPRange=400, ESPDoors=false, ESPDupe=false, ESPStairs=false, ESPGold=false,
+    ESPKeys=false, ESPChests=false, ESPDrawers=false, ESPLockers=false, ESPItems=false,
     ESPStardust=false, ESPGlitch=false, ESPScanner=false, ESPLotus=false,
     ESPWardrobes=false, ESPObjectives=false, ESPExit=false, ESPCart=false,
     ESPEntities=false, ESPPlayers=false, ESPInteractables=false,
-    ESPRange=400,
-    ItemFilter={}, UnlistedItems=false,
-    EntityFilter={},
+    ItemFilter={}, UnlistedItems=false, EntityFilter={}, UnlistedEntities=false,
     -- Player
     SpeedEnabled=false, SpeedValue=30,
     JumpEnabled=false, JumpPower=50, InfJump=false,
     FlyEnabled=false, FlySpeed=40, Noclip=false,
+    -- NoAcceleration (新)
+    NoAcceleration=false,
     -- Camera
     CustomFOV=false, FOVValue=70,
     ThirdPerson=false, TPOffsetX=2, TPOffsetY=1, TPOffsetZ=5,
@@ -62,7 +63,7 @@ local Cfg = {
     InstantPrompt=false, PromptReach=1, PromptClip=false, DoorReach=false, DisableIdleKick=false,
     -- 实体报警
     EntityNotify=false, NotifyCooldown=5, NotifyOxygen=false, NotifyHaste=false,
-    -- Antis（楼层绕过）
+    -- Antis
     BypassGiggle=false, BypassDupe=false, BypassSnare=false, BypassJeff=false,
     BypassVacuum=false, BypassGloombatEggs=false, BypassKillbricks=false,
     BypassSeekingWall=false, BypassBanana=false, BypassSeekObstructions=false,
@@ -73,7 +74,7 @@ local Cfg = {
     FigureGodmode=false, RemoveBasementGate=false, RemovePaintingsDoor=false,
     RemoveSkeletonDoor=false,
     RemoveCutscenes=false, DisableEntityJumpscares=false,
-    -- 楼层跳过
+    -- 楼层
     FloorSkip=false, FloorSkipDistance=500,
     -- 档案室
     HonchoESP=false, HonchoAutoDeposit=false,
@@ -92,6 +93,10 @@ local Cfg = {
     DropCounter=false, DropOrbit=false,
     OrbitHeight=2, OrbitDistance=5, OrbitSpeed=2,
     StairwellExtraESP=false,
+    -- Timer (新)
+    TimerShow=false, TimerPosition="Top Right", TimerScale=100, TimerOpacity=80,
+    TimerSplits=true, TimerButtons=true, TimerAutoStart=false, TimerAutoSplit=false,
+    TimerStopRoom=0, TimerAutoEnd=false, TimerStopOnDeath=true,
 }
 
 -- ================= ESP =================
@@ -161,8 +166,8 @@ end
 
 local UpdateConn = RunService.Heartbeat:Connect(UpdateESP)
 
--- ================= 颜色与名称表 =================
-local ESP_COLORS = {
+-- ================= 颜色与名称表（新，照 RON）=================
+local COLORS = {
     doors = Color3.fromHex("#00eaff"), dupe = Color3.fromHex("#ff0000"),
     stairs = Color3.fromHex("#ff5fa2"), gold = Color3.fromHex("#ffe400"),
     keys = Color3.fromHex("#12ff00"), chests = Color3.fromHex("#ffe400"),
@@ -179,13 +184,12 @@ local KEY_NAMES = { KeyObtain="钥匙", ElectricalKeyObtain="电房钥匙", Fuse
 local OBJECTIVE_NAMES = {
     LeverForGate="拉杆", TimerLever="计时拉杆", LiveHintBook="图书馆书",
     LiveBreakerPolePickup="断路器杆", StairwellFireAlarm="消防警报",
-    ["Sally's Toy"]="Sally 的玩具", SallysToy="Sally 的玩具",
-    WaterPump="水泵",
+    ["Sally's Toy"]="Sally 的玩具", SallysToy="Sally 的玩具", WaterPump="水泵",
 }
 local STARDUST_NAMES = { Stardust="星尘", StardustPickup="星尘" }
 local GOLD_NAMES = { GoldPile="金" }
-local HIDE_NAMES = { Wardrobe="衣柜", Bed="床", Toolshed="工具棚", Locker="储物柜" }
-local CHEST_EXACT = { ChestBox="箱子", ChestBoxLocked="锁定箱" }
+local HIDE_NAMES = { Wardrobe="Closet", Bed="Bed", Toolshed="Tool Shed", Locker="Locker" }
+local CHEST_EXACT = { ChestBox="Chest", ChestBoxLocked="Locked Chest" }
 local ITEM_NAMES = {
     "Alarm Clock","Bandage","Battery","Boxing Gloves","Bread","Candle",
     "Compass","Crucifix","Flashlight","Glowstick","Gold Gun","Green Herb",
@@ -194,56 +198,51 @@ local ITEM_NAMES = {
     "Skeleton Key","Smoothie","Vitamins","Bulklight","Shakelight",
 }
 local ITEM_SET = {}
-for _, v in ipairs(ITEM_NAMES) do ITEM_SET[v] = true end
-
-local ENTITY_LIST = {
-    "Rush","Ambush","Eyes","Halt","Jeff","Jeff the Killer","Snare",
-    "Glitch","Glitched Rush","Glitched Ambush","Seek","Figure",
-    "Timothy","Void","Bob","El Goblino","Dread","Grumble","Queen Grumble",
-    "Giggle","Gloombat","Firedamp","Blitz","Lookman","Haste",
-    "Groundskeeper","Caw","Monument","Surge","Mandrake","Eyestalk",
-    "Bramble","Grampy","World Lotus","Honcho","Drone","Forget-Me-Nots",
-    "Teller","Alma","Portrait","A-60","A-120","Discoloration","Currents",
-    "Creak","Noise","Noise TV","Stem","Meld","Cobbler","Hijack","Crusher",
-}
-
-local ENTITY_FILTER_MAP = {
-    ["Rush"]="RushMoving", ["Ambush"]="AmbushMoving", ["Eyes"]="Eyes",
-    ["Halt"]="Halt", ["Jeff"]="JeffTheKiller", ["Jeff the Killer"]="JeffTheKiller",
-    ["Snare"]="Snare", ["Glitch"]="GlitchRush", ["Glitched Rush"]="GlitchRush",
-    ["Glitched Ambush"]="GlitchAmbush", ["Seek"]="SeekMoving", ["Figure"]="FigureRig",
-    ["Timothy"]="Timothy", ["Void"]="Void", ["Dread"]="Dread",
-    ["Grumble"]="Grumble", ["Queen Grumble"]="QueenGrumble", ["Giggle"]="Giggle",
-    ["Blitz"]="BackdoorRush", ["Lookman"]="Lookman",
-    ["A-60"]="A60", ["A-120"]="A120", ["Scribbles"]="Scribbles",
-}
-
-for _, n in ipairs(ENTITY_LIST) do Cfg.EntityFilter[n] = true end
+for _, n in ipairs(ITEM_NAMES) do ITEM_SET[n] = true end
 
 local ENTITY_NAMES = {
-    RushMoving=1, AmbushMoving=1, Eyes=1, Halt=1, JeffTheKiller=1, Snare=1,
-    SeekMoving=1, SeekRig=1, FigureRig=1, FigureRagdoll=1, Timothy=1, Void=1,
-    Dread=1, Grumble=1, QueenGrumble=1, Giggle=1, A60=1, A120=1, Bash=1,
-    Scribbles=1, GlitchRush=1, GlitchAmbush=1, BackdoorRush=1, Lookman=1,
+    RushMoving="Rush", AmbushMoving="Ambush", Eyes="Eyes", Halt="Halt",
+    JeffTheKiller="Jeff", Snare="Snare", SeekMoving="Seek", SeekRig="Seek",
+    FigureRig="Figure", FigureRagdoll="Figure", Timothy="Timothy", Void="Void",
+    Dread="Dread", Grumble="Grumble", QueenGrumble="Queen Grumble", Giggle="Giggle",
+    A60="A-60", A120="A-120", Bash="A-60", Scribbles="Scribbles",
+    GlitchRush="Glitched Rush", GlitchAmbush="Glitched Ambush",
+    BackdoorRush="Blitz", Lookman="Lookman",
 }
 
--- ================= 扫描（通用 Reg） =================
+local ENTITY_LIST = {
+    "Rush","Ambush","Eyes","Halt","Jeff","Snare","Seek","Figure",
+    "Timothy","Void","Dread","Grumble","Queen Grumble","Giggle",
+    "A-60","A-120","Scribbles","Glitched Rush","Glitched Ambush",
+    "Blitz","Lookman",
+}
+for _, n in ipairs(ENTITY_LIST) do Cfg.EntityFilter[n] = true end
+for _, n in ipairs(ITEM_NAMES) do Cfg.ItemFilter[n] = true end
+
 local function Reg(inst, cat, label)
     if not inst or not inst.Parent then return end
     if Tracked[inst] then return end
-    local color = ESP_COLORS[cat] or Color3.new(1,1,1)
+    local color = COLORS[cat] or Color3.new(1,1,1)
     local esp = CreateESP(inst, label or cat, color, Cfg.ESPRange)
-    if esp then
-        esp.Cat = cat
-        Tracked[inst] = esp
-    end
+    if esp then esp.Cat = cat Tracked[inst] = esp end
 end
 
+local function HideLabel(name)
+    if HIDE_NAMES[name] then return HIDE_NAMES[name] end
+    local n = name:lower():gsub("[^%w]", "")
+    if n:find("wardrobe", 1, true) or n:find("closet", 1, true) then return "Closet" end
+    if n:find("cupboard", 1, true) then return "Cupboard" end
+    if n:find("locker", 1, true) then return "Locker" end
+    if n:find("shed", 1, true) then return "Tool Shed" end
+    if n:find("bed", 1, true) then return "Bed" end
+    return (name:gsub("_", " "))
+end
+
+-- ================= 透视扫描主循环（新）=================
 task.spawn(function()
     while true do
         task.wait(0.8)
 
-        -- 门 + 假门
         if Cfg.ESPDoors or Cfg.ESPDupe then
             local rooms = Workspace:FindFirstChild("CurrentRooms")
             if rooms then
@@ -266,7 +265,6 @@ task.spawn(function()
             end
         end
 
-        -- 楼梯
         if Cfg.ESPStairs then
             for _, d in ipairs(Workspace:GetDescendants()) do
                 if d:IsA("TrussPart") then Reg(d, "stairs", "梯子")
@@ -274,14 +272,12 @@ task.spawn(function()
             end
         end
 
-        -- 金
         if Cfg.ESPGold then
             for _, d in ipairs(Workspace:GetDescendants()) do
                 if GOLD_NAMES[d.Name] then Reg(d, "gold", GOLD_NAMES[d.Name]) end
             end
         end
 
-        -- 钥匙 + 目标
         if Cfg.ESPKeys or Cfg.ESPObjectives then
             for _, d in ipairs(Workspace:GetDescendants()) do
                 if Cfg.ESPKeys and KEY_NAMES[d.Name] then Reg(d, "keys", KEY_NAMES[d.Name])
@@ -289,75 +285,79 @@ task.spawn(function()
             end
         end
 
-        -- 箱子/抽屉/储物柜/衣柜
-        if Cfg.ESPChests or Cfg.ESPDrawers or Cfg.ESPLockers or Cfg.ESPWardrobes then
+        if Cfg.ESPChests or Cfg.ESPDrawers or Cfg.ESPLockers then
             for _, d in ipairs(Workspace:GetDescendants()) do
                 if d:IsA("Model") then
                     local n = d.Name
                     if Cfg.ESPChests and CHEST_EXACT[n] then Reg(d, "chests", CHEST_EXACT[n])
                     elseif Cfg.ESPDrawers and (n:lower():find("drawer") or n:lower():find("dresser") or n:lower():find("desk")) then Reg(d, "drawers", "抽屉")
-                    elseif Cfg.ESPLockers and (n:lower():find("locker") or n:lower():find("toolbox")) then Reg(d, "lockers", "储物柜")
-                    elseif Cfg.ESPWardrobes and HIDE_NAMES[n] then Reg(d, "wardrobes", HIDE_NAMES[n]) end
+                    elseif Cfg.ESPLockers and (n:lower():find("locker") or n:lower():find("toolbox")) then Reg(d, "lockers", "储物柜") end
                 end
             end
         end
 
-        -- 物品/星尘/Glitch/Scanner/莲花
-        if Cfg.ESPItems or Cfg.ESPStardust or Cfg.ESPGlitch or Cfg.ESPScanner or Cfg.ESPLotus then
+        if Cfg.ESPWardrobes then
+            for _, p in ipairs(Workspace:GetDescendants()) do
+                if p:IsA("ProximityPrompt") and p.Name == "HidePrompt" and p.Enabled and p.Parent then
+                    local m = p:FindFirstAncestorWhichIsA("Model")
+                    if m and not Tracked[m] then Reg(m, "wardrobes", HideLabel(m.Name)) end
+                end
+            end
+        end
+
+        if Cfg.ESPItems then
             for _, d in ipairs(Workspace:GetDescendants()) do
                 if d:IsA("ProximityPrompt") and d.Enabled and d.Parent then
-                    local model = d.Parent:IsA("Model") and d.Parent or d.Parent:FindFirstAncestorWhichIsA("Model")
-                    if model then
-                        local pname = d.Name
-                        if Cfg.ESPItems and (pname == "ModulePrompt" or pname == "HerbPrompt") then
-                            local nm = model.Name
-                            if Cfg.ItemFilter[nm] or Cfg.UnlistedItems then
-                                Reg(model, "items", nm)
+                    local pname = d.Name
+                    if pname == "ModulePrompt" or pname == "HerbPrompt" then
+                        local model = d.Parent:IsA("Model") and d.Parent or d.Parent:FindFirstAncestorWhichIsA("Model")
+                        if model and not Tracked[model] then
+                            local display = nil
+                            for _, c in ipairs({ model.Name, d.ObjectText, tostring(model:GetAttribute("DisplayName") or "") }) do
+                                if type(c) == "string" and ITEM_SET[c] then display = c break end
                             end
+                            if display then
+                                if Cfg.ItemFilter[display] ~= false then Reg(model, "items", display) end
+                            elseif Cfg.UnlistedItems then Reg(model, "items", model.Name) end
                         end
                     end
                 end
+            end
+        end
+
+        if Cfg.ESPStardust or Cfg.ESPGlitch or Cfg.ESPScanner or Cfg.ESPLotus then
+            for _, d in ipairs(Workspace:GetDescendants()) do
                 if d:IsA("Model") then
                     local n = d.Name
                     if Cfg.ESPStardust and STARDUST_NAMES[n] then Reg(d, "stardust", "星尘")
                     elseif Cfg.ESPGlitch and (n:lower():find("glitchcube") or n:lower():find("glitchfragment")) then Reg(d, "glitch", "Glitch 碎片")
                     elseif Cfg.ESPScanner and n:lower():find("scannermodule") then Reg(d, "scanner", "Scanner 模块")
-                    elseif Cfg.ESPLotus and n:lower():find("lotus") then Reg(d, "lotus", "莲花")
-                    end
+                    elseif Cfg.ESPLotus and n:lower():find("lotus") then Reg(d, "lotus", "莲花") end
                 end
             end
         end
 
-        -- 紧急出口
         if Cfg.ESPExit then
             for _, d in ipairs(Workspace:GetDescendants()) do
                 if d.Name == "ExitSignStairwell" then Reg(d, "exit", "紧急出口") end
             end
         end
 
-        -- 购物车
         if Cfg.ESPCart then
             for _, d in ipairs(Workspace:GetDescendants()) do
                 if d:IsA("Model") and d.Name == "ShoppingCart" then Reg(d, "cart", "购物车") end
             end
         end
 
-        -- 实体（带勾选过滤）
         if Cfg.ESPEntities then
             for _, m in ipairs(Workspace:GetChildren()) do
                 if m:IsA("Model") and ENTITY_NAMES[m.Name] then
-                    local displayName = nil
-                    for disp, real in pairs(ENTITY_FILTER_MAP) do
-                        if real == m.Name then displayName = disp break end
-                    end
-                    if displayName and Cfg.EntityFilter[displayName] then
-                        Reg(m, "entities", displayName)
-                    end
+                    local label = ENTITY_NAMES[m.Name]
+                    if Cfg.EntityFilter[label] ~= false then Reg(m, "entities", label) end
                 end
             end
         end
 
-        -- 玩家
         if Cfg.ESPPlayers then
             for _, p in ipairs(Players:GetPlayers()) do
                 if p ~= LocalPlayer and p.Character then
@@ -367,7 +367,6 @@ task.spawn(function()
             end
         end
 
-        -- 可交互物
         if Cfg.ESPInteractables then
             for _, d in ipairs(Workspace:GetDescendants()) do
                 if d:IsA("ProximityPrompt") and d.Enabled and d.Parent then
@@ -377,7 +376,6 @@ task.spawn(function()
             end
         end
 
-        -- 清理
         for inst in pairs(Tracked) do
             if not inst.Parent then DestroyESP(inst) end
         end
@@ -426,12 +424,29 @@ UIS.JumpRequest:Connect(function()
     if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
 end)
 
+-- ================= 无加速（新）=================
+local NoAccelSaved = { WS = nil }
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if Cfg.NoAcceleration then
+            local hum = GetHum()
+            if hum then
+                if NoAccelSaved.WS == nil then NoAccelSaved.WS = hum.WalkSpeed end
+                if hum.WalkSpeed ~= 16 then hum.WalkSpeed = 16 end
+            end
+        elseif NoAccelSaved.WS ~= nil then
+            local hum = GetHum()
+            if hum then hum.WalkSpeed = NoAccelSaved.WS end
+            NoAccelSaved.WS = nil
+        end
+    end
+end)
+
 -- ================= 相机 / 视野 / 第三人称 =================
 local tpParts, tpChar, tpWasOn = {}, nil, false
-
 local function RefreshTPParts(char)
-    table.clear(tpParts)
-    tpChar = char
+    table.clear(tpParts) tpChar = char
     if not char then return end
     for _, d in ipairs(char:GetDescendants()) do
         if d:IsA("Accessory") then
@@ -447,7 +462,6 @@ RunService.RenderStepped:Connect(function()
     local cam = Workspace.CurrentCamera
     if not cam then return end
     if Cfg.CustomFOV then cam.FieldOfView = Cfg.FOVValue end
-
     pcall(function()
         if Cfg.ThirdPerson then
             local char = LocalPlayer.Character
@@ -464,7 +478,6 @@ RunService.RenderStepped:Connect(function()
             end
         end
     end)
-
     if Cfg.NoCamShake or Cfg.NoCamBob then
         pcall(function()
             local pg = LocalPlayer:FindFirstChild("PlayerGui")
@@ -484,15 +497,12 @@ end)
 
 -- ================= 光照 =================
 local FBOrig, FogOrig, AtmoOrig = nil, nil, setmetatable({}, { __mode = "k" })
-
 local function ApplyFullbright(on)
     if on then
         if not FBOrig then
-            FBOrig = {
-                Brightness = Lighting.Brightness, ClockTime = Lighting.ClockTime,
+            FBOrig = { Brightness = Lighting.Brightness, ClockTime = Lighting.ClockTime,
                 Ambient = Lighting.Ambient, OutdoorAmbient = Lighting.OutdoorAmbient,
-                GlobalShadows = Lighting.GlobalShadows,
-            }
+                GlobalShadows = Lighting.GlobalShadows }
         end
         local amb = math.floor(math.clamp(Cfg.FBAmbient, 0, 100) / 100 * 255 + 0.5)
         local c = Color3.fromRGB(amb, amb, amb)
@@ -506,14 +516,10 @@ local function ApplyFullbright(on)
         FBOrig = nil
     end
 end
-
 local function ApplyNoFog(on)
     if on then
-        if not FogOrig then
-            FogOrig = { FogEnd = Lighting.FogEnd, FogStart = Lighting.FogStart }
-        end
-        Lighting.FogEnd = 100000
-        Lighting.FogStart = 100000
+        if not FogOrig then FogOrig = { FogEnd = Lighting.FogEnd, FogStart = Lighting.FogStart } end
+        Lighting.FogEnd = 100000 Lighting.FogStart = 100000
         for _, a in ipairs(Lighting:GetChildren()) do
             if a:IsA("Atmosphere") then
                 if not AtmoOrig[a] then AtmoOrig[a] = { a.Density, a.Haze } end
@@ -531,7 +537,6 @@ local function ApplyNoFog(on)
         end
     end
 end
-
 task.spawn(function()
     while true do
         task.wait(0.2)
@@ -600,14 +605,12 @@ end)
 -- ================= 快速互动 =================
 local promptOrig = setmetatable({}, { __mode = "k" })
 local promptConn = nil
-
 local function MakeInstant(pp)
     if not pp:IsA("ProximityPrompt") then return end
     if pp:GetAttribute("RON_FakePrompt") then return end
     if promptOrig[pp] == nil then promptOrig[pp] = pp.HoldDuration end
     pp.HoldDuration = 0
 end
-
 local function ApplyInstantPrompt(on)
     if on then
         task.spawn(function()
@@ -634,7 +637,6 @@ local function ApplyInstantPrompt(on)
         end
     end
 end
-
 task.spawn(function()
     while true do
         task.wait(0.5)
@@ -646,9 +648,7 @@ task.spawn(function()
     end
 end)
 
--- 交互范围扩展
 local reachOrig = setmetatable({}, { __mode = "k" })
-
 local function ApplyReach(pp)
     if not pp:IsA("ProximityPrompt") then return end
     if pp:GetAttribute("RON_FakePrompt") then return end
@@ -660,7 +660,6 @@ local function ApplyReach(pp)
     pp.MaxActivationDistance = o.Dist * Cfg.PromptReach
     pp.RequiresLineOfSight = Cfg.PromptClip and false or o.LOS
 end
-
 local function ApplyReachAll()
     task.spawn(function()
         local n = 0
@@ -675,7 +674,6 @@ local function ApplyReachAll()
     end)
 end
 
--- 门范围扩展
 local doorCooldown = setmetatable({}, { __mode = "k" })
 task.spawn(function()
     while true do
@@ -736,7 +734,6 @@ local ALERT_ENTITIES = {
 }
 local seenAlerts = setmetatable({}, { __mode = "k" })
 local lastAlertTime = {}
-
 Workspace.ChildAdded:Connect(function(m)
     if not Cfg.EntityNotify then return end
     if not m:IsA("Model") then return end
@@ -779,7 +776,7 @@ task.spawn(function()
     end
 end)
 
--- ================= 追踪线（屏幕下方） =================
+-- ================= 追踪线 =================
 local tracerGui = Instance.new("ScreenGui")
 tracerGui.Name = "RON_Tracer"
 tracerGui.ResetOnSpawn = false
@@ -811,17 +808,12 @@ task.spawn(function()
         local best, bd, bestName
         for _, m in ipairs(Workspace:GetChildren()) do
             if m:IsA("Model") and ENTITY_NAMES[m.Name] then
-                local displayName = nil
-                for disp, real in pairs(ENTITY_FILTER_MAP) do
-                    if real == m.Name then displayName = disp break end
-                end
-                if displayName and Cfg.EntityFilter[displayName] then
+                local label = ENTITY_NAMES[m.Name]
+                if Cfg.EntityFilter[label] ~= false then
                     local p = GetPart(m)
                     if p then
                         local d = (p.Position - hrp.Position).Magnitude
-                        if not bd or d < bd then
-                            best, bd, bestName = m, d, displayName
-                        end
+                        if not bd or d < bd then best, bd, bestName = m, d, label end
                     end
                 end
             end
@@ -861,13 +853,11 @@ local function ApplyACM(on)
     end
 end
 
--- ================= 楼层绕过（Antis）=================
+-- ================= 楼层绕过 =================
 local fakeRemotes = {}
-
 local function GetRemotesFolder()
     return RS:FindFirstChild("RemotesFolder") or RS:FindFirstChild("EntityInfo") or RS:FindFirstChild("Bricks")
 end
-
 local function ReplaceRemote(name)
     local rf = GetRemotesFolder()
     if not rf then return end
@@ -879,7 +869,6 @@ local function ReplaceRemote(name)
     real.Parent = nil
     fakeRemotes[name] = { real = real, fake = fake }
 end
-
 local function RestoreRemote(name)
     local data = fakeRemotes[name]
     if not data then return end
@@ -887,12 +876,10 @@ local function RestoreRemote(name)
     if data.fake then data.fake:Destroy() end
     fakeRemotes[name] = nil
 end
-
 local function GetEntityModules()
     local cm = RS:FindFirstChild("ModulesClient") or RS:FindFirstChild("ClientModules")
     return cm and cm:FindFirstChild("EntityModules")
 end
-
 local function DisableModule(container, name)
     if not container then return end
     for _, m in ipairs(container:GetDescendants()) do
@@ -902,7 +889,6 @@ local function DisableModule(container, name)
         end
     end
 end
-
 local function EnableModule(container, name)
     if not container then return end
     for _, m in ipairs(container:GetDescendants()) do
@@ -912,7 +898,6 @@ local function EnableModule(container, name)
         end
     end
 end
-
 local function HandleEntity(name, model, on)
     if name == "GiggleCeiling" then
         local hb = model:FindFirstChild("Hitbox")
@@ -941,7 +926,6 @@ local function HandleEntity(name, model, on)
         end
     end
 end
-
 local function HandleObstruction(name, obj, on)
     if name == "Lava" and obj:IsA("BasePart") then
         obj.CanTouch = not on
@@ -959,7 +943,6 @@ local function HandleObstruction(name, obj, on)
         obj.CanTouch = not on
     end
 end
-
 local function ApplyAntis()
     for _, c in ipairs(Workspace:GetChildren()) do
         if c:IsA("Model") then
@@ -979,7 +962,6 @@ local function ApplyAntis()
             end
         end
     end
-
     local mods = GetEntityModules()
     if mods then
         if Cfg.RemoveScreech then DisableModule(mods, "Screech") else EnableModule(mods, "Screech") end
@@ -987,11 +969,9 @@ local function ApplyAntis()
         if Cfg.RemoveA90 then DisableModule(mods, "A90") else EnableModule(mods, "A90") end
         if Cfg.RemoveDread then DisableModule(mods, "Dread") else EnableModule(mods, "Dread") end
     end
-
     if Cfg.NoScreechDamage then ReplaceRemote("Screech") else RestoreRemote("Screech") end
     if Cfg.NoHaltDamage then ReplaceRemote("ShadeResult") else RestoreRemote("ShadeResult") end
     if Cfg.NoA90Damage then ReplaceRemote("A90") else RestoreRemote("A90") end
-
     if Cfg.RemoveSeekTrigger then
         local rooms = Workspace:FindFirstChild("CurrentRooms")
         local hrp = GetHRP()
@@ -1008,7 +988,6 @@ local function ApplyAntis()
             end
         end
     end
-
     if Cfg.RemoveFigure then
         for _, name in ipairs({ "FigureRig", "Figure", "FigureRagdoll" }) do
             local fig = Workspace:FindFirstChild(name)
@@ -1021,7 +1000,6 @@ local function ApplyAntis()
             end
         end
     end
-
     if Cfg.RemoveBasementGate or Cfg.RemovePaintingsDoor or Cfg.RemoveSkeletonDoor then
         for _, obj in ipairs(Workspace:GetDescendants()) do
             if obj:IsA("Model") or obj:IsA("BasePart") then
@@ -1034,7 +1012,6 @@ local function ApplyAntis()
             end
         end
     end
-
     if Cfg.RemoveCutscenes then
         local cuts = { "Figure", "FigureEnd", "FigureHotelEnd", "SeekIntroFools",
                         "SeekIntroHotel", "SeekIntroMines", "SeekIntroMines2" }
@@ -1043,7 +1020,6 @@ local function ApplyAntis()
             for _, name in ipairs(cuts) do DisableModule(mods2, name) end
         end
     end
-
     if Cfg.DisableEntityJumpscares then
         local mods3 = GetEntityModules()
         if mods3 then
@@ -1055,7 +1031,6 @@ local function ApplyAntis()
         end
     end
 end
-
 task.spawn(function()
     while true do
         task.wait(1)
@@ -1103,13 +1078,11 @@ local function GetCurrentFloor()
     local fv = gd and gd:FindFirstChild("Floor")
     return fv and fv.Value or "?"
 end
-
 local function GetLatestRoom()
     local gd = RS:FindFirstChild("GameData")
     local lv = gd and gd:FindFirstChild("LatestRoom")
     return lv and lv.Value or 0
 end
-
 local function DoFloorSkip()
     local rooms = Workspace:FindFirstChild("CurrentRooms")
     if not rooms then return false end
@@ -1120,8 +1093,7 @@ local function DoFloorSkip()
         if n and n >= lv then
             local door = room:FindFirstChild("Door")
             if door and door:GetAttribute("Opened") ~= true then
-                targetRoom = door
-                break
+                targetRoom = door break
             end
         end
     end
@@ -1131,8 +1103,7 @@ local function DoFloorSkip()
     local safe = true
     for _, m in ipairs(Workspace:GetChildren()) do
         if m:IsA("Model") and DANGER[m.Name] and m:GetAttribute("Inactive") ~= true then
-            safe = false
-            break
+            safe = false break
         end
     end
     if not safe then return false end
@@ -1143,7 +1114,6 @@ local function DoFloorSkip()
     end
     return false
 end
-
 task.spawn(function()
     while true do
         task.wait(0.5)
@@ -1151,10 +1121,9 @@ task.spawn(function()
     end
 end)
 
--- ================= 档案室功能 =================
+-- ================= 档案室 =================
 local function IsBoxName(n) return n == "ArchivesStorageBox" or n == "ArchivesStorageBoxCorrect" end
 local Hon = { Deposits = {}, Boxes = {}, Drops = {} }
-
 local function ScanHoncho()
     local rooms = Workspace:FindFirstChild("CurrentRooms")
     if not rooms then return end
@@ -1193,7 +1162,6 @@ local function ScanHoncho()
     for c in pairs(Hon.Boxes) do if not c.Parent then Hon.Boxes[c] = nil end end
     for c in pairs(Hon.Drops) do if not c.Parent then Hon.Drops[c] = nil end end
 end
-
 task.spawn(function()
     while true do
         task.wait(1.5)
@@ -1222,7 +1190,6 @@ task.spawn(function()
         end
     end
 end)
-
 local function HeldBoxes()
     local out = {}
     local char = GetChar()
@@ -1233,7 +1200,6 @@ local function HeldBoxes()
     end
     return out
 end
-
 RunService.Heartbeat:Connect(function()
     if not Cfg.HonchoAutoDeposit then return end
     pcall(function()
@@ -1255,7 +1221,6 @@ RunService.Heartbeat:Connect(function()
     end)
 end)
 
--- FMN
 local fmnSeen = setmetatable({}, { __mode = "k" })
 task.spawn(function()
     while true do
@@ -1289,7 +1254,6 @@ task.spawn(function()
     end
 end)
 
--- Alma
 local lastAlmaFire = setmetatable({}, { __mode = "k" })
 task.spawn(function()
     while true do
@@ -1323,10 +1287,8 @@ task.spawn(function()
     end
 end)
 
--- Teller
 local TICKET_ATTRS = { "Number", "Current", "Serving", "CurrentNumber", "Ticket", "Count", "TicketNumber" }
 local lastNow = setmetatable({}, { __mode = "k" })
-
 local function MyTicket()
     local function look(c)
         if not c then return nil end
@@ -1345,7 +1307,6 @@ local function MyTicket()
     end
     return look(LocalPlayer.Character) or look(LocalPlayer:FindFirstChild("Backpack"))
 end
-
 local function TellerNow(m)
     for _, k in ipairs(TICKET_ATTRS) do
         local v = m:GetAttribute(k)
@@ -1362,7 +1323,6 @@ local function TellerNow(m)
     end
     return nil
 end
-
 task.spawn(function()
     while true do
         task.wait(0.5)
@@ -1387,7 +1347,6 @@ task.spawn(function()
     end
 end)
 
--- 档案室绕过
 task.spawn(function()
     while true do
         task.wait(0.5)
@@ -1416,7 +1375,6 @@ task.spawn(function()
         end
     end
 end)
-
 task.spawn(function()
     while true do
         task.wait(0.5)
@@ -1427,8 +1385,6 @@ task.spawn(function()
         end
     end
 end)
-
--- Bypass Water
 task.spawn(function()
     local waterParts = {}
     while true do
@@ -1465,7 +1421,6 @@ task.spawn(function()
     end
 end)
 
--- Time Shower
 local timeHud
 task.spawn(function()
     while true do
@@ -1508,7 +1463,6 @@ task.spawn(function()
         end
     end
 end)
-
 task.spawn(function()
     while true do
         task.wait(0.5)
@@ -1525,7 +1479,7 @@ task.spawn(function()
     end
 end)
 
--- ================= 楼梯间功能 =================
+-- ================= 楼梯间 =================
 local function GetRooms() return Workspace:FindFirstChild("CurrentRooms") end
 local function GetCurRoom() return tonumber(LocalPlayer:GetAttribute("CurrentRoom")) or 0 end
 local function GetDrops() return Workspace:FindFirstChild("Drops") end
@@ -1543,12 +1497,10 @@ local function GetCarts()
     end
     return out
 end
-
 local function MoveObj(obj, cf)
     if obj:IsA("Model") then obj:PivotTo(cf)
     elseif obj:IsA("BasePart") then obj.CFrame = cf end
 end
-
 local function NearestOf(list)
     local hrp = GetHRP()
     if not hrp then return nil end
@@ -1562,7 +1514,6 @@ local function NearestOf(list)
     end
     return best
 end
-
 local function FindInRooms(pred)
     local rooms, out = GetRooms(), {}
     if not rooms then return out end
@@ -1615,7 +1566,6 @@ local function UnderKeep(part, root)
     end
     return false
 end
-
 local meldOrig = setmetatable({}, { __mode = "k" })
 task.spawn(function()
     while true do
@@ -1697,7 +1647,6 @@ local function CrusherPass(deleteMode)
         end
     end
 end
-
 task.spawn(function()
     while true do
         task.wait(0.5)
@@ -1765,20 +1714,17 @@ end)
 
 local AGG = { "aggress", "aggro", "anger", "angry", "agitat", "rage", "hostil", "fury", "wrath" }
 local Creaks = setmetatable({}, { __mode = "k" })
-
 local function IsCreak(d)
     if not d:IsA("Model") then return false end
     local n = d.Name:lower()
     return #n < 30 and n:find("creak", 1, true) ~= nil
 end
-
 Workspace.DescendantAdded:Connect(function(d)
     if IsCreak(d) then
         Creaks[d] = true
         d.AncestryChanged:Connect(function(_, p) if not p then Creaks[d] = nil end end)
     end
 end)
-
 task.spawn(function()
     local n = 0
     for _, d in ipairs(Workspace:GetDescendants()) do
@@ -1787,12 +1733,10 @@ task.spawn(function()
         if n % 500 == 0 then task.wait() end
     end
 end)
-
 local function ToPercent(v)
     if v >= 0 and v <= 1 then v = v * 100 end
     return math.floor(v + 0.5)
 end
-
 local function ReadAggro(m)
     local animator = m:FindFirstChildWhichIsA("Animator", true)
     if animator then
@@ -1987,7 +1931,7 @@ task.spawn(function()
                                 if n:find("door", 1, true) and not n:find("fake", 1, true) and Cfg.ESPDoors then
                                     seenExtra[d] = true
                                     local num = tonumber(room.Name)
-                                    local esp = CreateESP(d, "门 " .. (num and (num + 1) or "?"), Color3.fromHex("#00eaff"), Cfg.ESPRange)
+                                    local esp = CreateESP(d, "门 " .. (num and (num + 1) or "?"), COLORS.doors, Cfg.ESPRange)
                                     if esp then Tracked[d] = esp end
                                 end
                             end
@@ -1999,10 +1943,467 @@ task.spawn(function()
     end
 end)
 
+-- ================= 速通计时器（新）=================
+local HttpSvc = game:GetService("HttpService")
+local PB_FILE = "RON_Speedrun.json"
+local PB = {}
+pcall(function()
+    if isfile and isfile(PB_FILE) then PB = HttpSvc:JSONDecode(readfile(PB_FILE)) end
+end)
+local function SavePB()
+    pcall(function() if writefile then writefile(PB_FILE, HttpSvc:JSONEncode(PB)) end end)
+end
+
+local TT = { state = "ready", acc = 0, t0 = 0, list = {}, highest = 0, delta = nil, newPB = false }
+local function Elapsed() return TT.state == "running" and (TT.acc + os.clock() - TT.t0) or TT.acc end
+local function CurRoom() return tonumber(LocalPlayer:GetAttribute("CurrentRoom")) or 0 end
+local function FloorName()
+    local gd = RS:FindFirstChild("GameData")
+    local f = gd and gd:FindFirstChild("Floor")
+    local v = f and tostring(f.Value) or ""
+    return v ~= "" and v or "Lobby"
+end
+local function Fmt(t)
+    if t < 0 then t = 0 end
+    local ms = math.floor((t % 1) * 1000)
+    local total = math.floor(t)
+    local s = total % 60
+    local m = math.floor(total / 60) % 60
+    local h = math.floor(total / 3600)
+    local main = h > 0 and string.format("%d:%02d:%02d", h, m, s) or string.format("%02d:%02d", m, s)
+    return main, string.format(".%03d", ms)
+end
+local function FmtFull(t) local a, b = Fmt(t) return a .. b end
+local function FmtDelta(d)
+    local sign = d < 0 and "-" or "+"
+    d = math.abs(d)
+    if d >= 60 then return sign .. string.format("%d:%04.1f", math.floor(d / 60), d % 60) end
+    return sign .. string.format("%.2f", d)
+end
+
+local C = {
+    ready = Color3.fromRGB(170,170,180), run = Color3.fromRGB(80,255,120),
+    behind = Color3.fromRGB(255,90,90), pause = Color3.fromRGB(255,210,80),
+    done = Color3.fromRGB(110,175,255), gold = Color3.fromRGB(255,215,0),
+    dim = Color3.fromRGB(150,150,160), text = Color3.fromRGB(230,230,235),
+}
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "RON_Timer"
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.DisplayOrder = 60
+pcall(function() gui.Parent = (gethui and gethui()) or game:GetService("CoreGui") end)
+if not gui.Parent then gui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
+
+local W = 230
+local function S(n) return math.max(1, math.floor(n * (Cfg.TimerScale or 100) / 100 + 0.5)) end
+local function Label(parent, name)
+    local l = Instance.new("TextLabel")
+    l.Name = name
+    l.BackgroundTransparency = 1
+    l.TextColor3 = C.text
+    l.Font = Enum.Font.GothamBold
+    l.TextStrokeTransparency = 0.6
+    l.Parent = parent
+    return l
+end
+
+local panel = Instance.new("Frame")
+panel.Name = "Panel"
+panel.BackgroundColor3 = Color3.fromRGB(16,16,20)
+panel.BorderSizePixel = 0
+panel.AutomaticSize = Enum.AutomaticSize.Y
+panel.Parent = gui
+local corner = Instance.new("UICorner", panel)
+local stroke = Instance.new("UIStroke", panel)
+stroke.Color = Color3.fromRGB(70,70,82)
+stroke.Thickness = 1
+local pad = Instance.new("UIPadding", panel)
+local list = Instance.new("UIListLayout", panel)
+list.SortOrder = Enum.SortOrder.LayoutOrder
+
+local header = Instance.new("Frame")
+header.Name = "Header"
+header.BackgroundTransparency = 1
+header.LayoutOrder = 1
+header.Parent = panel
+local title = Label(header, "Title")
+title.Text = "RON SPEEDRUN"
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.TextColor3 = C.dim
+title.Size = UDim2.fromScale(0.6, 1)
+local info = Label(header, "Info")
+info.Font = Enum.Font.Gotham
+info.TextXAlignment = Enum.TextXAlignment.Right
+info.TextColor3 = C.dim
+info.Position = UDim2.fromScale(0.5, 0)
+info.Size = UDim2.fromScale(0.5, 1)
+
+local splitsFrame = Instance.new("Frame")
+splitsFrame.Name = "Splits"
+splitsFrame.BackgroundTransparency = 1
+splitsFrame.AutomaticSize = Enum.AutomaticSize.Y
+splitsFrame.LayoutOrder = 2
+splitsFrame.Parent = panel
+local sl = Instance.new("UIListLayout", splitsFrame)
+sl.SortOrder = Enum.SortOrder.LayoutOrder
+
+local rows = {}
+for i = 1, 5 do
+    local f = Instance.new("Frame")
+    f.BackgroundTransparency = 1
+    f.LayoutOrder = i
+    f.Visible = false
+    f.Parent = splitsFrame
+    local n = Label(f, "N") n.TextXAlignment = Enum.TextXAlignment.Left n.Size = UDim2.fromScale(0.34, 1) n.TextColor3 = C.dim
+    local d = Label(f, "D") d.Font = Enum.Font.RobotoMono d.TextXAlignment = Enum.TextXAlignment.Right d.Position = UDim2.fromScale(0.34, 0) d.Size = UDim2.fromScale(0.28, 1)
+    local t = Label(f, "T") t.Font = Enum.Font.RobotoMono t.TextXAlignment = Enum.TextXAlignment.Right t.Position = UDim2.fromScale(0.62, 0) t.Size = UDim2.fromScale(0.38, 1)
+    rows[i] = { f = f, n = n, d = d, t = t }
+end
+
+local timerFrame = Instance.new("Frame")
+timerFrame.Name = "TimerFrame"
+timerFrame.BackgroundTransparency = 1
+timerFrame.LayoutOrder = 3
+timerFrame.Parent = panel
+local big = Label(timerFrame, "Big")
+big.Font = Enum.Font.RobotoMono
+big.RichText = true
+big.TextXAlignment = Enum.TextXAlignment.Right
+big.Size = UDim2.fromScale(1, 1)
+
+local sub = Instance.new("Frame")
+sub.Name = "Sub"
+sub.BackgroundTransparency = 1
+sub.LayoutOrder = 4
+sub.Parent = panel
+local pbLabel = Label(sub, "PB") pbLabel.Font = Enum.Font.RobotoMono pbLabel.TextXAlignment = Enum.TextXAlignment.Left pbLabel.TextColor3 = C.dim pbLabel.Size = UDim2.fromScale(0.6, 1)
+local deltaLabel = Label(sub, "Delta") deltaLabel.Font = Enum.Font.RobotoMono deltaLabel.TextXAlignment = Enum.TextXAlignment.Right deltaLabel.Position = UDim2.fromScale(0.5, 0) deltaLabel.Size = UDim2.fromScale(0.5, 1)
+
+local btnFrame = Instance.new("Frame")
+btnFrame.Name = "Buttons"
+btnFrame.BackgroundTransparency = 1
+btnFrame.LayoutOrder = 5
+btnFrame.Parent = panel
+local bl = Instance.new("UIListLayout", btnFrame)
+bl.FillDirection = Enum.FillDirection.Horizontal
+bl.SortOrder = Enum.SortOrder.LayoutOrder
+
+local function Button(text, order)
+    local b = Instance.new("TextButton")
+    b.LayoutOrder = order
+    b.Text = text
+    b.Font = Enum.Font.GothamBold
+    b.AutoButtonColor = true
+    b.BackgroundColor3 = Color3.fromRGB(38,38,46)
+    b.TextColor3 = C.text
+    b.BorderSizePixel = 0
+    b.Parent = btnFrame
+    Instance.new("UICorner", b)
+    return b
+end
+local btnMain = Button("Start", 1)
+local btnStop = Button("Stop", 2)
+local btnReset = Button("Reset", 3)
+
+local PRESETS = {
+    ["Top Left"] = { Vector2.new(0,0), UDim2.new(0,12,0,64) },
+    ["Top Center"] = { Vector2.new(0.5,0), UDim2.new(0.5,0,0,64) },
+    ["Top Right"] = { Vector2.new(1,0), UDim2.new(1,-12,0,64) },
+    ["Middle Left"] = { Vector2.new(0,0.5), UDim2.new(0,12,0.5,0) },
+    ["Middle Right"] = { Vector2.new(1,0.5), UDim2.new(1,-12,0.5,0) },
+    ["Bottom Left"] = { Vector2.new(0,1), UDim2.new(0,12,1,-16) },
+    ["Bottom Center"] = { Vector2.new(0.5,1), UDim2.new(0.5,0,1,-16) },
+    ["Bottom Right"] = { Vector2.new(1,1), UDim2.new(1,-12,1,-16) },
+}
+local PRESET_NAMES = { "Top Left","Top Center","Top Right","Middle Left","Middle Right","Bottom Left","Bottom Center","Bottom Right" }
+
+local function Place(name)
+    local p = PRESETS[name]
+    if not p then return end
+    panel.AnchorPoint, panel.Position = p[1], p[2]
+end
+
+local RenderAll
+local function Layout()
+    local inner = S(W) - S(12)
+    panel.Size = UDim2.fromOffset(S(W), 0)
+    corner.CornerRadius = UDim.new(0, S(6))
+    pad.PaddingTop, pad.PaddingBottom = UDim.new(0,S(5)), UDim.new(0,S(6))
+    pad.PaddingLeft, pad.PaddingRight = UDim.new(0,S(6)), UDim.new(0,S(6))
+    list.Padding = UDim.new(0, S(2))
+    panel.BackgroundTransparency = 1 - (Cfg.TimerOpacity or 80) / 100
+    stroke.Transparency = math.clamp(panel.BackgroundTransparency + 0.2, 0, 1)
+    header.Size = UDim2.fromOffset(inner, S(16))
+    title.TextSize, info.TextSize = S(10), S(10)
+    splitsFrame.Size = UDim2.fromOffset(inner, 0)
+    splitsFrame.Visible = Cfg.TimerSplits
+    for _, r in ipairs(rows) do
+        r.f.Size = UDim2.fromOffset(inner, S(16))
+        r.n.TextSize, r.d.TextSize, r.t.TextSize = S(11), S(11), S(11)
+    end
+    timerFrame.Size = UDim2.fromOffset(inner, S(46))
+    big.TextSize = S(38)
+    sub.Size = UDim2.fromOffset(inner, S(16))
+    pbLabel.TextSize, deltaLabel.TextSize = S(11), S(11)
+    btnFrame.Visible = Cfg.TimerButtons
+    btnFrame.Size = UDim2.fromOffset(inner, S(26))
+    bl.Padding = UDim.new(0, S(4))
+    for _, b in ipairs({ btnMain, btnStop, btnReset }) do
+        b.Size = UDim2.new(1/3, -S(3), 1, 0)
+        b.TextSize = S(11)
+    end
+    gui.Enabled = Cfg.TimerShow
+    if RenderAll then RenderAll() end
+end
+
+local lastBig = ""
+local function Colour()
+    if TT.state == "ready" then return C.ready end
+    if TT.state == "paused" then return C.pause end
+    if TT.state == "finished" then return TT.newPB and C.gold or C.done end
+    if TT.delta and TT.delta > 0 then return C.behind end
+    return C.run
+end
+local function DrawBig()
+    local main, ms = Fmt(Elapsed())
+    local txt = string.format('%s<font size="%d">%s</font>', main, S(22), ms)
+    if txt ~= lastBig then lastBig = txt big.Text = txt end
+    big.TextColor3 = Colour()
+end
+local function DrawInfo()
+    local fl = FloorName()
+    info.Text = fl .. "  -  Room " .. CurRoom()
+    local pb = PB[fl]
+    pbLabel.Text = pb and ("PB " .. FmtFull(pb.pb)) or "PB --:--.---"
+    if TT.delta then
+        deltaLabel.Text = FmtDelta(TT.delta)
+        deltaLabel.TextColor3 = TT.delta > 0 and C.behind or C.run
+    else
+        deltaLabel.Text = ""
+    end
+    local labels = { ready = "Start", running = "Pause", paused = "Resume", finished = "Restart" }
+    btnMain.Text = labels[TT.state]
+end
+local function DrawSplits()
+    local n = #TT.list
+    local first = math.max(1, n - 4)
+    for i = 1, 5 do
+        local rec, r = TT.list[first + i - 1], rows[i]
+        if rec then
+            r.f.Visible = true
+            r.n.Text = "Room " .. rec.room
+            r.t.Text = FmtFull(rec.t)
+            if rec.delta then
+                r.d.Text = FmtDelta(rec.delta)
+                r.d.TextColor3 = rec.delta > 0 and C.behind or C.run
+            else
+                r.d.Text = "-" r.d.TextColor3 = C.dim
+            end
+        else
+            r.f.Visible = false
+        end
+    end
+end
+RenderAll = function() DrawBig() DrawInfo() DrawSplits() end
+
+local function Reset()
+    TT.state, TT.acc, TT.t0, TT.list, TT.highest, TT.delta, TT.newPB = "ready", 0, 0, {}, 0, nil, false
+    RenderAll()
+end
+local function Start()
+    if TT.state ~= "ready" then return end
+    TT.acc, TT.t0, TT.list, TT.highest, TT.delta, TT.newPB = 0, os.clock(), {}, CurRoom(), nil, false
+    TT.state = "running"
+    RenderAll()
+end
+local function Pause()
+    if TT.state ~= "running" then return end
+    TT.acc = Elapsed()
+    TT.state = "paused"
+    RenderAll()
+end
+local function Resume()
+    if TT.state ~= "paused" then return end
+    TT.t0 = os.clock()
+    TT.state = "running"
+    RenderAll()
+end
+local function Finish()
+    if TT.state ~= "running" and TT.state ~= "paused" then return end
+    TT.acc = Elapsed()
+    TT.state = "finished"
+    local fl = FloorName()
+    if fl ~= "Lobby" and #TT.list >= 10 and (not PB[fl] or TT.acc < PB[fl].pb) then
+        local splits = {}
+        for _, rec in ipairs(TT.list) do splits[tostring(rec.room)] = rec.t end
+        PB[fl] = { pb = TT.acc, splits = splits }
+        SavePB()
+        TT.newPB = true
+        pcall(function() Library:Notify("新 PB！", FmtFull(TT.acc) .. "  -  " .. fl, 5) end)
+    else
+        pcall(function() Library:Notify("速通结束", FmtFull(TT.acc), 4) end)
+    end
+    RenderAll()
+end
+local function Toggle()
+    if TT.state == "ready" then Start()
+    elseif TT.state == "running" then Pause()
+    elseif TT.state == "paused" then Resume()
+    else Reset() Start() end
+end
+
+btnMain.Activated:Connect(Toggle)
+btnStop.Activated:Connect(Finish)
+btnReset.Activated:Connect(Reset)
+
+LocalPlayer:GetAttributeChangedSignal("CurrentRoom"):Connect(function()
+    local room = CurRoom()
+    if TT.state == "running" and Cfg.TimerAutoSplit and room > TT.highest then
+        TT.highest = room
+        local t = Elapsed()
+        local pb = PB[FloorName()]
+        local ref = pb and pb.splits and pb.splits[tostring(room)]
+        local delta = ref and (t - ref) or nil
+        TT.list[#TT.list + 1] = { room = room, t = t, delta = delta }
+        TT.delta = delta or TT.delta
+        if Cfg.TimerStopRoom and Cfg.TimerStopRoom > 0 and room >= Cfg.TimerStopRoom then
+            Finish() return
+        end
+    end
+    RenderAll()
+end)
+
+local START_KEYS = { W=true,A=true,S=true,D=true,Up=true,Down=true,Left=true,Right=true,Space=true,LeftControl=true,C=true,ButtonA=true,ButtonB=true }
+local function AutoStart()
+    if Cfg.TimerAutoStart and TT.state == "ready" then Start() end
+end
+UIS.InputBegan:Connect(function(input)
+    if UIS:GetFocusedTextBox() then return end
+    local name = input.KeyCode.Name
+    if name == "K" then Toggle() return end
+    if name == "O" then Finish() return end
+    if name == "L" then Reset() return end
+    if START_KEYS[name] then AutoStart() end
+end)
+UIS.InputChanged:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.Thumbstick1 and input.Position.Magnitude > 0.25 then AutoStart() end
+end)
+
+local FINAL_ROOM = { Hotel = 100, Mines = 200 }
+local END_WORDS = { "ending","finale","final","credits","outro","escape","tobecontinued","theend","gameend" }
+local function Cmp(s) return (tostring(s or ""):lower():gsub("[^%a]","")) end
+local function AutoFinish(reason)
+    if not Cfg.TimerAutoEnd then return end
+    if TT.state ~= "running" and TT.state ~= "paused" then return end
+    if Elapsed() < 20 then return end
+    Finish()
+end
+task.spawn(function()
+    local rf = RS:WaitForChild("RemotesFolder", 30) or RS:FindFirstChild("EntityInfo") or RS:FindFirstChild("Bricks")
+    local cs = rf and rf:WaitForChild("Cutscene", 20)
+    if not cs then return end
+    cs.OnClientEvent:Connect(function(name)
+        local fin = FINAL_ROOM[FloorName()]
+        if fin and CurRoom() >= fin then AutoFinish("final cutscene") return end
+        local c = Cmp(name)
+        for _, w in ipairs(END_WORDS) do
+            if c:find(w, 1, true) then AutoFinish("end cutscene") return end
+        end
+    end)
+end)
+pcall(function()
+    LocalPlayer.OnTeleport:Connect(function(state)
+        if state == Enum.TeleportState.Started or state == Enum.TeleportState.InProgress then
+            AutoFinish("leaving the run")
+        end
+    end)
+end)
+task.spawn(function()
+    local deadSince
+    while true do
+        task.wait(0.5)
+        if TT.state == "running" or TT.state == "paused" then
+            if Cfg.TimerStopOnDeath and LocalPlayer:GetAttribute("Alive") == false then
+                deadSince = deadSince or os.clock()
+                if os.clock() - deadSince > 3 then deadSince = nil AutoFinish("death") end
+            else
+                deadSince = nil
+            end
+        else
+            deadSince = nil
+        end
+    end
+end)
+task.spawn(function()
+    local acc = 0
+    RunService.RenderStepped:Connect(function(dt)
+        if TT.state ~= "running" or not Cfg.TimerShow then return end
+        acc = acc + dt
+        if acc >= 1/30 then acc = 0 DrawBig() end
+    end)
+end)
+task.spawn(function()
+    while true do task.wait(1) if Cfg.TimerShow then pcall(DrawInfo) end end
+end)
+do
+    local dragging, dragStart, startPos
+    header.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = Vector2.new(i.Position.X, i.Position.Y)
+            local ap = panel.AbsolutePosition
+            panel.AnchorPoint = Vector2.zero
+            panel.Position = UDim2.fromOffset(ap.X, ap.Y)
+            startPos = Vector2.new(ap.X, ap.Y)
+            i.Changed:Connect(function()
+                if i.UserInputState == Enum.UserInputState.End then dragging = false end
+            end)
+        end
+    end)
+    UIS.InputChanged:Connect(function(i)
+        if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+            local d = Vector2.new(i.Position.X, i.Position.Y) - dragStart
+            local vp = gui.AbsoluteSize
+            local sz = panel.AbsoluteSize
+            panel.Position = UDim2.fromOffset(
+                math.clamp(startPos.X + d.X, 0, math.max(vp.X - sz.X, 0)),
+                math.clamp(startPos.Y + d.Y, 0, math.max(vp.Y - sz.Y, 0))
+            )
+        end
+    end)
+end
+Place(Cfg.TimerPosition)
+Layout()
+
+-- ================= 自杀 / 返回大厅 / 重新开始（新）=================
+local function GetRemotes()
+    return RS:FindFirstChild("RemotesFolder") or RS:FindFirstChild("EntityInfo") or RS:FindFirstChild("Bricks")
+end
+local function KillCharacter()
+    local char = GetChar()
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if hum then hum.Health = 0 return true end
+    return false
+end
+local function ReturnToLobby()
+    local rf = GetRemotes()
+    local r = rf and rf:FindFirstChild("Lobby")
+    if r then pcall(function() r:FireServer() end) return true end
+    return false
+end
+local function RestartRun()
+    local rf = GetRemotes()
+    local r = rf and rf:FindFirstChild("PlayAgain")
+    if r then pcall(function() r:FireServer() end) return true end
+    return false
+end
+
 -- ================= Obsidian UI =================
 local Window = Library:CreateWindow({
     Title = "RON-Full",
-    Footer = "Obsidian UI | DOORS 完整版",
+    Footer = "Obsidian UI | DOORS 完整版（整合）",
     ToggleKeybind = Enum.KeyCode.RightShift,
     ShowCustomCursor = false,
     Center = true,
@@ -2020,101 +2421,81 @@ local T = {
     Misc = Window:AddTab("杂项", "settings"),
 }
 
--- ===== 透视页 =====
-local vb = T.Visuals:AddLeftGroupbox("ESP · 基础")
-vb:AddToggle("espDoors", { Text = "门", Default = false, Callback = function(v) Cfg.ESPDoors = v end })
-vb:AddToggle("espDupe", { Text = "假门", Default = false, Callback = function(v) Cfg.ESPDupe = v end })
-vb:AddToggle("espStairs", { Text = "楼梯/梯子", Default = false, Callback = function(v) Cfg.ESPStairs = v end })
-vb:AddToggle("espGold", { Text = "金堆", Default = false, Callback = function(v) Cfg.ESPGold = v end })
-vb:AddToggle("espKeys", { Text = "钥匙/保险丝", Default = false, Callback = function(v) Cfg.ESPKeys = v end })
-vb:AddToggle("espObjectives", { Text = "目标任务", Default = false, Callback = function(v) Cfg.ESPObjectives = v end })
-vb:AddToggle("espExit", { Text = "紧急出口", Default = false, Callback = function(v) Cfg.ESPExit = v end })
-vb:AddToggle("espCart", { Text = "购物车", Default = false, Callback = function(v) Cfg.ESPCart = v end })
+-- ===== 透视页（新）=====
+local vLeft = T.Visuals:AddLeftGroupbox("导航")
+vLeft:AddToggle("espDoors", { Text = "门", Default = false, Callback = function(v) Cfg.ESPDoors = v end })
+vLeft:AddToggle("espDupe", { Text = "假门 (Dupe)", Default = false, Callback = function(v) Cfg.ESPDupe = v end })
+vLeft:AddToggle("espStairs", { Text = "楼梯 / 梯子", Default = false, Callback = function(v) Cfg.ESPStairs = v end })
+vLeft:AddToggle("espExit", { Text = "紧急出口", Default = false, Callback = function(v) Cfg.ESPExit = v end })
+vLeft:AddToggle("espCart", { Text = "购物车", Default = false, Callback = function(v) Cfg.ESPCart = v end })
 
-local vb2 = T.Visuals:AddRightGroupbox("ESP · 容器")
-vb2:AddToggle("espChests", { Text = "箱子", Default = false, Callback = function(v) Cfg.ESPChests = v end })
-vb2:AddToggle("espDrawers", { Text = "抽屉", Default = false, Callback = function(v) Cfg.ESPDrawers = v end })
-vb2:AddToggle("espLockers", { Text = "储物柜", Default = false, Callback = function(v) Cfg.ESPLockers = v end })
-vb2:AddToggle("espWardrobes", { Text = "衣柜/藏身点", Default = false, Callback = function(v) Cfg.ESPWardrobes = v end })
+local vRight = T.Visuals:AddRightGroupbox("战利品")
+vRight:AddToggle("espGold", { Text = "金堆", Default = false, Callback = function(v) Cfg.ESPGold = v end })
+vRight:AddToggle("espKeys", { Text = "钥匙 / 保险丝", Default = false, Callback = function(v) Cfg.ESPKeys = v end })
+vRight:AddToggle("espChests", { Text = "箱子", Default = false, Callback = function(v) Cfg.ESPChests = v end })
+vRight:AddToggle("espDrawers", { Text = "抽屉", Default = false, Callback = function(v) Cfg.ESPDrawers = v end })
+vRight:AddToggle("espLockers", { Text = "储物柜", Default = false, Callback = function(v) Cfg.ESPLockers = v end })
+vRight:AddToggle("espItems", { Text = "物品", Default = false, Callback = function(v) Cfg.ESPItems = v end })
+vRight:AddToggle("espStardust", { Text = "星尘", Default = false, Callback = function(v) Cfg.ESPStardust = v end })
+vRight:AddToggle("espGlitch", { Text = "Glitch 碎片", Default = false, Callback = function(v) Cfg.ESPGlitch = v end })
+vRight:AddToggle("espScanner", { Text = "Scanner 模块", Default = false, Callback = function(v) Cfg.ESPScanner = v end })
+vRight:AddToggle("espLotus", { Text = "莲花花瓣", Default = false, Callback = function(v) Cfg.ESPLotus = v end })
 
-local vb3 = T.Visuals:AddLeftGroupbox("ESP · 物品")
-vb3:AddToggle("espItems", { Text = "物品（总开关）", Default = false, Callback = function(v) Cfg.ESPItems = v end })
-vb3:AddToggle("espStardust", { Text = "星尘", Default = false, Callback = function(v) Cfg.ESPStardust = v end })
-vb3:AddToggle("espGlitch", { Text = "Glitch 碎片", Default = false, Callback = function(v) Cfg.ESPGlitch = v end })
-vb3:AddToggle("espScanner", { Text = "Scanner 模块", Default = false, Callback = function(v) Cfg.ESPScanner = v end })
-vb3:AddToggle("espLotus", { Text = "莲花", Default = false, Callback = function(v) Cfg.ESPLotus = v end })
-vb3:AddToggle("espInteractables", { Text = "可交互物", Default = false, Callback = function(v) Cfg.ESPInteractables = v end })
+local v3 = T.Visuals:AddLeftGroupbox("藏身处 / 目标")
+v3:AddToggle("espWardrobes", { Text = "衣柜 / 藏身处", Default = false, Callback = function(v) Cfg.ESPWardrobes = v end })
+v3:AddToggle("espObjectives", { Text = "目标 / 机关", Default = false, Callback = function(v) Cfg.ESPObjectives = v end })
 
-local vb4 = T.Visuals:AddRightGroupbox("实体与玩家")
-vb4:AddToggle("espEntities", { Text = "实体（总开关）", Default = false, Callback = function(v) Cfg.ESPEntities = v end })
-vb4:AddToggle("espPlayers", { Text = "玩家", Default = false, Callback = function(v) Cfg.ESPPlayers = v end })
+local v3r = T.Visuals:AddRightGroupbox("实体 / 玩家 / 交互")
+v3r:AddToggle("espEntities", { Text = "实体", Default = false, Callback = function(v) Cfg.ESPEntities = v end })
+v3r:AddToggle("espPlayers", { Text = "玩家", Default = false, Callback = function(v) Cfg.ESPPlayers = v end })
+v3r:AddToggle("espInteractables", { Text = "可交互物", Default = false, Callback = function(v) Cfg.ESPInteractables = v end })
 
-local vItemFilter = T.Visuals:AddLeftGroupbox("物品勾选")
-local ItemDD = vItemFilter:AddDropdown("itemFilter", {
-    Text = "显示的物品",
-    Values = ITEM_NAMES,
-    Default = ITEM_NAMES,
-    Multi = true,
-    Callback = function(selected)
+local vSet = T.Visuals:AddLeftGroupbox("ESP 设置")
+vSet:AddSlider("espRange", { Text = "ESP 范围", Default = 400, Min = 50, Max = 2000, Rounding = 0, Callback = function(v) Cfg.ESPRange = v end })
+
+local vItem = T.Visuals:AddRightGroupbox("物品勾选")
+local ItemDD = vItem:AddDropdown("itemFilter", {
+    Text = "显示的物品", Values = ITEM_NAMES, Default = ITEM_NAMES, Multi = true,
+    Callback = function(sel)
         local map = {}
-        for _, n in ipairs(selected or {}) do map[n] = true end
+        for _, n in ipairs(sel or {}) do map[n] = true end
         Cfg.ItemFilter = map
     end,
 })
-vItemFilter:AddButton({
-    Text = "全选物品",
-    Func = function()
-        local map = {}
-        for _, n in ipairs(ITEM_NAMES) do map[n] = true end
-        Cfg.ItemFilter = map
-        pcall(function() ItemDD:SetValue(ITEM_NAMES) end)
-    end,
-})
-vItemFilter:AddButton({
-    Text = "全清物品",
-    Func = function()
-        Cfg.ItemFilter = {}
-        pcall(function() ItemDD:SetValue({}) end)
-    end,
-})
-vItemFilter:AddToggle("unlistedItems", {
-    Text = "显示未列出的物品",
-    Default = false,
-    Callback = function(v) Cfg.UnlistedItems = v end,
-})
+vItem:AddButton({ Text = "全选物品", Func = function()
+    local map = {}
+    for _, n in ipairs(ITEM_NAMES) do map[n] = true end
+    Cfg.ItemFilter = map
+    pcall(function() ItemDD:SetValue(ITEM_NAMES) end)
+end })
+vItem:AddButton({ Text = "全清物品", Func = function()
+    Cfg.ItemFilter = {}
+    pcall(function() ItemDD:SetValue({}) end)
+end })
+vItem:AddToggle("unlistedItems", { Text = "显示未列出的物品", Default = false, Callback = function(v) Cfg.UnlistedItems = v end })
 
-local vEntFilter = T.Visuals:AddRightGroupbox("实体勾选")
-local EntDD = vEntFilter:AddDropdown("entityFilter", {
-    Text = "显示的实体",
-    Values = ENTITY_LIST,
-    Default = ENTITY_LIST,
-    Multi = true,
-    Callback = function(selected)
+local vEntity = T.Visuals:AddLeftGroupbox("实体勾选")
+local EntityDD = vEntity:AddDropdown("entityFilter", {
+    Text = "显示的实体", Values = ENTITY_LIST, Default = ENTITY_LIST, Multi = true,
+    Callback = function(sel)
         local map = {}
-        for _, n in ipairs(selected or {}) do map[n] = true end
+        for _, n in ipairs(sel or {}) do map[n] = true end
         Cfg.EntityFilter = map
     end,
 })
-vEntFilter:AddButton({
-    Text = "全选实体",
-    Func = function()
-        local map = {}
-        for _, n in ipairs(ENTITY_LIST) do map[n] = true end
-        Cfg.EntityFilter = map
-        pcall(function() EntDD:SetValue(ENTITY_LIST) end)
-    end,
-})
-vEntFilter:AddButton({
-    Text = "全清实体",
-    Func = function()
-        Cfg.EntityFilter = {}
-        pcall(function() EntDD:SetValue({}) end)
-    end,
-})
+vEntity:AddButton({ Text = "全选实体", Func = function()
+    local map = {}
+    for _, n in ipairs(ENTITY_LIST) do map[n] = true end
+    Cfg.EntityFilter = map
+    pcall(function() EntityDD:SetValue(ENTITY_LIST) end)
+end })
+vEntity:AddButton({ Text = "全清实体", Func = function()
+    Cfg.EntityFilter = {}
+    pcall(function() EntityDD:SetValue({}) end)
+end })
+vEntity:AddToggle("unlistedEntities", { Text = "显示未列出的实体", Default = false, Callback = function(v) Cfg.UnlistedEntities = v end })
 
-local vRange = T.Visuals:AddLeftGroupbox("ESP 范围")
-vRange:AddSlider("espRange", { Text = "ESP 范围", Default = 400, Min = 50, Max = 2000, Rounding = 0, Callback = function(v) Cfg.ESPRange = v end })
-
+-- ===== 相机 / 光照（保留）=====
 local camLeft = T.Visuals:AddRightGroupbox("相机")
 camLeft:AddToggle("customFOV", { Text = "自定义 FOV", Default = false, Callback = function(v) Cfg.CustomFOV = v end })
 camLeft:AddSlider("fovValue", { Text = "视野大小", Default = 70, Min = 1, Max = 120, Rounding = 0, Callback = function(v) Cfg.FOVValue = v end })
@@ -2141,6 +2522,18 @@ pl:AddToggle("infJump", { Text = "无限跳", Default = false, Callback = functi
 pl:AddToggle("noclip", { Text = "Noclip", Default = false, Callback = function(v) Cfg.Noclip = v end })
 pl:AddToggle("flyOn", { Text = "飞行", Default = false, Callback = function(v) Cfg.FlyEnabled = v end })
 pl:AddSlider("flySpeed", { Text = "飞行速度", Default = 40, Min = 10, Max = 200, Rounding = 0, Callback = function(v) Cfg.FlySpeed = v end })
+pl:AddToggle("noAccel", { Text = "无加速", Default = false, Callback = function(v) Cfg.NoAcceleration = v end })
+
+local pm = T.Player:AddRightGroupbox("角色操作")
+pm:AddButton({ Text = "自杀", Func = function()
+    if KillCharacter() then Library:Notify("自杀", "已执行", 2) end
+end })
+pm:AddButton({ Text = "返回大厅", Func = function()
+    if ReturnToLobby() then Library:Notify("返回大厅", "已执行", 2) else Library:Notify("返回大厅", "Remote 未找到", 3) end
+end })
+pm:AddButton({ Text = "重新开始", Func = function()
+    if RestartRun() then Library:Notify("重新开始", "已执行", 2) else Library:Notify("重新开始", "Remote 未找到", 3) end
+end })
 
 -- ===== 自动化页 =====
 local al = T.Automation:AddLeftGroupbox("自动化")
@@ -2205,17 +2598,13 @@ an4:AddToggle("disableJumpscares", { Text = "禁用实体跳脸", Default = fals
 local fl = T.Floor:AddLeftGroupbox("楼层跳过")
 fl:AddToggle("floorSkip", { Text = "自动跳过楼层", Default = false, Callback = function(v) Cfg.FloorSkip = v end })
 fl:AddSlider("floorSkipDistance", { Text = "跳过距离", Default = 500, Min = 100, Max = 2000, Rounding = 0, Callback = function(v) Cfg.FloorSkipDistance = v end })
-
 local fl2 = T.Floor:AddRightGroupbox("楼层信息")
 fl2:AddButton({ Text = "显示当前楼层", Func = function()
     Library:Notify("楼层信息", "当前: " .. GetCurrentFloor() .. " | 房间: " .. GetLatestRoom(), 5)
 end })
 fl2:AddButton({ Text = "立即跳过当前楼层", Func = function()
-    if DoFloorSkip() then
-        Library:Notify("楼层功能", "已跳过当前楼层", 3)
-    else
-        Library:Notify("楼层功能", "无法跳过（有实体威胁或无门）", 3)
-    end
+    if DoFloorSkip() then Library:Notify("楼层功能", "已跳过当前楼层", 3)
+    else Library:Notify("楼层功能", "无法跳过（有实体威胁或无门）", 3) end
 end })
 fl2:AddButton({ Text = "传送到下一门", Func = function()
     local rooms = Workspace:FindFirstChild("CurrentRooms")
@@ -2238,23 +2627,19 @@ end })
 local ar1 = T.Archives:AddLeftGroupbox("Honcho 箱子")
 ar1:AddToggle("honchoESP", { Text = "箱子 ESP", Default = false, Callback = function(v) Cfg.HonchoESP = v end })
 ar1:AddToggle("honchoAutoDeposit", { Text = "自动存入", Default = false, Callback = function(v) Cfg.HonchoAutoDeposit = v end })
-
 local ar2 = T.Archives:AddRightGroupbox("FMN 异常")
 ar2:AddToggle("fmnESP", { Text = "异常 ESP", Default = false, Callback = function(v) Cfg.FMNAnomalyESP = v end })
 ar2:AddToggle("fmnNotify", { Text = "异常通知", Default = false, Callback = function(v) Cfg.FMNAnomalyNotify = v end })
-
 local ar3 = T.Archives:AddLeftGroupbox("Alma / Teller")
 ar3:AddToggle("autoAlma", { Text = "自动 Alma 小游戏", Default = false, Callback = function(v) Cfg.AutoAlmaMinigame = v end })
 ar3:AddToggle("tellerNumber", { Text = "Teller 显示号码", Default = false, Callback = function(v) Cfg.TellerNumber = v end })
 ar3:AddToggle("tellerNotify", { Text = "Teller 到号通知", Default = false, Callback = function(v) Cfg.TellerNotify = v end })
-
 local ar4 = T.Archives:AddRightGroupbox("绕过 / 免疫")
 ar4:AddToggle("bypassDrones", { Text = "绕过 Drones", Default = false, Callback = function(v) Cfg.BypassDrones = v end })
 ar4:AddToggle("bypassAlma", { Text = "绕过 Alma", Default = false, Callback = function(v) Cfg.BypassAlma = v end })
 ar4:AddToggle("noScribblesDamage", { Text = "无 Scribbles 伤害", Default = false, Callback = function(v) Cfg.NoScribblesDamage = v end })
 ar4:AddToggle("antiRansom", { Text = "Anti Ransom", Default = false, Callback = function(v) Cfg.AntiRansom = v end })
 ar4:AddToggle("bypassWater", { Text = "绕过水（生成平台）", Default = false, Callback = function(v) Cfg.BypassWater = v end })
-
 local ar5 = T.Archives:AddLeftGroupbox("时钟")
 ar5:AddToggle("timeShower", { Text = "显示时间", Default = false, Callback = function(v) Cfg.TimeShower = v end })
 ar5:AddToggle("stopTimeStampede", { Text = "停止时间踩踏", Default = false, Callback = function(v) Cfg.StopTimeStampede = v end })
@@ -2265,32 +2650,42 @@ sw1:AddToggle("meldStopGrowth", { Text = "Meld 阻止生长", Default = false, C
 sw1:AddToggle("meldRemove", { Text = "Meld 移除", Default = false, Callback = function(v) Cfg.MeldRemove = v end })
 sw1:AddToggle("crusherOff", { Text = "关闭 Crusher", Default = false, Callback = function(v) Cfg.CrusherOff = v end })
 sw1:AddToggle("crusherDelete", { Text = "删除 Crusher", Default = false, Callback = function(v) Cfg.CrusherDelete = v end })
-
 local sw2 = T.Stairwell:AddRightGroupbox("噪音 / 电视")
 sw2:AddToggle("noiseTVBreaker", { Text = "TV 破坏", Default = false, Callback = function(v) Cfg.NoiseTVBreaker = v end })
 sw2:AddToggle("antiNoise", { Text = "Anti Noise", Default = false, Callback = function(v) Cfg.AntiNoise = v end })
-
 local sw3 = T.Stairwell:AddLeftGroupbox("Creak")
 sw3:AddToggle("creakText", { Text = "显示攻击性", Default = false, Callback = function(v) Cfg.CreakText = v end })
 sw3:AddSlider("creakRange", { Text = "侦测范围", Default = 60, Min = 10, Max = 200, Rounding = 0, Callback = function(v) Cfg.CreakRange = v end })
 sw3:AddToggle("cartsOnCreak", { Text = "购物车跟随 Creak", Default = false, Callback = function(v) Cfg.CartsOnCreak = v end })
-
 local sw4 = T.Stairwell:AddRightGroupbox("掉落物")
 sw4:AddToggle("dropCounter", { Text = "掉落物计数", Default = false, Callback = function(v) Cfg.DropCounter = v end })
 sw4:AddToggle("dropOrbit", { Text = "掉落物环绕", Default = false, Callback = function(v) Cfg.DropOrbit = v end })
 sw4:AddSlider("orbitHeight", { Text = "环绕高度", Default = 2, Min = 0, Max = 10, Rounding = 1, Callback = function(v) Cfg.OrbitHeight = v end })
 sw4:AddSlider("orbitDistance", { Text = "环绕距离", Default = 5, Min = 1, Max = 20, Rounding = 1, Callback = function(v) Cfg.OrbitDistance = v end })
 sw4:AddSlider("orbitSpeed", { Text = "环绕速度", Default = 2, Min = 0.5, Max = 10, Rounding = 1, Callback = function(v) Cfg.OrbitSpeed = v end })
-
 local sw5 = T.Stairwell:AddLeftGroupbox("额外")
 sw5:AddToggle("stairwellExtraESP", { Text = "楼梯间额外门 ESP", Default = false, Callback = function(v) Cfg.StairwellExtraESP = v end })
 
--- ===== 杂项页 =====
-local mib = T.Misc:AddRightGroupbox("操作")
-mib:AddButton({ Text = "重置角色", Func = function()
-    local hum = GetHum()
-    if hum then hum.Health = 0 end
+-- ===== 杂项页（速通计时器）=====
+local tmLeft = T.Misc:AddLeftGroupbox("速通计时器")
+tmLeft:AddToggle("timerShow", { Text = "显示计时器", Default = false, Callback = function(v) Cfg.TimerShow = v Layout() end })
+tmLeft:AddButton({ Text = "开始 / 暂停 / 恢复", Func = Toggle })
+tmLeft:AddButton({ Text = "停止（完成）", Func = Finish })
+tmLeft:AddButton({ Text = "重置", Func = Reset })
+local tmRight = T.Misc:AddRightGroupbox("计时器设置")
+tmRight:AddDropdown("timerPosition", { Text = "位置", Values = PRESET_NAMES, Default = Cfg.TimerPosition, Callback = function(v)
+    if type(v) == "table" then v = v[1] end
+    if v then Cfg.TimerPosition = v Place(v) end
 end })
+tmRight:AddSlider("timerScale", { Text = "大小 (%)", Default = 100, Min = 50, Max = 150, Rounding = 0, Callback = function(v) Cfg.TimerScale = v Layout() end })
+tmRight:AddSlider("timerOpacity", { Text = "背景不透明度 (%)", Default = 80, Min = 0, Max = 100, Rounding = 0, Callback = function(v) Cfg.TimerOpacity = v Layout() end })
+tmRight:AddToggle("timerSplits", { Text = "显示分段", Default = true, Callback = function(v) Cfg.TimerSplits = v Layout() end })
+tmRight:AddToggle("timerButtons", { Text = "显示按钮", Default = true, Callback = function(v) Cfg.TimerButtons = v Layout() end })
+tmRight:AddToggle("timerAutoStart", { Text = "自动开始（首次移动）", Default = false, Callback = function(v) Cfg.TimerAutoStart = v end })
+tmRight:AddToggle("timerAutoSplit", { Text = "自动分房间", Default = false, Callback = function(v) Cfg.TimerAutoSplit = v end })
+tmRight:AddToggle("timerAutoEnd", { Text = "自动结束", Default = false, Callback = function(v) Cfg.TimerAutoEnd = v end })
+tmRight:AddToggle("timerStopOnDeath", { Text = "死亡停止", Default = true, Callback = function(v) Cfg.TimerStopOnDeath = v end })
+tmRight:AddSlider("timerStopRoom", { Text = "到达指定房间停止 (0=关)", Default = 0, Min = 0, Max = 300, Rounding = 0, Callback = function(v) Cfg.TimerStopRoom = v end })
 
 -- ================= 主题/保存 =================
 ThemeManager:SetLibrary(Library)
@@ -2316,7 +2711,8 @@ Library:OnUnload(function()
     if Cfg.DisableIdleKick then ApplyIdleKick(false) end
     for _, v in ipairs(ESPFolder:GetChildren()) do v:Destroy() end
     if tracerGui then tracerGui:Destroy() end
+    if gui then gui:Destroy() end
     for name in pairs(fakeRemotes) do RestoreRemote(name) end
 end)
 
-Library:Notify("RON-Full", "完整版已加载 | 9 个 Tab | 新增实体追踪线（屏幕下方）", 5)
+Library:Notify("RON-Full", "整合版已加载 | 透视(新) + 速通计时器(新) + 自杀/大厅/重开(新) + 无加速(新)", 5)
