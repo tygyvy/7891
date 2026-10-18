@@ -1,5 +1,4 @@
--- 7891
--- 7891
+-- G&B Toolkit | 完整版 | 杀戮光环已改回原样 | SkinHUB + Pluton Lite
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -12,16 +11,14 @@ local Debris = game:GetService("Debris")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- ===== Obsidian UI =====
 local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
 local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
 local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
-
 local Options = Library.Options
 Library.ForceCheckbox = false
 
--- ===== MSESP 透视库（SkinHUB 原样）=====
+-- ===== MSESP =====
 local lib4 = nil
 pcall(function()
     lib4 = loadstring(game:HttpGet("https://raw.githubusercontent.com/mstudio45/MSESP/refs/heads/main/source.luau"))()
@@ -44,11 +41,9 @@ end
 tbl.destroyESP = function(arg)
     if arg ~= nil then pcall(function() arg:Destroy() end) end
 end
-tbl.notify = function(arg, arg2)
-    Library:Notify(arg, arg2 or 2)
-end
+tbl.notify = function(arg, arg2) Library:Notify(arg, arg2 or 2) end
 
--- ===== SkinHUB 原样工具函数 =====
+-- ===== 工具 =====
 local fn2 = function(arg, ...)
     local tbl4 = { ... }
     for i = 1, #tbl4 do
@@ -58,7 +53,6 @@ local fn2 = function(arg, ...)
     end
     return arg
 end
-
 local v4 = Players
 local v5 = RunService
 local v6 = UserInputService
@@ -79,51 +73,33 @@ tbl.GUN_NAME_SET = {
     ["Needle Gun"] = true, Shotgun = true, ["Bolt Rifle"] = true, ["Officer Pistol"] = true,
     ["Heavy Pistol"] = true, ["Light Dragoon Pistol"] = true,
 }
-
-tbl.WEAPON_SPEED_MAP = {
-    Musket = 1650, Rifle = 1800, ["Baker Rifle"] = 1750, ["Jäger Rifle"] = 1750,
-    ["Ferguson Rifle"] = 1700, Carbine = 1550, Musketoon = 1500, ["Air Rifle"] = 1300,
-    ["Needle Gun"] = 1600, ["Bolt Rifle"] = 1700, Pistol = 900, ["Flintlock Pistol"] = 880,
-    ["Navy Pistol"] = 920, ["Brass Pistol"] = 890, ["Officer Pistol"] = 950,
-    ["Heavy Pistol"] = 900, ["Light Dragoon Pistol"] = 910, ["Horse Artillery Pistol"] = 930,
-    ["Double Barrel Pistol"] = 900, Colt = 950, ["Duckfoot Pistol"] = 850,
-    ["Howdah Pistol"] = 880, Blunderbuss = 650, ["Old Blunderbuss"] = 630,
-    ["Nock Gun"] = 680, Shotgun = 620,
-}
-
 tbl.sharedIsGun = function(arg)
     if not arg or not arg:IsA("Tool") then return false end
     local animations = arg:FindFirstChild("Animations")
     if not animations then return false end
     return animations:FindFirstChild("Aim") ~= nil or animations:FindFirstChild("Aiming") ~= nil
 end
-
 tbl.sharedGetShotsLoaded = function(arg)
     if not arg then return 0 end
     local shotsLoaded = arg:FindFirstChild("ShotsLoaded")
-    if shotsLoaded and (shotsLoaded:IsA("IntValue") or shotsLoaded:IsA("NumberValue")) then
-        return shotsLoaded.Value
-    end
+    if shotsLoaded and (shotsLoaded:IsA("IntValue") or shotsLoaded:IsA("NumberValue")) then return shotsLoaded.Value end
     local players = workspace:FindFirstChild("Players")
     if players then
         local v14 = players:FindFirstChild(localPlayer.Name)
         if v14 then
             local v15 = v14:FindFirstChild(arg.Name)
             if v15 then
-                local shotsLoaded2 = v15:FindFirstChild("ShotsLoaded")
-                if shotsLoaded2 and (shotsLoaded2:IsA("IntValue") or shotsLoaded2:IsA("NumberValue")) then
-                    return shotsLoaded2.Value
-                end
+                local sl2 = v15:FindFirstChild("ShotsLoaded")
+                if sl2 and (sl2:IsA("IntValue") or sl2:IsA("NumberValue")) then return sl2.Value end
             end
         end
     end
     return 0
 end
-
 tbl.sharedGetRemote = function(arg)
     if not arg then return nil end
-    local remoteEvent = arg:FindFirstChild("RemoteEvent")
-    if remoteEvent then return remoteEvent end
+    local r = arg:FindFirstChild("RemoteEvent")
+    if r then return r end
     local players = workspace:FindFirstChild("Players")
     if players then
         local v14 = players:FindFirstChild(localPlayer.Name)
@@ -134,38 +110,18 @@ tbl.sharedGetRemote = function(arg)
     end
     return nil
 end
-
-tbl.getHeldToolRemote = function()
-    local character = localPlayer.Character
-    if not character then return nil, nil end
-    for _, v14 in character:GetChildren() do
-        if v14:IsA("Tool") then
-            local remoteEvent = v14:FindFirstChild("RemoteEvent")
-            if remoteEvent then return remoteEvent, v14 end
-        end
-    end
-    return nil, nil
-end
-
 tbl._charAddedHandlers = {}
 localPlayer.CharacterAdded:Connect(function(character)
-    local charAddedHandlers = tbl._charAddedHandlers
-    for i = 1, #charAddedHandlers do
-        local v14 = charAddedHandlers[i]
-        if v14 then
-            local ok, result = pcall(v14, character)
-            if not ok then warn("[SkinHub] CharacterAdded handler error: " .. tostring(result)) end
-        end
+    for i = 1, #tbl._charAddedHandlers do
+        local v14 = tbl._charAddedHandlers[i]
+        if v14 then pcall(v14, character) end
     end
 end)
 tbl.onCharacterAdded = function(arg)
     table.insert(tbl._charAddedHandlers, arg)
     return function()
         for i = #tbl._charAddedHandlers, 1, -1 do
-            if tbl._charAddedHandlers[i] == arg then
-                table.remove(tbl._charAddedHandlers, i)
-                break
-            end
+            if tbl._charAddedHandlers[i] == arg then table.remove(tbl._charAddedHandlers, i) break end
         end
     end
 end
@@ -176,7 +132,6 @@ tbl.officer.autoReload = { enabled = false, monitoredTools = {}, notifyCooldown 
 tbl.officer.autoReload.isGun = tbl.sharedIsGun
 tbl.officer.autoReload.getShotsLoaded = tbl.sharedGetShotsLoaded
 tbl.officer.autoReload.getRemote = tbl.sharedGetRemote
-
 tbl.officer.autoReload.tryReload = function(arg)
     if not tbl.officer.autoReload.enabled then return end
     if not arg or not arg.Parent then return end
@@ -186,33 +141,32 @@ tbl.officer.autoReload.tryReload = function(arg)
         if v21 then pcall(function() v21:FireServer("Reload") end) end
     end
 end
-
 tbl.officer.autoReload.watchTool = function(arg)
     if not arg or not tbl.officer.autoReload.isGun(arg) then return end
     if tbl.officer.autoReload.monitoredTools[arg] then return end
-    local shotsLoaded = arg:FindFirstChild("ShotsLoaded")
-    local flag = not shotsLoaded
-    if not flag then flag = not (shotsLoaded:IsA("IntValue") or shotsLoaded:IsA("NumberValue")) end
+    local sl = arg:FindFirstChild("ShotsLoaded")
+    local flag = not sl
+    if not flag then flag = not (sl:IsA("IntValue") or sl:IsA("NumberValue")) end
     if flag then
         local players = workspace:FindFirstChild("Players")
         if players then
             local v21 = players:FindFirstChild(localPlayer.Name)
             if v21 then
                 local v22 = v21:FindFirstChild(arg.Name)
-                if v22 then shotsLoaded = v22:FindFirstChild("ShotsLoaded") end
+                if v22 then sl = v22:FindFirstChild("ShotsLoaded") end
             end
         end
     end
-    if not shotsLoaded then return end
+    if not sl then return end
     local v21 = tbl.officer.autoReload.getRemote(arg)
-    local n = shotsLoaded.Value or 0
+    local n = sl.Value or 0
     if tbl.officer.autoReload.enabled and n == 0 and v21 then
         pcall(function() v21:FireServer("Reload") end)
     end
     local flag2 = false
     local connection = nil
-    local connection2 = shotsLoaded.Changed:Connect(function()
-        local value = shotsLoaded.Value
+    local connection2 = sl.Changed:Connect(function()
+        local value = sl.Value
         if tbl.officer.autoReload.enabled and value == 0 and v21 and not flag2 then
             flag2 = true
             pcall(function() v21:FireServer("Reload") end)
@@ -229,40 +183,34 @@ tbl.officer.autoReload.watchTool = function(arg)
     end)
     tbl.officer.autoReload.monitoredTools[arg] = connection2
 end
-
 tbl.officer.autoReload.scanAllTools = function()
     for _, v21 in tbl.officer.autoReload.monitoredTools do
         if v21 then v21:Disconnect() end
     end
     tbl.officer.autoReload.monitoredTools = {}
-    local backpack = localPlayer:FindFirstChild("Backpack")
-    if backpack then
-        for _, v21 in backpack:GetChildren() do
-            if v21:IsA("Tool") and tbl.officer.autoReload.isGun(v21) then
-                tbl.officer.autoReload.watchTool(v21)
-            end
+    local bp = localPlayer:FindFirstChild("Backpack")
+    if bp then
+        for _, v21 in bp:GetChildren() do
+            if v21:IsA("Tool") and tbl.officer.autoReload.isGun(v21) then tbl.officer.autoReload.watchTool(v21) end
         end
     end
-    local character = localPlayer.Character
-    if character then
-        for _, v21 in character:GetChildren() do
-            if v21:IsA("Tool") and tbl.officer.autoReload.isGun(v21) then
-                tbl.officer.autoReload.watchTool(v21)
-            end
+    local ch = localPlayer.Character
+    if ch then
+        for _, v21 in ch:GetChildren() do
+            if v21:IsA("Tool") and tbl.officer.autoReload.isGun(v21) then tbl.officer.autoReload.watchTool(v21) end
         end
     end
 end
-
 tbl.officer.autoReload.enable = function()
     if tbl.officer.autoReload.enabled then return end
     tbl.officer.autoReload.enabled = true
     tbl.officer.autoReload.scanAllTools()
     if tbl.officer.autoReload.backpackConn then tbl.officer.autoReload.backpackConn:Disconnect() end
     local function fn7()
-        local backpack = localPlayer:FindFirstChild("Backpack")
-        if not backpack then return false end
+        local bp = localPlayer:FindFirstChild("Backpack")
+        if not bp then return false end
         if tbl.officer.autoReload.backpackConn then tbl.officer.autoReload.backpackConn:Disconnect() end
-        tbl.officer.autoReload.backpackConn = backpack.ChildAdded:Connect(function(child)
+        tbl.officer.autoReload.backpackConn = bp.ChildAdded:Connect(function(child)
             if child:IsA("Tool") and tbl.officer.autoReload.isGun(child) then
                 task.wait(0.1)
                 if tbl.officer.autoReload.enabled then tbl.officer.autoReload.watchTool(child) end
@@ -292,7 +240,6 @@ tbl.officer.autoReload.enable = function()
     end
     tbl.notify("自动换弹已开启", 2)
 end
-
 tbl.officer.autoReload.disable = function()
     tbl.officer.autoReload.enabled = false
     for _, v21 in tbl.officer.autoReload.monitoredTools do
@@ -304,13 +251,13 @@ tbl.officer.autoReload.disable = function()
     tbl.notify("自动换弹已关闭", 2)
 end
 
--- ===== 医生自动治疗 =====
+-- ===== 医生 =====
 tbl.doctor = { enabled = false, threshold = 25, range = 10, cooldown = 2, lastRequest = {}, thread = nil }
 local function doctorGetRemote()
-    local character = localPlayer.Character
-    if not character then return nil end
-    local medicalSupplies = character:FindFirstChild("Medical Supplies")
-    if medicalSupplies then return medicalSupplies:FindFirstChild("RemoteEvent") end
+    local ch = localPlayer.Character
+    if not ch then return nil end
+    local ms = ch:FindFirstChild("Medical Supplies")
+    if ms then return ms:FindFirstChild("RemoteEvent") end
     return nil
 end
 local function doctorTryHeal(player, humanoid)
@@ -318,13 +265,13 @@ local function doctorTryHeal(player, humanoid)
     if humanoid.Health / humanoid.MaxHealth * 100 > tbl.doctor.threshold then return end
     local v21 = os.clock()
     if v21 < (tbl.doctor.lastRequest[player] or 0) + tbl.doctor.cooldown then return end
-    local character = localPlayer.Character
-    if not character then return end
-    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-    if not humanoidRootPart then return end
-    local humanoidRootPart2 = humanoid.Parent and (humanoid.Parent:FindFirstChild("HumanoidRootPart") or humanoid.Parent:FindFirstChild("Torso"))
-    if not humanoidRootPart2 then return end
-    if tbl.doctor.range < (humanoidRootPart.Position - humanoidRootPart2.Position).Magnitude then return end
+    local ch = localPlayer.Character
+    if not ch then return end
+    local hrp = ch:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    local hrp2 = humanoid.Parent and (humanoid.Parent:FindFirstChild("HumanoidRootPart") or humanoid.Parent:FindFirstChild("Torso"))
+    if not hrp2 then return end
+    if tbl.doctor.range < (hrp.Position - hrp2.Position).Magnitude then return end
     local v22 = doctorGetRemote()
     if not v22 then return end
     tbl.doctor.lastRequest[player] = v21
@@ -334,8 +281,8 @@ tbl.doctor.loop = function()
     while tbl.doctor.enabled do
         for _, v21 in Players:GetPlayers() do
             if v21 ~= localPlayer and v21.Character then
-                local humanoid = v21.Character:FindFirstChildOfClass("Humanoid")
-                if humanoid and humanoid.Health > 0 then pcall(doctorTryHeal, v21, humanoid) end
+                local h = v21.Character:FindFirstChildOfClass("Humanoid")
+                if h and h.Health > 0 then pcall(doctorTryHeal, v21, h) end
             end
         end
         task.wait(0.5)
@@ -357,18 +304,18 @@ end
 -- ===== 自动火炮 =====
 tbl.autoCannon = { enabled = false, connection = nil, lastReloadTime = 0, reloadCooldown = 0.5 }
 tbl.autoCannon.findNearestGun = function()
-    local character = localPlayer.Character
-    if not character or not character.Parent then return nil end
-    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-    if not humanoidRootPart then return nil end
+    local ch = localPlayer.Character
+    if not ch or not ch.Parent then return nil end
+    local hrp = ch:FindFirstChild("HumanoidRootPart")
+    if not hrp then return nil end
     local huge = math.huge
     local v16 = nil
     for _, v17 in workspace:GetDescendants() do
         if v17.Name == "12 Pound Gun" and v17:IsA("Model") then
             local hole = v17:FindFirstChild("Gun") and v17.Gun:FindFirstChild("Hole")
             if hole then
-                local magnitude = (hole.Position - humanoidRootPart.Position).Magnitude
-                if magnitude < huge then huge = magnitude v16 = v17 end
+                local m = (hole.Position - hrp.Position).Magnitude
+                if m < huge then huge = m v16 = v17 end
             end
         end
     end
@@ -407,9 +354,9 @@ tbl.DIGGABLE_PATHS = {
     "OLD Vardohus Fortress/Modes/Objective/DigSnow/Diggable",
 }
 tbl.getDiggingTool = function()
-    local character = localPlayer.Character
-    if not character then return nil end
-    for _, v16 in character:GetChildren() do
+    local ch = localPlayer.Character
+    if not ch then return nil end
+    for _, v16 in ch:GetChildren() do
         if (v16.Name == "Shovel" or v16.Name == "Spade") and v16:FindFirstChild("RemoteEvent") then return v16 end
     end
     for _, v16 in localPlayer.Backpack:GetChildren() do
@@ -441,9 +388,9 @@ tbl.executeDig = function()
         v17.Parent = localPlayer.Character
         task.wait(0.2)
     end
-    local remoteEvent = v17:FindFirstChild("RemoteEvent")
-    if not remoteEvent then return end
-    pcall(function() remoteEvent:FireServer("Dig", v16, v16.Position) end)
+    local re = v17:FindFirstChild("RemoteEvent")
+    if not re then return end
+    pcall(function() re:FireServer("Dig", v16, v16.Position) end)
 end
 tbl.autoDigLoop = function()
     while tbl.autoDigEnabled do
@@ -451,9 +398,9 @@ tbl.autoDigLoop = function()
         task.wait(0.01)
     end
 end
-tbl.toggleAutoDig = function(autoDigEnabled)
-    tbl.autoDigEnabled = autoDigEnabled
-    if autoDigEnabled then
+tbl.toggleAutoDig = function(enabled)
+    tbl.autoDigEnabled = enabled
+    if enabled then
         if tbl.autoDigConnection then task.cancel(tbl.autoDigConnection) end
         tbl.autoDigConnection = task.spawn(tbl.autoDigLoop)
         tbl.notify("自动挖雪已开启", 2)
@@ -466,8 +413,8 @@ tbl.onCharacterAdded(function()
     if tbl.autoDigEnabled then
         tbl.autoDigEnabled = false
         if tbl.autoDigConnection then task.cancel(tbl.autoDigConnection) tbl.autoDigConnection = nil end
-        local autoDigToggle = Library.Toggles.AutoDigToggle
-        if autoDigToggle and autoDigToggle.SetValue then autoDigToggle:SetValue(false) end
+        local t = Library.Toggles.AutoDigToggle
+        if t and t.SetValue then t:SetValue(false) end
     end
 end)
 
@@ -481,20 +428,18 @@ tbl.setupAutoCollect = function()
     for _, v16 in workspace:GetDescendants() do
         if v16:IsA("ProximityPrompt") then tbl.activePrompts[v16] = true end
     end
-    tbl.descendantAddedConn = workspace.DescendantAdded:Connect(function(descendant)
-        if descendant:IsA("ProximityPrompt") then tbl.activePrompts[descendant] = true end
+    tbl.descendantAddedConn = workspace.DescendantAdded:Connect(function(d)
+        if d:IsA("ProximityPrompt") then tbl.activePrompts[d] = true end
     end)
     tbl.autoCollectConnection = RunService.Heartbeat:Connect(function()
         if not tbl.autoCollectEnabled or not localPlayer.Character then return end
-        local humanoidRootPart = localPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if not humanoidRootPart then return end
+        local hrp = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
         for k in tbl.activePrompts do
             if k and k.Parent and k:IsA("ProximityPrompt") and k.Enabled then
-                local parent = k.Parent
-                if parent:IsA("BasePart") then
-                    if (parent.Position - humanoidRootPart.Position).Magnitude <= k.MaxActivationDistance then
-                        pcall(function() fireproximityprompt(k) end)
-                    end
+                local p = k.Parent
+                if p:IsA("BasePart") and (p.Position - hrp.Position).Magnitude <= k.MaxActivationDistance then
+                    pcall(function() fireproximityprompt(k) end)
                 end
             else
                 tbl.activePrompts[k] = nil
@@ -502,9 +447,9 @@ tbl.setupAutoCollect = function()
         end
     end)
 end
-tbl.toggleAutoCollect = function(autoCollectEnabled)
-    tbl.autoCollectEnabled = autoCollectEnabled
-    if autoCollectEnabled then
+tbl.toggleAutoCollect = function(enabled)
+    tbl.autoCollectEnabled = enabled
+    if enabled then
         if tbl.autoCollectConnection then tbl.autoCollectConnection:Disconnect() end
         if tbl.descendantAddedConn then tbl.descendantAddedConn:Disconnect() end
         tbl.activePrompts = {}
@@ -523,8 +468,8 @@ tbl.onCharacterAdded(function()
         if tbl.autoCollectConnection then tbl.autoCollectConnection:Disconnect() tbl.autoCollectConnection = nil end
         if tbl.descendantAddedConn then tbl.descendantAddedConn:Disconnect() tbl.descendantAddedConn = nil end
         tbl.activePrompts = {}
-        local autoCollectToggle = Library.Toggles.AutoCollectToggle
-        if autoCollectToggle and autoCollectToggle.SetValue then autoCollectToggle:SetValue(false) end
+        local t = Library.Toggles.AutoCollectToggle
+        if t and t.SetValue then t:SetValue(false) end
     end
 end)
 
@@ -535,10 +480,10 @@ tbl.AntiGrab.start = function()
     tbl.AntiGrab.enabled = true
     tbl.AntiGrab.connection = RunService.Heartbeat:Connect(function()
         if not tbl.AntiGrab.enabled then return end
-        local character = localPlayer.Character
-        if not character then return end
-        local humanoid = character:FindFirstChildOfClass("Humanoid")
-        if humanoid then pcall(function() humanoid:Move(Vector3.new(0, 100000, 0)) end) end
+        local ch = localPlayer.Character
+        if not ch then return end
+        local h = ch:FindFirstChildOfClass("Humanoid")
+        if h then pcall(function() h:Move(Vector3.new(0, 100000, 0)) end) end
     end)
 end
 tbl.AntiGrab.stop = function()
@@ -557,59 +502,59 @@ tbl.antiVelocityEnable = function()
     tbl.antiVelocity.enabled = true
     tbl.antiVelocity.wasBroken = false
     if tbl.antiVelocity.conn then tbl.antiVelocity.conn:Disconnect() tbl.antiVelocity.conn = nil end
-    local character = localPlayer.Character
-    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-    if humanoid then pcall(function() humanoid.AutoRotate = true end) end
+    local ch = localPlayer.Character
+    local h = ch and ch:FindFirstChildOfClass("Humanoid")
+    if h then pcall(function() h.AutoRotate = true end) end
     tbl.antiVelocity.conn = RunService.Heartbeat:Connect(function()
         if not tbl.antiVelocity.enabled then return end
-        local character2 = localPlayer.Character
-        if not character2 then return end
-        local humanoidRootPart = character2:FindFirstChild("HumanoidRootPart")
-        if not humanoidRootPart then return end
-        local humanoid2 = character2:FindFirstChildOfClass("Humanoid")
-        if humanoid2 and not humanoid2.AutoRotate then pcall(function() humanoid2.AutoRotate = true end) end
-        local killVelocity = humanoidRootPart:FindFirstChild("KillVelocity") or humanoidRootPart:FindFirstChild("LinearVelocity")
-        if killVelocity and (killVelocity:IsA("BodyVelocity") or killVelocity:IsA("LinearVelocity")) then killVelocity.Enabled = false end
-        local userStates = character2:FindFirstChild("UserStates")
-        if userStates then
-            local brokenLegs = userStates:FindFirstChild("BrokenLegs")
-            if brokenLegs then
-                local flag = brokenLegs.Value == true
+        local ch2 = localPlayer.Character
+        if not ch2 then return end
+        local hrp = ch2:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+        local h2 = ch2:FindFirstChildOfClass("Humanoid")
+        if h2 and not h2.AutoRotate then pcall(function() h2.AutoRotate = true end) end
+        local kv = hrp:FindFirstChild("KillVelocity") or hrp:FindFirstChild("LinearVelocity")
+        if kv and (kv:IsA("BodyVelocity") or kv:IsA("LinearVelocity")) then kv.Enabled = false end
+        local us = ch2:FindFirstChild("UserStates")
+        if us then
+            local bl = us:FindFirstChild("BrokenLegs")
+            if bl then
+                local flag = bl.Value == true
                 if flag and not tbl.antiVelocity.wasBroken then
                     tbl.antiVelocity.wasBroken = true
-                    local animate = character2:FindFirstChild("Animate")
-                    if animate and tbl.antiVelocity.savedAnimateDisabled == nil then tbl.antiVelocity.savedAnimateDisabled = animate.Disabled end
+                    local a = ch2:FindFirstChild("Animate")
+                    if a and tbl.antiVelocity.savedAnimateDisabled == nil then tbl.antiVelocity.savedAnimateDisabled = a.Disabled end
                     task.spawn(function()
-                        local h = character2:FindFirstChildOfClass("Humanoid")
-                        if not h then return end
-                        pcall(function() h.AutoRotate = true end)
-                        local a = character2:FindFirstChild("Animate")
-                        if a and a.Disabled then pcall(function() a.Disabled = false end) end
-                        pcall(function() h:ChangeState(Enum.HumanoidStateType.Running) end)
+                        local h3 = ch2:FindFirstChildOfClass("Humanoid")
+                        if not h3 then return end
+                        pcall(function() h3.AutoRotate = true end)
+                        local a2 = ch2:FindFirstChild("Animate")
+                        if a2 and a2.Disabled then pcall(function() a2.Disabled = false end) end
+                        pcall(function() h3:ChangeState(Enum.HumanoidStateType.Running) end)
                     end)
                 end
                 if flag and tbl.antiVelocity.wasBroken then
-                    local h = character2:FindFirstChildOfClass("Humanoid")
-                    if h then
+                    local h3 = ch2:FindFirstChildOfClass("Humanoid")
+                    if h3 then
                         pcall(function()
-                            for _, track in ipairs(h:GetPlayingAnimationTracks()) do
-                                local aid = track.Animation and track.Animation.AnimationId
-                                if aid and FRACTURE_IDS[aid] then pcall(function() track:Stop() end) end
+                            for _, t in ipairs(h3:GetPlayingAnimationTracks()) do
+                                local aid = t.Animation and t.Animation.AnimationId
+                                if aid and FRACTURE_IDS[aid] then pcall(function() t:Stop() end) end
                             end
                         end)
                         pcall(function()
-                            local state = h:GetState()
-                            if state == Enum.HumanoidStateType.Physics or state == Enum.HumanoidStateType.FallingDown or state == Enum.HumanoidStateType.Ragdoll then
-                                h:ChangeState(Enum.HumanoidStateType.Running)
+                            local s = h3:GetState()
+                            if s == Enum.HumanoidStateType.Physics or s == Enum.HumanoidStateType.FallingDown or s == Enum.HumanoidStateType.Ragdoll then
+                                h3:ChangeState(Enum.HumanoidStateType.Running)
                             end
                         end)
                     end
                 end
                 if not flag and tbl.antiVelocity.wasBroken then
                     tbl.antiVelocity.wasBroken = false
-                    local a = character2:FindFirstChild("Animate")
-                    if a and tbl.antiVelocity.savedAnimateDisabled ~= nil then
-                        pcall(function() a.Disabled = tbl.antiVelocity.savedAnimateDisabled end)
+                    local a3 = ch2:FindFirstChild("Animate")
+                    if a3 and tbl.antiVelocity.savedAnimateDisabled ~= nil then
+                        pcall(function() a3.Disabled = tbl.antiVelocity.savedAnimateDisabled end)
                         tbl.antiVelocity.savedAnimateDisabled = nil
                     end
                 end
@@ -638,19 +583,19 @@ tbl.warpFly = {
 tbl.warpFly.detectWall = function()
     local hrp = tbl.warpFly.hrp
     if not hrp then return false end
-    local position = hrp.Position
-    local raycastParams = RaycastParams.new()
-    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-    raycastParams.FilterDescendantsInstances = { localPlayer.Character }
+    local pos = hrp.Position
+    local rp = RaycastParams.new()
+    rp.FilterType = Enum.RaycastFilterType.Exclude
+    rp.FilterDescendantsInstances = { localPlayer.Character }
     for i = 1, 12 do
         local n = i / 12 * 2 * math.pi
-        local v23 = math.cos(n)
-        local v24 = math.sin(n)
-        for i2 = -1, 1 do
-            local hit = workspace:Raycast(position, Vector3.new(v23, i2 * 0.5, v24).Unit * 3.5, raycastParams)
+        local x = math.cos(n)
+        local z = math.sin(n)
+        for y = -1, 1 do
+            local hit = workspace:Raycast(pos, Vector3.new(x, y * 0.5, z).Unit * 3.5, rp)
             if hit then
-                local instance = hit.Instance
-                if instance and instance.CanCollide and instance.Transparency < 0.9 then return true end
+                local inst = hit.Instance
+                if inst and inst.CanCollide and inst.Transparency < 0.9 then return true end
             end
         end
     end
@@ -713,19 +658,18 @@ tbl.warpFly.microStepLoop = function()
         local vertical = 0
         if UserInputService:IsKeyDown(Enum.KeyCode.Space) then vertical = 1
         elseif UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then vertical = -1 end
-        local flySpeed = tbl.warpFly.flySpeed
-        local totalDelta = (moveDir + Vector3.new(0, vertical, 0)) * flySpeed * tbl.warpFly._tmp.dt
+        local totalDelta = (moveDir + Vector3.new(0, vertical, 0)) * tbl.warpFly.flySpeed * tbl.warpFly._tmp.dt
         tbl.warpFly._tmp.targetPos = tbl.warpFly._tmp.targetPos + totalDelta
-        local currentPos = tbl.warpFly.hrp.Position
-        local remaining = tbl.warpFly._tmp.targetPos - currentPos
-        local distance = remaining.Magnitude
-        if distance > 0 then
-            local steps = math.ceil(distance / 10)
-            local stepVec = remaining / steps
+        local cur = tbl.warpFly.hrp.Position
+        local rem = tbl.warpFly._tmp.targetPos - cur
+        local dist = rem.Magnitude
+        if dist > 0 then
+            local steps = math.ceil(dist / 10)
+            local stepVec = rem / steps
             for i = 1, steps do
                 if tbl.warpFly.enabled then
-                    currentPos = currentPos + stepVec
-                    tbl.warpFly.hrp.CFrame = CFrame.new(currentPos) * tbl.warpFly.hrp.CFrame.Rotation
+                    cur = cur + stepVec
+                    tbl.warpFly.hrp.CFrame = CFrame.new(cur) * tbl.warpFly.hrp.CFrame.Rotation
                 end
             end
         else
@@ -756,10 +700,10 @@ tbl.warpFly.start = function()
             v23.CanCollide = false
         end
     end
-    tbl.warpFly.descendantConnection = tbl.warpFly._tmp.char.DescendantAdded:Connect(function(descendant)
-        if descendant:IsA("BasePart") and tbl.warpFly.originalCanCollide[descendant] == nil then
-            tbl.warpFly.originalCanCollide[descendant] = descendant.CanCollide
-            descendant.CanCollide = false
+    tbl.warpFly.descendantConnection = tbl.warpFly._tmp.char.DescendantAdded:Connect(function(d)
+        if d:IsA("BasePart") and tbl.warpFly.originalCanCollide[d] == nil then
+            tbl.warpFly.originalCanCollide[d] = d.CanCollide
+            d.CanCollide = false
         end
     end)
     tbl.warpFly.enabled = true
@@ -778,21 +722,21 @@ end
 tbl.warpFly.stop = function()
     tbl.warpFly.enabled = false
     tbl.warpFly.clear()
-    local warpFlyToggle = Library.Toggles.WarpFlyToggle
-    if warpFlyToggle and warpFlyToggle.Value then warpFlyToggle:SetValue(false) end
+    local t = Library.Toggles.WarpFlyToggle
+    if t and t.Value then t:SetValue(false) end
 end
 
 -- ===== 人物旋转 =====
-tbl.spin = { enabled = false, speed = 5, connection = nil, animLockThread = nil }
+tbl.spin = { enabled = false, speed = 5, connection = nil }
 tbl.spin.start = function()
     if tbl.spin.connection then return end
-    tbl.spin.connection = RunService.RenderStepped:Connect(function(deltaTime)
+    tbl.spin.connection = RunService.RenderStepped:Connect(function(dt)
         if not tbl.spin.enabled then return end
-        local character = localPlayer.Character
-        if not character then return end
-        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-        if not humanoidRootPart then return end
-        humanoidRootPart.CFrame = humanoidRootPart.CFrame * CFrame.Angles(0, math.rad(tbl.spin.speed * 350) * deltaTime, 0)
+        local ch = localPlayer.Character
+        if not ch then return end
+        local hrp = ch:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+        hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(tbl.spin.speed * 350) * dt, 0)
     end)
 end
 tbl.spin.stop = function()
@@ -805,35 +749,35 @@ tbl.animFreeze = { enabled = false, currentAnimTrack = nil, originalAnimateDisab
 tbl.animFreeze.cleanup = function()
     if tbl.animFreeze.loopThread then task.cancel(tbl.animFreeze.loopThread) tbl.animFreeze.loopThread = nil end
     if tbl.animFreeze.currentAnimTrack then tbl.animFreeze.currentAnimTrack:Stop() tbl.animFreeze.currentAnimTrack = nil end
-    local character = localPlayer.Character
-    if character and tbl.animFreeze.originalAnimateDisabled then
-        local animate = character:FindFirstChild("Animate")
-        if animate then animate.Disabled = false tbl.animFreeze.originalAnimateDisabled = false end
+    local ch = localPlayer.Character
+    if ch and tbl.animFreeze.originalAnimateDisabled then
+        local a = ch:FindFirstChild("Animate")
+        if a then a.Disabled = false tbl.animFreeze.originalAnimateDisabled = false end
     end
 end
 tbl.animFreeze.playOnce = function()
-    local character = localPlayer.Character
-    if not character then return end
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return end
+    local ch = localPlayer.Character
+    if not ch then return end
+    local h = ch:FindFirstChildOfClass("Humanoid")
+    if not h then return end
     if not tbl.animFreeze.originalAnimateDisabled then
-        local animate = character:FindFirstChild("Animate")
-        if animate and not animate.Disabled then animate.Disabled = true tbl.animFreeze.originalAnimateDisabled = true end
+        local a = ch:FindFirstChild("Animate")
+        if a and not a.Disabled then a.Disabled = true tbl.animFreeze.originalAnimateDisabled = true end
     end
-    local animationId = humanoid.RigType == Enum.HumanoidRigType.R6 and "rbxassetid://27432686" or "rbxassetid://507776043"
-    local animation = Instance.new("Animation")
-    animation.AnimationId = animationId
-    local animator = humanoid:FindFirstChildOfClass("Animator")
-    if not animator then animator = Instance.new("Animator") animator.Parent = humanoid end
-    local v26 = animator:LoadAnimation(animation)
-    v26:Play()
-    v26:AdjustSpeed(0)
+    local aid = h.RigType == Enum.HumanoidRigType.R6 and "rbxassetid://27432686" or "rbxassetid://507776043"
+    local anim = Instance.new("Animation")
+    anim.AnimationId = aid
+    local an = h:FindFirstChildOfClass("Animator")
+    if not an then an = Instance.new("Animator") an.Parent = h end
+    local tr = an:LoadAnimation(anim)
+    tr:Play()
+    tr:AdjustSpeed(0)
     if tbl.animFreeze.currentAnimTrack then tbl.animFreeze.currentAnimTrack:Stop() end
-    tbl.animFreeze.currentAnimTrack = v26
+    tbl.animFreeze.currentAnimTrack = tr
 end
 tbl.animFreeze.loop = function()
     while tbl.animFreeze.enabled do
-        pcall(function() tbl.animFreeze.playOnce() end)
+        pcall(tbl.animFreeze.playOnce)
         task.wait(0.1)
     end
 end
@@ -848,17 +792,14 @@ tbl.animFreeze.stop = function()
     tbl.animFreeze.cleanup()
 end
 
--- ===== 杀戮光环 =====
-local auraMasterEnabled = false
+-- ===== 杀戮光环（已改回原样）=====
 tbl.getHeldMelee = function()
-    local character = localPlayer.Character
-    if not character then return nil end
-    for _, v26 in character:GetChildren() do
-        if v26:IsA("Tool") then
-            local str2 = v26.Name:lower()
-            if v26:GetAttribute("Melee") or str2:find("musket") or str2:find("flintlock") or str2:find("bayonet") or str2:find("sabre") or str2:find("axe") or str2:find("pickaxe") or str2:find("shovel") or str2:find("spade") or str2:find("stake") or str2:find("lance") or str2:find("baguette") then
-                return v26
-            end
+    local ch = localPlayer.Character
+    if not ch then return nil end
+    for _, v in ch:GetChildren() do
+        if v:IsA("Tool") then
+            local n = v.Name:lower()
+            if v:GetAttribute("Melee") or n:find("musket") or n:find("flintlock") or n:find("bayonet") or n:find("sabre") or n:find("axe") or n:find("pickaxe") or n:find("shovel") or n:find("spade") or n:find("stake") or n:find("lance") or n:find("baguette") then return v end
         end
     end
     return nil
@@ -866,6 +807,7 @@ end
 tbl.displayRange = 17
 tbl.attackCount = 2
 tbl.attackAngle = 180
+tbl.INNER_RING_FIXED_RADIUS = 13
 tbl.attackBarrelEnabled = false
 tbl.attackDraculaEnabled = false
 tbl.skipSpawningEnabled = true
@@ -878,83 +820,77 @@ end
 local function fn16(arg, arg2)
     if tbl.attackAngle >= 360 then return true end
     local unit = (arg2 - arg.Position).Unit
-    local lookVector = arg.CFrame.LookVector
-    local n2 = tbl.attackAngle / 2
-    return math.deg(math.acos(math.clamp(lookVector:Dot(unit), -1, 1))) <= n2
+    local look = arg.CFrame.LookVector
+    local half = tbl.attackAngle / 2
+    return math.deg(math.acos(math.clamp(look:Dot(unit), -1, 1))) <= half
 end
 tbl.startQingShuiAura = function()
     if tbl.qingShuiAura.thread then return end
     tbl.qingShuiAura.enabled = true
     tbl.qingShuiAura.thread = task.spawn(function()
         while tbl.qingShuiAura.enabled do
-            local v30 = tbl.getHeldMelee()
-            if v30 then
-                local character = localPlayer.Character
-                if character then
-                    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-                    if humanoidRootPart then
-                        local v31 = fn13()
-                        local tbl7 = {}
-                        local zombies = workspace:FindFirstChild("Zombies")
-                        if zombies then
-                            for _, v32 in zombies:GetChildren() do
-                                if v32:IsA("Model") and v32:FindFirstChild("HumanoidRootPart") then
+            local w = tbl.getHeldMelee()
+            if w then
+                local ch = localPlayer.Character
+                if ch then
+                    local hrp = ch:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        local r = fn13()
+                        local list = {}
+                        local zs = workspace:FindFirstChild("Zombies")
+                        if zs then
+                            for _, m in zs:GetChildren() do
+                                if m:IsA("Model") and m:FindFirstChild("HumanoidRootPart") then
                                     if tbl.skipSpawningEnabled then
-                                        local state = v32:FindFirstChild("State")
-                                        if state and tostring(state.Value) == "Spawn" then continue end
+                                        local s = m:FindFirstChild("State")
+                                        if s and tostring(s.Value) == "Spawn" then continue end
                                     end
-                                    if fn15(v32) then
-                                        local position = v32.HumanoidRootPart.Position
-                                        local magnitude = (position - humanoidRootPart.Position).Magnitude
-                                        if magnitude <= v31 and fn16(humanoidRootPart, position) then
-                                            table.insert(tbl7, { zombie = v32, dist = magnitude })
-                                        end
+                                    if fn15(m) then
+                                        local pos = m.HumanoidRootPart.Position
+                                        local d = (pos - hrp.Position).Magnitude
+                                        if d <= r and fn16(hrp, pos) then table.insert(list, { zombie = m, dist = d }) end
                                     end
                                 end
                             end
                         end
                         if tbl.attackDraculaEnabled then
-                            local transylvania = fn2(workspace, "Transylvania", "Modes", "Boss", "Dracula")
-                            if transylvania then
-                                local humanoidRootPart2 = transylvania:FindFirstChild("HumanoidRootPart")
-                                local head = transylvania:FindFirstChild("Head")
-                                if humanoidRootPart2 and head then
-                                    local position = humanoidRootPart2.Position
-                                    local magnitude = (position - humanoidRootPart.Position).Magnitude
-                                    if magnitude <= v31 and fn16(humanoidRootPart, position) then
-                                        table.insert(tbl7, { zombie = transylvania, dist = magnitude })
+                            local tv = fn2(workspace, "Transylvania", "Modes", "Boss", "Dracula")
+                            if tv then
+                                local dr = tv:FindFirstChild("HumanoidRootPart")
+                                local dh = tv:FindFirstChild("Head")
+                                if dr and dh then
+                                    local pos = dr.Position
+                                    local d = (pos - hrp.Position).Magnitude
+                                    if d <= r and fn16(hrp, pos) then table.insert(list, { zombie = tv, dist = d }) end
+                                end
+                            end
+                        end
+                        table.sort(list, function(a, b) return a.dist < b.dist end)
+                        local cnt = math.min(tbl.attackCount, #list)
+                        local now = os.clock()
+                        for i = 1, cnt do
+                            local z = list[i].zombie
+                            if not tbl.qingShuiAura.lastAttackTime[z] or now - tbl.qingShuiAura.lastAttackTime[z] > 0.05 then
+                                local re = w:FindFirstChild("RemoteEvent")
+                                if re then
+                                    local hd = z:FindFirstChild("Head")
+                                    if hd then
+                                        local ch2 = localPlayer.Character
+                                        ch2 = ch2 and ch2:FindFirstChild("Head")
+                                        local pos = hd.Position
+                                        local dir = ch2 and (pos - ch2.Position).Unit or Vector3.new(0, 1, 0)
+                                        re:FireServer("Swing", "Thrust")
+                                        re:FireServer("PrepareSwing")
+                                        re:FireServer("HitZombieM", z, pos, true, pos, "Head", dir)
+                                        tbl.qingShuiAura.lastAttackTime[z] = now
                                     end
                                 end
                             end
                         end
-                        table.sort(tbl7, function(arg, arg2) return arg.dist < arg2.dist end)
-                        local v32 = math.min(tbl.attackCount, #tbl7)
-                        local v33 = os.clock()
-                        for i = 1, v32 do
-                            local zombie = tbl7[i].zombie
-                            if not tbl.qingShuiAura.lastAttackTime[zombie] or v33 - tbl.qingShuiAura.lastAttackTime[zombie] > 0.05 then
-                                local remoteEvent = v30:FindFirstChild("RemoteEvent")
-                                if remoteEvent then
-                                    local head = zombie:FindFirstChild("Head")
-                                    if head then
-                                        local character2 = localPlayer.Character
-                                        character2 = character2 and character2:FindFirstChild("Head")
-                                        local position = head.Position
-                                        character2 = character2 and (position - character2.Position).Unit or Vector3.new(0, 1, 0)
-                                        remoteEvent:FireServer("Swing", "Thrust")
-                                        remoteEvent:FireServer("PrepareSwing")
-                                        remoteEvent:FireServer("HitZombieM", zombie, position, true, position, "Head", character2)
-                                        tbl.qingShuiAura.lastAttackTime[zombie] = v33
-                                    end
-                                end
-                            end
-                        end
-                        if v32 > 0 then
-                            local currentAttackTargets = {}
-                            for i = 1, v32 do
-                                if tbl7[i] then table.insert(currentAttackTargets, tbl7[i].zombie) end
-                            end
-                            tbl.currentAttackTargets = currentAttackTargets
+                        if cnt > 0 then
+                            local t = {}
+                            for i = 1, cnt do if list[i] then table.insert(t, list[i].zombie) end end
+                            tbl.currentAttackTargets = t
                         else
                             tbl.currentAttackTargets = {}
                         end
@@ -973,107 +909,101 @@ tbl.stopQingShuiAura = function()
     tbl.qingShuiAura.lastAttackTime = {}
 end
 
--- ===== 智能光环 =====
+-- ===== 智能光环（内环固定 13）=====
 tbl.smartAura = {
     enabled = false, auraClosed = false, innerEntryKills = {},
-    checkInterval = 0.5, killTimeout = 2, retryInterval = 2, retryTimer = 0,
-    probeMode = false,
+    checkInterval = 0.5, killTimeout = 2, retryInterval = 2, retryTimer = 0, probeMode = false,
 }
-tbl.INNER_RING_FIXED_RADIUS = 13
-tbl.getZombiesInRadius = function(arg)
-    local character = localPlayer.Character
-    if not character then return {} end
-    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-    if not humanoidRootPart then return {} end
-    local position = humanoidRootPart.Position
-    local zombies = workspace:FindFirstChild("Zombies")
-    if not zombies then return {} end
-    local tbl7 = {}
-    for _, v26 in zombies:GetChildren() do
-        if v26:IsA("Model") and v26:FindFirstChild("HumanoidRootPart") then
-            local state = v26:FindFirstChild("State")
-            if not (state and tostring(state.Value) == "Spawn") then
-                if (v26.HumanoidRootPart.Position - position).Magnitude <= arg then
-                    table.insert(tbl7, v26)
-                end
+tbl.getZombiesInRadius = function(r)
+    local ch = localPlayer.Character
+    if not ch then return {} end
+    local hrp = ch:FindFirstChild("HumanoidRootPart")
+    if not hrp then return {} end
+    local pos = hrp.Position
+    local zs = workspace:FindFirstChild("Zombies")
+    if not zs then return {} end
+    local list = {}
+    for _, m in zs:GetChildren() do
+        if m:IsA("Model") and m:FindFirstChild("HumanoidRootPart") then
+            local s = m:FindFirstChild("State")
+            if not (s and tostring(s.Value) == "Spawn") then
+                if (m.HumanoidRootPart.Position - pos).Magnitude <= r then table.insert(list, m) end
             end
         end
     end
-    return tbl7
+    return list
 end
 tbl.isHoldingMelee = function()
-    local character = localPlayer.Character
-    if not character then return false end
-    for _, v26 in character:GetChildren() do
-        if v26:IsA("Tool") then
-            local str2 = v26.Name:lower()
-            if str2:find("axe") or str2:find("pickaxe") or str2:find("shovel") or str2:find("spade") or str2:find("稿") or str2:find("铲") or str2:find("镐") then return true end
-            if str2:find("musket") or str2:find("flintlock") or str2:find("bayonet") then return true end
+    local ch = localPlayer.Character
+    if not ch then return false end
+    for _, v in ch:GetChildren() do
+        if v:IsA("Tool") then
+            local n = v.Name:lower()
+            if n:find("axe") or n:find("pickaxe") or n:find("shovel") or n:find("spade") or n:find("musket") or n:find("flintlock") or n:find("bayonet") then return true end
         end
     end
     return false
 end
 tbl.getCurrentKills = function()
-    local leaderstats = localPlayer:FindFirstChild("leaderstats")
-    if leaderstats then
-        local kills = leaderstats:FindFirstChild("Kills")
-        if kills and (kills:IsA("IntValue") or kills:IsA("NumberValue")) then return kills.Value end
+    local ls = localPlayer:FindFirstChild("leaderstats")
+    if ls then
+        local k = ls:FindFirstChild("Kills")
+        if k and (k:IsA("IntValue") or k:IsA("NumberValue")) then return k.Value end
     end
     return 0
 end
 tbl.getNearestNonBarrelZombie = function()
-    local character = localPlayer.Character
-    if not character then return nil end
-    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-    if not humanoidRootPart then return nil end
-    local position = humanoidRootPart.Position
-    local displayRange = tbl.displayRange
-    local zombies = workspace:FindFirstChild("Zombies")
-    if not zombies then return nil end
+    local ch = localPlayer.Character
+    if not ch then return nil end
+    local hrp = ch:FindFirstChild("HumanoidRootPart")
+    if not hrp then return nil end
+    local pos = hrp.Position
+    local zs = workspace:FindFirstChild("Zombies")
+    if not zs then return nil end
     local huge = math.huge
-    local v26 = nil
-    for _, v27 in zombies:GetChildren() do
-        if v27:IsA("Model") and v27:FindFirstChild("HumanoidRootPart") then
-            if not (v27:GetAttribute("Type") == "Barrel" or v27:FindFirstChild("Barrel")) then
-                local state = v27:FindFirstChild("State")
-                if not (state and tostring(state.Value) == "Spawn") then
-                    local magnitude = (v27.HumanoidRootPart.Position - position).Magnitude
-                    if magnitude <= displayRange and magnitude < huge then huge = magnitude v26 = v27 end
+    local best = nil
+    for _, m in zs:GetChildren() do
+        if m:IsA("Model") and m:FindFirstChild("HumanoidRootPart") then
+            if not (m:GetAttribute("Type") == "Barrel" or m:FindFirstChild("Barrel")) then
+                local s = m:FindFirstChild("State")
+                if not (s and tostring(s.Value) == "Spawn") then
+                    local d = (m.HumanoidRootPart.Position - pos).Magnitude
+                    if d <= tbl.displayRange and d < huge then huge = d best = m end
                 end
             end
         end
     end
-    return v26
+    return best
 end
-tbl.sendSingleAttack = function(arg)
-    if not arg or not arg.Parent then return false end
-    local character = localPlayer.Character
-    if not character then return false end
-    local v26 = nil
-    for _, v27 in character:GetChildren() do
-        if v27:IsA("Tool") then
-            local str2 = v27.Name:lower()
-            if v27:GetAttribute("Melee") or str2:find("musket") or str2:find("flintlock") or str2:find("bayonet") then v26 = v27 break end
+tbl.sendSingleAttack = function(z)
+    if not z or not z.Parent then return false end
+    local ch = localPlayer.Character
+    if not ch then return false end
+    local w = nil
+    for _, v in ch:GetChildren() do
+        if v:IsA("Tool") then
+            local n = v.Name:lower()
+            if v:GetAttribute("Melee") or n:find("musket") or n:find("flintlock") or n:find("bayonet") then w = v break end
         end
     end
-    if not v26 then return false end
-    local remoteEvent = v26:FindFirstChild("RemoteEvent")
-    if not remoteEvent then return false end
-    local str2 = v26.Name:lower()
-    local pos = str2:find("musket") or str2:find("flintlock") or str2:find("bayonet")
-    local head = arg:FindFirstChild("Head")
-    if not head then return false end
-    local head2 = character:FindFirstChild("Head")
-    local position = head.Position
-    local unit = head2 and (position - head2.Position).Unit or Vector3.new(0, 1, 0)
+    if not w then return false end
+    local re = w:FindFirstChild("RemoteEvent")
+    if not re then return false end
+    local n = w.Name:lower()
+    local isBay = n:find("musket") or n:find("flintlock") or n:find("bayonet")
+    local hd = z:FindFirstChild("Head")
+    if not hd then return false end
+    local h2 = ch:FindFirstChild("Head")
+    local pos = hd.Position
+    local dir = h2 and (pos - h2.Position).Unit or Vector3.new(0, 1, 0)
     pcall(function()
-        if pos then
-            remoteEvent:FireServer("ThrustBayonet")
-            remoteEvent:FireServer("Bayonet_HitZombie", arg:FindFirstChild("Orig") and arg.Orig.Value or arg, position, true, "Head", "Down")
+        if isBay then
+            re:FireServer("ThrustBayonet")
+            re:FireServer("Bayonet_HitZombie", z:FindFirstChild("Orig") and z.Orig.Value or z, pos, true, "Head", "Down")
         else
-            remoteEvent:FireServer("Swing", "Thrust")
-            remoteEvent:FireServer("PrepareSwing")
-            remoteEvent:FireServer("HitZombieM", arg, position, true, position, "Head", unit)
+            re:FireServer("Swing", "Thrust")
+            re:FireServer("PrepareSwing")
+            re:FireServer("HitZombieM", z, pos, true, pos, "Head", dir)
         end
     end)
     return true
@@ -1089,28 +1019,27 @@ tbl.updateSmartAura = function()
         end
         return
     end
-    local v26 = math.min(tbl.displayRange, tbl.INNER_RING_FIXED_RADIUS)
-    local v27 = tbl.getZombiesInRadius(v26)
-    local v28 = os.clock()
-    local v29 = tbl.getCurrentKills()
+    local r = math.min(tbl.displayRange, tbl.INNER_RING_FIXED_RADIUS)
+    local list = tbl.getZombiesInRadius(r)
+    local now = os.clock()
+    local kills = tbl.getCurrentKills()
     if not tbl.smartAura.auraClosed then
-        local tbl7 = {}
-        for _, v30 in v27 do
-            tbl7[v30] = true
-            if not tbl.smartAura.innerEntryKills[v30] then
-                tbl.smartAura.innerEntryKills[v30] = { time = v28, kills = v29 }
+        local set = {}
+        for _, z in list do
+            set[z] = true
+            if not tbl.smartAura.innerEntryKills[z] then
+                tbl.smartAura.innerEntryKills[z] = { time = now, kills = kills }
             end
         end
         for k in tbl.smartAura.innerEntryKills do
-            if not tbl7[k] or not k.Parent then tbl.smartAura.innerEntryKills[k] = nil end
+            if not set[k] or not k.Parent then tbl.smartAura.innerEntryKills[k] = nil end
         end
-        for k, v30 in tbl.smartAura.innerEntryKills do
+        for k, info in tbl.smartAura.innerEntryKills do
             if k and k.Parent then
-                local humanoid = k:FindFirstChildOfClass("Humanoid")
-                if humanoid and humanoid.Health > 0 then
-                    if tbl.smartAura.killTimeout <= v28 - v30.time then
-                        local kills = v30.kills
-                        if tbl.getCurrentKills() == kills then
+                local h = k:FindFirstChildOfClass("Humanoid")
+                if h and h.Health > 0 then
+                    if tbl.smartAura.killTimeout <= now - info.time then
+                        if tbl.getCurrentKills() == info.kills then
                             tbl.smartAura.auraClosed = true
                             tbl.smartAura.probeMode = true
                             tbl.smartAura.retryTimer = 0
@@ -1131,14 +1060,14 @@ tbl.updateSmartAura = function()
         return
     end
     if tbl.smartAura.probeMode then
-        if v28 - tbl.smartAura.retryTimer >= tbl.smartAura.retryInterval then
-            tbl.smartAura.retryTimer = v28
-            local v30 = tbl.getNearestNonBarrelZombie()
-            if v30 then
-                local v31 = tbl.getCurrentKills()
-                tbl.sendSingleAttack(v30)
+        if now - tbl.smartAura.retryTimer >= tbl.smartAura.retryInterval then
+            tbl.smartAura.retryTimer = now
+            local z = tbl.getNearestNonBarrelZombie()
+            if z then
+                local k0 = tbl.getCurrentKills()
+                tbl.sendSingleAttack(z)
                 task.wait(2)
-                if v31 < tbl.getCurrentKills() then
+                if k0 < tbl.getCurrentKills() then
                     tbl.smartAura.auraClosed = false
                     tbl.smartAura.probeMode = false
                     tbl.smartAura.innerEntryKills = {}
@@ -1173,45 +1102,29 @@ end
 -- ===== 静默自瞄 =====
 if not tbl.SilentAim then tbl.SilentAim = {} end
 do
-    local silentAim = tbl.SilentAim
-    silentAim.Enabled = false
-    silentAim.SilentAimSelectedTypes = {}
-    silentAim.SilentAimZombieTypes = { "Bomber", "Cuirassier", "Runner", "Zapper", "Igniter", "Shambler" }
-    silentAim.SILENT_AIM_USE_FOV = false
-    silentAim.SILENT_AIM_FOV_SIZE = 50
-    silentAim.SilentAimCurrentTarget = nil
-    silentAim.SilentAimUpdateConn = nil
-    silentAim.oldFire = nil
-    silentAim.CHECK_WALLS = true
-    silentAim.MAX_TARGET_RANGE = 200
-
-    local function fn9(arg)
+    local sa = tbl.SilentAim
+    sa.Enabled = false
+    sa.SilentAimSelectedTypes = {}
+    sa.SilentAimCurrentTarget = nil
+    sa.SilentAimUpdateConn = nil
+    sa.oldFire = nil
+    sa.CHECK_WALLS = true
+    sa.MAX_TARGET_RANGE = 200
+    local function getT(arg)
         if not arg or not arg:IsA("Model") then return nil end
-        local parent = arg.Parent
-        if parent and parent.Name == "Slim" and parent.Parent and parent.Parent.Name == "Zombies" then return "Cuirassier" end
-        local agent = arg:FindFirstChild("Agent")
-        if agent then
-            local type_ = agent:FindFirstChild("Type")
-            if type_ and type_:IsA("StringValue") then
-                local v20 = string.lower(type_.Value or "")
-                if v20 == "normal" then return "Shambler" end
-                if v20 == "barrel" then return "Bomber" end
-                if v20 == "fast" then return "Runner" end
-                if v20 == "sapper" then return "Zapper" end
-                if v20 == "igniter" then return "Igniter" end
-                if v20 == "cuirassier" then return "Cuirassier" end
-            end
-        end
-        if typeof(arg.GetAttribute) == "function" then
-            local attribute = arg:GetAttribute("Type")
-            if type(attribute) == "string" then
-                local v20 = string.lower(attribute)
-                if v20 == "normal" then return "Shambler" end
-                if v20 == "barrel" then return "Bomber" end
-                if v20 == "fast" then return "Runner" end
-                if v20 == "sapper" then return "Zapper" end
-                if v20 == "igniter" then return "Igniter" end
-                if v20 == "cuirassier" then return "Cuirassier" end
+        local p = arg.Parent
+        if p and p.Name == "Slim" and p.Parent and p.Parent.Name == "Zombies" then return "Cuirassier" end
+        local a = arg:FindFirstChild("Agent")
+        if a then
+            local t = a:FindFirstChild("Type")
+            if t and t:IsA("StringValue") then
+                local v = string.lower(t.Value or "")
+                if v == "normal" then return "Shambler" end
+                if v == "barrel" then return "Bomber" end
+                if v == "fast" then return "Runner" end
+                if v == "sapper" then return "Zapper" end
+                if v == "igniter" then return "Igniter" end
+                if v == "cuirassier" then return "Cuirassier" end
             end
         end
         if arg:FindFirstChild("Barrel", true) then return "Bomber" end
@@ -1221,133 +1134,107 @@ do
         if arg:FindFirstChild("Eye", true) and not arg:FindFirstChild("Axe", true) then return "Runner" end
         return "Shambler"
     end
-
-    local function fn16(arg)
+    local function getPart(arg)
         if not arg or not arg.Parent then return nil end
-        local head = arg:FindFirstChild("Head", true)
-        if head then return head end
-        local torso = arg:FindFirstChild("Torso") or arg:FindFirstChild("UpperTorso") or arg:FindFirstChild("HumanoidRootPart")
-        if torso then return torso end
-        local barrel = arg:FindFirstChild("Barrel", true)
-        if barrel then return barrel end
+        local h = arg:FindFirstChild("Head", true)
+        if h then return h end
+        local t = arg:FindFirstChild("Torso") or arg:FindFirstChild("UpperTorso") or arg:FindFirstChild("HumanoidRootPart")
+        if t then return t end
         return arg.PrimaryPart
     end
-
-    silentAim.StartSilentAimLoop = function()
-        if silentAim.SilentAimUpdateConn then return end
-        silentAim.SilentAimUpdateConn = RunService.Heartbeat:Connect(function()
-            if not (silentAim.Enabled and #silentAim.SilentAimSelectedTypes > 0) then
-                silentAim.SilentAimCurrentTarget = nil
+    sa.StartSilentAimLoop = function()
+        if sa.SilentAimUpdateConn then return end
+        sa.SilentAimUpdateConn = RunService.Heartbeat:Connect(function()
+            if not (sa.Enabled and #sa.SilentAimSelectedTypes > 0) then
+                sa.SilentAimCurrentTarget = nil
                 return
             end
             local tool = localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Tool")
             if tool then
-                local animations = tool:FindFirstChild("Animations")
-                if animations then tool = tool.Animations:FindFirstChild("Aim") or tool.Animations:FindFirstChild("Aiming")
-                else tool = animations end
+                local a = tool:FindFirstChild("Animations")
+                if a then tool = a:FindFirstChild("Aim") or a:FindFirstChild("Aiming") else tool = a end
             end
-            if not tool then
-                silentAim.SilentAimCurrentTarget = nil
-                return
-            end
-            if silentAim.SilentAimSelectedTypes and #silentAim.SilentAimSelectedTypes > 0 then
-                local maxTargetRange = silentAim.MAX_TARGET_RANGE
-                local myHead = localPlayer.Character and localPlayer.Character:FindFirstChild("Head")
-                if not myHead then return end
-                local myPos = myHead.Position
-                local n7 = maxTargetRange + 1
-                local tbl5 = {}
-                for _, v22 in silentAim.SilentAimSelectedTypes do tbl5[v22] = true end
-                local zombies = workspace:FindFirstChild("Zombies")
-                local v22 = nil
-                if zombies then
-                    for _, v24 in zombies:GetChildren() do
-                        if v24:IsA("Model") then
-                            local v25 = fn9(v24)
-                            if v25 and tbl5[v25] then
-                                local v26 = fn16(v24)
-                                if v26 and v26:IsA("BasePart") then
-                                    local magnitude = (v26.Position - myPos).Magnitude
-                                    if magnitude < n7 and magnitude <= maxTargetRange then
-                                        n7 = magnitude
-                                        v22 = v26
-                                    end
+            if not tool then sa.SilentAimCurrentTarget = nil return end
+            local mh = localPlayer.Character and localPlayer.Character:FindFirstChild("Head")
+            if not mh then return end
+            local mp = mh.Position
+            local best = nil
+            local bestD = sa.MAX_TARGET_RANGE + 1
+            local set = {}
+            for _, v in sa.SilentAimSelectedTypes do set[v] = true end
+            local zs = workspace:FindFirstChild("Zombies")
+            if zs then
+                for _, m in zs:GetChildren() do
+                    if m:IsA("Model") then
+                        local t = getT(m)
+                        if t and set[t] then
+                            local p = getPart(m)
+                            if p and p:IsA("BasePart") then
+                                local d = (p.Position - mp).Magnitude
+                                if d < bestD and d <= sa.MAX_TARGET_RANGE then
+                                    bestD = d
+                                    best = p
                                 end
                             end
                         end
                     end
                 end
-                if v22 then
-                    silentAim.SilentAimCurrentTarget = v22
-                else
-                    silentAim.SilentAimCurrentTarget = nil
-                end
             end
+            sa.SilentAimCurrentTarget = best
         end)
     end
-
-    silentAim.StopSilentAimLoop = function()
-        if silentAim.SilentAimUpdateConn then silentAim.SilentAimUpdateConn:Disconnect() silentAim.SilentAimUpdateConn = nil end
-        silentAim.SilentAimCurrentTarget = nil
+    sa.StopSilentAimLoop = function()
+        if sa.SilentAimUpdateConn then sa.SilentAimUpdateConn:Disconnect() sa.SilentAimUpdateConn = nil end
+        sa.SilentAimCurrentTarget = nil
     end
-
-    silentAim.SetupSilentAimHooks = function()
-        if silentAim.oldFire then return end
-        if type(hookmetamethod) ~= "function" then warn("Silent Aim: hookmetamethod not available") return end
-        silentAim.oldFire = hookmetamethod(game, "__namecall", function(arg, ...)
-            local v20 = table.pack(...)
-            if getnamecallmethod() == "FireServer" and silentAim.Enabled then
-                local tbl5 = { ... }
-                if tbl5[1] == "Fire" and silentAim.SilentAimCurrentTarget then
-                    local character = localPlayer.Character
-                    if character then
-                        local position = silentAim.SilentAimCurrentTarget.Position
-                        return silentAim.oldFire(arg, unpack({
+    sa.SetupSilentAimHooks = function()
+        if sa.oldFire then return end
+        if type(hookmetamethod) ~= "function" then return end
+        sa.oldFire = hookmetamethod(game, "__namecall", function(arg, ...)
+            local pk = table.pack(...)
+            if getnamecallmethod() == "FireServer" and sa.Enabled then
+                local a = { ... }
+                if a[1] == "Fire" and sa.SilentAimCurrentTarget then
+                    local ch = localPlayer.Character
+                    if ch then
+                        local pos = sa.SilentAimCurrentTarget.Position
+                        return sa.oldFire(arg, unpack({
                             "Fire",
-                            tbl5[2] or character:FindFirstChild("Model") or character,
-                            position,
-                            tbl5[4] or workspace:GetServerTimeNow(),
+                            a[2] or ch:FindFirstChild("Model") or ch,
+                            pos,
+                            a[4] or workspace:GetServerTimeNow(),
                         }))
                     end
                 end
-                return silentAim.oldFire(arg, table.unpack(v20, 1, v20.n))
+                return sa.oldFire(arg, table.unpack(pk, 1, pk.n))
             end
-            return silentAim.oldFire(arg, ...)
+            return sa.oldFire(arg, ...)
         end)
     end
-
-    silentAim.RemoveSilentAimHooks = function()
-        if silentAim.oldFire then
-            hookmetamethod(game, "__namecall", silentAim.oldFire)
-            silentAim.oldFire = nil
+    sa.RemoveSilentAimHooks = function()
+        if sa.oldFire then
+            hookmetamethod(game, "__namecall", sa.oldFire)
+            sa.oldFire = nil
         end
     end
-
     tbl.silentAim = tbl.silentAim or {}
-    tbl.silentAim.bomber = false
-    tbl.silentAim.cuirassier = false
-    tbl.silentAim.runner = false
-    tbl.silentAim.zapper = false
-    tbl.silentAim.igniter = false
-    tbl.silentAim.shambler = false
-
     tbl._silentAimRefresh = function()
-        local silentAimSelectedTypes = {}
-        if tbl.silentAim.bomber then table.insert(silentAimSelectedTypes, "Bomber") end
-        if tbl.silentAim.cuirassier then table.insert(silentAimSelectedTypes, "Cuirassier") end
-        if tbl.silentAim.runner then table.insert(silentAimSelectedTypes, "Runner") end
-        if tbl.silentAim.zapper then table.insert(silentAimSelectedTypes, "Zapper") end
-        if tbl.silentAim.igniter then table.insert(silentAimSelectedTypes, "Igniter") end
-        if tbl.silentAim.shambler then table.insert(silentAimSelectedTypes, "Shambler") end
-        silentAim.SilentAimSelectedTypes = silentAimSelectedTypes
-        if #silentAimSelectedTypes > 0 then
-            silentAim.Enabled = true
-            silentAim.StartSilentAimLoop()
-            silentAim.SetupSilentAimHooks()
+        local types = {}
+        if tbl.silentAim.bomber then table.insert(types, "Bomber") end
+        if tbl.silentAim.cuirassier then table.insert(types, "Cuirassier") end
+        if tbl.silentAim.runner then table.insert(types, "Runner") end
+        if tbl.silentAim.zapper then table.insert(types, "Zapper") end
+        if tbl.silentAim.igniter then table.insert(types, "Igniter") end
+        if tbl.silentAim.shambler then table.insert(types, "Shambler") end
+        sa.SilentAimSelectedTypes = types
+        if #types > 0 then
+            sa.Enabled = true
+            sa.StartSilentAimLoop()
+            sa.SetupSilentAimHooks()
         else
-            silentAim.Enabled = false
-            silentAim.StopSilentAimLoop()
-            silentAim.RemoveSilentAimHooks()
+            sa.Enabled = false
+            sa.StopSilentAimLoop()
+            sa.RemoveSilentAimHooks()
         end
     end
 end
@@ -1358,25 +1245,23 @@ tbl.disabledRecoilConnections = nil
 tbl.toggleNoRecoil = function(arg)
     if arg then
         if not tbl.disabledRecoilConnections then
-            local recoilEvent = v7:FindFirstChild("RecoilEvent")
-            if not recoilEvent then warn("请等待复活") return end
+            local re = v7:FindFirstChild("RecoilEvent")
+            if not re then return end
             if type(getconnections) ~= "function" then return end
-            local disabledRecoilConnections = {}
+            local conns = {}
             if not pcall(function()
-                for _, v21 in getconnections(recoilEvent.Event) do
-                    v21:Disable()
-                    table.insert(disabledRecoilConnections, v21)
+                for _, v in getconnections(re.Event) do
+                    v:Disable()
+                    table.insert(conns, v)
                 end
-            end) or #disabledRecoilConnections == 0 then return end
-            tbl.disabledRecoilConnections = disabledRecoilConnections
+            end) or #conns == 0 then return end
+            tbl.disabledRecoilConnections = conns
             tbl.noRecoilEnabled = true
         end
     else
         tbl.noRecoilEnabled = false
         if tbl.disabledRecoilConnections then
-            for _, v21 in tbl.disabledRecoilConnections do
-                pcall(function() v21:Enable() end)
-            end
+            for _, v in tbl.disabledRecoilConnections do pcall(function() v:Enable() end) end
             tbl.disabledRecoilConnections = nil
         end
     end
@@ -1387,66 +1272,62 @@ tbl.headshotEnabled = false
 tbl.removeBloodEnabled = false
 tbl.hookInstalled = false
 tbl.originalBayonetHitCheck = nil
-tbl.originalMeleeHitCheck = nil
-tbl.lastZombieHitTime = {}
-tbl.ZOMBIE_HIT_COOLDOWN = 0.1
 tbl.updateHitHooks = function()
-    local headshotEnabled = tbl.headshotEnabled or tbl.removeBloodEnabled
-    local weapons = v7:FindFirstChild("Modules") and v7.Modules:FindFirstChild("Weapons")
-    local flag = type(hookfunction) == "function"
-    if headshotEnabled and not tbl.hookInstalled then
-        if weapons then
-            local ok, result = pcall(require, weapons:FindFirstChild("Flintlock"))
-            if ok and result and result.BayonetHitCheck then
-                if flag then
-                    if not tbl.originalBayonetHitCheck then tbl.originalBayonetHitCheck = hookfunction(result.BayonetHitCheck, tbl.unifiedBayonetHitCheck)
-                    else hookfunction(result.BayonetHitCheck, tbl.unifiedBayonetHitCheck) end
+    local want = tbl.headshotEnabled or tbl.removeBloodEnabled
+    local w = v7:FindFirstChild("Modules") and v7.Modules:FindFirstChild("Weapons")
+    local hasHook = type(hookfunction) == "function"
+    if want and not tbl.hookInstalled then
+        if w then
+            local ok, r = pcall(require, w:FindFirstChild("Flintlock"))
+            if ok and r and r.BayonetHitCheck then
+                if hasHook then
+                    if not tbl.originalBayonetHitCheck then tbl.originalBayonetHitCheck = hookfunction(r.BayonetHitCheck, tbl.unifiedBayonetHitCheck)
+                    else hookfunction(r.BayonetHitCheck, tbl.unifiedBayonetHitCheck) end
                 else
-                    if not tbl.originalBayonetHitCheck then tbl.originalBayonetHitCheck = result.BayonetHitCheck end
-                    result.BayonetHitCheck = tbl.unifiedBayonetHitCheck
+                    if not tbl.originalBayonetHitCheck then tbl.originalBayonetHitCheck = r.BayonetHitCheck end
+                    r.BayonetHitCheck = tbl.unifiedBayonetHitCheck
                 end
             end
         end
         tbl.hookInstalled = true
-    elseif not headshotEnabled and tbl.hookInstalled then
-        if weapons and tbl.originalBayonetHitCheck then
-            local ok, result = pcall(require, weapons:FindFirstChild("Flintlock"))
-            if ok and result and result.BayonetHitCheck then
-                if flag then hookfunction(result.BayonetHitCheck, tbl.originalBayonetHitCheck)
-                else result.BayonetHitCheck = tbl.originalBayonetHitCheck end
+    elseif not want and tbl.hookInstalled then
+        if w and tbl.originalBayonetHitCheck then
+            local ok, r = pcall(require, w:FindFirstChild("Flintlock"))
+            if ok and r and r.BayonetHitCheck then
+                if hasHook then hookfunction(r.BayonetHitCheck, tbl.originalBayonetHitCheck)
+                else r.BayonetHitCheck = tbl.originalBayonetHitCheck end
             end
         end
         tbl.hookInstalled = false
     end
 end
 
--- ===== 速度 / 跳跃力 / 无限跳 =====
+-- ===== 速度 / 跳跃 / 无限跳 =====
 tbl.walkspeed = { enabled = false, value = 16, conn = nil }
 tbl.walkspeed.start = function()
     if tbl.walkspeed.conn then return end
     tbl.walkspeed.conn = RunService.Heartbeat:Connect(function()
         if not tbl.walkspeed.enabled then return end
-        local humanoid = localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then humanoid.WalkSpeed = tbl.walkspeed.value end
+        local h = localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if h then h.WalkSpeed = tbl.walkspeed.value end
     end)
 end
 tbl.walkspeed.stop = function()
     tbl.walkspeed.enabled = false
     if tbl.walkspeed.conn then tbl.walkspeed.conn:Disconnect() tbl.walkspeed.conn = nil end
-    local humanoid = localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Humanoid")
-    if humanoid then humanoid.WalkSpeed = 16 end
+    local h = localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Humanoid")
+    if h then h.WalkSpeed = 16 end
 end
-
 tbl.jumpPower = { enabled = false, value = 50 }
 tbl.jumpPower.apply = function()
-    local humanoid = localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return end
+    local h = localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Humanoid")
+    if not h then return end
     if tbl.jumpPower.enabled then
-        if humanoid.UseJumpPower then humanoid.JumpPower = tbl.jumpPower.value
-        else humanoid.JumpHeight = math.clamp(tbl.jumpPower.value / 10, 7.2, 50) end
+        if h.UseJumpPower then h.JumpPower = tbl.jumpPower.value
+        else h.JumpHeight = math.clamp(tbl.jumpPower.value / 10, 7.2, 50) end
     else
-        if humanoid.UseJumpPower then humanoid.JumpPower = 50
-        else humanoid.JumpHeight = 7.2 end
+        if h.UseJumpPower then h.JumpPower = 50
+        else h.JumpHeight = 7.2 end
     end
 end
 tbl.onCharacterAdded(function()
@@ -1454,17 +1335,16 @@ tbl.onCharacterAdded(function()
     if tbl.jumpPower.enabled then tbl.jumpPower.apply() end
     if tbl.walkspeed.enabled then task.wait(0.1) tbl.walkspeed.start() end
 end)
-
 tbl.infJump = { enabled = false, conn = nil }
 tbl.infJump.start = function()
     if tbl.infJump.conn then return end
     tbl.infJump.conn = UserInputService.JumpRequest:Connect(function()
         if not tbl.infJump.enabled then return end
-        local humanoid = localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
+        local h = localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if h then
+            h:ChangeState(Enum.HumanoidStateType.Freefall)
             task.wait()
-            humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            h:ChangeState(Enum.HumanoidStateType.Jumping)
         end
     end)
 end
@@ -1474,15 +1354,7 @@ tbl.infJump.stop = function()
 end
 
 -- ===== 2D 追踪线 =====
-tbl.tracer = {
-    enabled = false,
-    color = Color3.fromRGB(255, 80, 80),
-    transparency = 0.5,
-    thickness = 1,
-    drawing = nil,
-    conn = nil,
-    target = nil,
-}
+tbl.tracer = { enabled = false, color = Color3.fromRGB(255, 80, 80), transparency = 0.5, thickness = 1, drawing = nil, conn = nil }
 tbl.tracer.start = function()
     if tbl.tracer.conn then return end
     tbl.tracer.conn = RunService.RenderStepped:Connect(function()
@@ -1490,28 +1362,25 @@ tbl.tracer.start = function()
             if tbl.tracer.drawing then tbl.tracer.drawing.Visible = false end
             return
         end
-        local camera = workspace.CurrentCamera
-        if not camera then return end
-        local myChar = localPlayer.Character
-        local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
-        if not myRoot then
+        local cam = workspace.CurrentCamera
+        if not cam then return end
+        local ch = localPlayer.Character
+        local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
+        if not hrp then
             if tbl.tracer.drawing then tbl.tracer.drawing.Visible = false end
             return
         end
-        local myPos = camera.CFrame.Position
+        local mp = cam.CFrame.Position
         local best = nil
-        local bestDist = math.huge
-        local zombies = workspace:FindFirstChild("Zombies")
-        if zombies then
-            for _, m in ipairs(zombies:GetChildren()) do
+        local bestD = math.huge
+        local zs = workspace:FindFirstChild("Zombies")
+        if zs then
+            for _, m in zs:GetChildren() do
                 if m:IsA("Model") then
-                    local hrp = m:FindFirstChild("HumanoidRootPart") or m:FindFirstChild("Head") or m:FindFirstChild("Torso")
-                    if hrp then
-                        local d = (hrp.Position - myPos).Magnitude
-                        if d < bestDist and d <= 500 then
-                            bestDist = d
-                            best = hrp
-                        end
+                    local p = m:FindFirstChild("HumanoidRootPart") or m:FindFirstChild("Head") or m:FindFirstChild("Torso")
+                    if p then
+                        local d = (p.Position - mp).Magnitude
+                        if d < bestD and d <= 500 then bestD = d best = p end
                     end
                 end
             end
@@ -1520,17 +1389,15 @@ tbl.tracer.start = function()
             if tbl.tracer.drawing then tbl.tracer.drawing.Visible = false end
             return
         end
-        if not tbl.tracer.drawing then
-            tbl.tracer.drawing = Drawing.new("Line")
-        end
-        local screenPos, onScreen = camera:WorldToViewportPoint(best.Position)
-        if not onScreen then
+        if not tbl.tracer.drawing then tbl.tracer.drawing = Drawing.new("Line") end
+        local sp, on = cam:WorldToViewportPoint(best.Position)
+        if not on then
             tbl.tracer.drawing.Visible = false
             return
         end
         tbl.tracer.drawing.Visible = true
-        tbl.tracer.drawing.From = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
-        tbl.tracer.drawing.To = Vector2.new(screenPos.X, screenPos.Y)
+        tbl.tracer.drawing.From = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
+        tbl.tracer.drawing.To = Vector2.new(sp.X, sp.Y)
         tbl.tracer.drawing.Color = tbl.tracer.color
         tbl.tracer.drawing.Transparency = tbl.tracer.transparency
         tbl.tracer.drawing.Thickness = tbl.tracer.thickness
@@ -1542,58 +1409,29 @@ tbl.tracer.stop = function()
     if tbl.tracer.drawing then tbl.tracer.drawing:Remove() tbl.tracer.drawing = nil end
 end
 
--- ===== 职业功能 =====
-tbl.martyr = { autoCharge = { enabled = false, thread = nil } }
-tbl.martyr.autoCharge.loop = function()
-    while tbl.martyr.autoCharge.enabled do
-        local character = localPlayer.Character
-        if character then
-            for _, v21 in character:GetChildren() do
-                if v21:IsA("Tool") then
-                    local remoteEvent = v21:FindFirstChild("RemoteEvent")
-                    if remoteEvent then pcall(function() remoteEvent:FireServer("Charge") end) end
-                end
-            end
-        end
-        task.wait(0.125)
-    end
-end
-tbl.martyr.autoCharge.start = function()
-    if tbl.martyr.autoCharge.thread then return end
-    tbl.martyr.autoCharge.enabled = true
-    tbl.martyr.autoCharge.thread = task.spawn(tbl.martyr.autoCharge.loop)
-    tbl.notify("自动冲锋已开启", 2)
-end
-tbl.martyr.autoCharge.stop = function()
-    tbl.martyr.autoCharge.enabled = false
-    if tbl.martyr.autoCharge.thread then task.cancel(tbl.martyr.autoCharge.thread) tbl.martyr.autoCharge.thread = nil end
-    tbl.notify("自动冲锋已关闭", 2)
-end
-
-tbl.chaplain = { enabled = false, threshold = 50, cooldown = 2, range = 15, lastRequest = {}, thread = nil }
+-- ===== 职业：牧师 / 自爆 =====
+tbl.chaplain = { enabled = false, range = 15, thread = nil }
 tbl.chaplain.getRemote = function()
-    local character = localPlayer.Character
-    if not character then return nil end
-    local blessing = character:FindFirstChild("Blessing")
-    if blessing and blessing:FindFirstChild("RemoteEvent") then return blessing.RemoteEvent end
-    for _, v21 in character:GetChildren() do
-        if v21:IsA("Tool") and v21.Name:lower():find("bless") and v21:FindFirstChild("RemoteEvent") then
-            return v21.RemoteEvent
-        end
+    local ch = localPlayer.Character
+    if not ch then return nil end
+    local b = ch:FindFirstChild("Blessing")
+    if b and b:FindFirstChild("RemoteEvent") then return b.RemoteEvent end
+    for _, v in ch:GetChildren() do
+        if v:IsA("Tool") and v.Name:lower():find("bless") and v:FindFirstChild("RemoteEvent") then return v.RemoteEvent end
     end
     return nil
 end
 tbl.chaplain.loop = function()
     while tbl.chaplain.enabled do
-        for _, v21 in Players:GetPlayers() do
-            if v21 ~= localPlayer and v21.Character then
-                local humanoid = v21.Character:FindFirstChildOfClass("Humanoid")
-                if humanoid and humanoid.Health > 0 then
-                    local myRoot = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
-                    local tRoot = v21.Character:FindFirstChild("HumanoidRootPart")
-                    if myRoot and tRoot and (myRoot.Position - tRoot.Position).Magnitude <= tbl.chaplain.range then
-                        local remote = tbl.chaplain.getRemote()
-                        if remote then pcall(function() remote:FireServer("SendRequest", humanoid) end) end
+        for _, p in Players:GetPlayers() do
+            if p ~= localPlayer and p.Character then
+                local h = p.Character:FindFirstChildOfClass("Humanoid")
+                if h and h.Health > 0 then
+                    local mr = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    local tr = p.Character:FindFirstChild("HumanoidRootPart")
+                    if mr and tr and (mr.Position - tr.Position).Magnitude <= tbl.chaplain.range then
+                        local re = tbl.chaplain.getRemote()
+                        if re then pcall(function() re:FireServer("SendRequest", h) end) end
                     end
                 end
             end
@@ -1612,59 +1450,410 @@ tbl.chaplain.stop = function()
     if tbl.chaplain.thread then task.cancel(tbl.chaplain.thread) tbl.chaplain.thread = nil end
     tbl.notify("自动祝福已关闭", 2)
 end
-
--- ===== 玩家透视（MSESP）=====
-tbl.espPlayerEnabled = false
-tbl.playerEspObjects = {}
-tbl.getPlayerESP = function()
-    local myRoot = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not myRoot then
-        for k, v in pairs(tbl.playerEspObjects) do
-            tbl.destroyESP(v)
-            tbl.playerEspObjects[k] = nil
-        end
-        return
-    end
-    local myPos = myRoot.Position
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= localPlayer and plr.Character then
-            local c = plr.Character
-            local ch = c:FindFirstChildOfClass("Humanoid")
-            local hrp = c:FindFirstChild("HumanoidRootPart")
-            if ch and hrp and ch.Health > 0 then
-                local d = (hrp.Position - myPos).Magnitude
-                if d <= 500 then
-                    if not tbl.playerEspObjects[plr] then
-                        local obj = tbl.addESP({
-                            Name = plr.DisplayName,
-                            Model = c,
-                            Color = Color3.fromRGB(0, 200, 255),
-                            MaxDistance = 500,
-                            TextSize = 14,
-                            ESPType = "Highlight",
-                            FillColor = Color3.fromRGB(0, 200, 255),
-                            OutlineColor = Color3.fromRGB(0, 200, 255),
-                            FillTransparency = 0.5,
-                            OutlineTransparency = 0,
-                        })
-                        if obj then tbl.playerEspObjects[plr] = obj end
-                    end
-                else
-                    if tbl.playerEspObjects[plr] then
-                        tbl.destroyESP(tbl.playerEspObjects[plr])
-                        tbl.playerEspObjects[plr] = nil
-                    end
+tbl.martyr = { autoCharge = { enabled = false, thread = nil } }
+tbl.martyr.autoCharge.loop = function()
+    while tbl.martyr.autoCharge.enabled do
+        local ch = localPlayer.Character
+        if ch then
+            for _, v in ch:GetChildren() do
+                if v:IsA("Tool") then
+                    local re = v:FindFirstChild("RemoteEvent")
+                    if re then pcall(function() re:FireServer("Charge") end) end
                 end
-            else
-                if tbl.playerEspObjects[plr] then
-                    tbl.destroyESP(tbl.playerEspObjects[plr])
-                    tbl.playerEspObjects[plr] = nil
+            end
+        end
+        task.wait(0.125)
+    end
+end
+tbl.martyr.autoCharge.start = function()
+    if tbl.martyr.autoCharge.thread then return end
+    tbl.martyr.autoCharge.enabled = true
+    tbl.martyr.autoCharge.thread = task.spawn(tbl.martyr.autoCharge.loop)
+    tbl.notify("自动冲锋已开启", 2)
+end
+tbl.martyr.autoCharge.stop = function()
+    tbl.martyr.autoCharge.enabled = false
+    if tbl.martyr.autoCharge.thread then task.cancel(tbl.martyr.autoCharge.thread) tbl.martyr.autoCharge.thread = nil end
+    tbl.notify("自动冲锋已关闭", 2)
+end
+
+-- ===== 工兵功能 =====
+tbl.engineerAutoRepairEnabled = false
+tbl.autoRepairLoop = nil
+tbl.repairCooldown = 0.05
+tbl.autoRepairTargetMode = "Closest"
+tbl.autoRepairRange = 25
+tbl.getHammerRemote = function()
+    local ch = localPlayer.Character
+    local bp = localPlayer:FindFirstChild("Backpack")
+    for _, src in { bp, ch } do
+        if src then
+            local hammer = src:FindFirstChild("Hammer") or src:FindFirstChild("Claw Hammer")
+            if hammer and hammer:FindFirstChild("RemoteEvent") then return hammer.RemoteEvent end
+        end
+    end
+    return nil
+end
+tbl.getBuildableFolders = function()
+    local folders = {}
+    for _, n in { "Buildables", "Stakes", "Barricades", "Structures", "Buildings" } do
+        local f = workspace:FindFirstChild(n)
+        if f then folders[#folders + 1] = f end
+    end
+    for _, c in workspace:GetChildren() do
+        if c:IsA("Folder") or c:IsA("Model") then
+            local m = c:FindFirstChild("Modes")
+            if m then folders[#folders + 1] = m end
+        end
+    end
+    return folders
+end
+tbl.getRichBuildables = function()
+    local ch = localPlayer.Character
+    if not ch then return {}, 0 end
+    local hrp = ch:FindFirstChild("HumanoidRootPart")
+    if not hrp then return {}, 0 end
+    local pos = hrp.Position
+    local range2 = tbl.autoRepairRange * tbl.autoRepairRange
+    local out = {}
+    local seen = {}
+    local n = 0
+    local function check(arg)
+        if n >= 40 then return end
+        local p
+        if arg:IsA("BasePart") then p = arg.Position
+        elseif arg:IsA("Model") then
+            local pp = arg.PrimaryPart or arg:FindFirstChildWhichIsA("BasePart")
+            if pp then p = pp.Position end
+        end
+        if not p then return end
+        local d2 = (p - pos).Magnitude
+        if d2 > tbl.autoRepairRange then return end
+        local bh = arg:FindFirstChild("BuildingHealth") or arg:FindFirstChild("ConstructHealth")
+        if not bh then
+            local h = arg:FindFirstChild("Health")
+            if h and h:IsA("NumberValue") then bh = h end
+        end
+        if not bh or seen[bh] then return end
+        seen[bh] = true
+        local cur = bh.Value
+        if not cur then return end
+        local max = bh:GetAttribute("MaxHealth") or bh:GetAttribute("Max") or 100
+        if max == 0 or cur >= max then return end
+        n += 1
+        out[n] = { obj = bh, cur = cur, max = max, ratio = cur / max, dist = d2 }
+    end
+    for _, f in tbl.getBuildableFolders() do
+        for _, v in f:GetChildren() do
+            check(v)
+            if n >= 40 then break end
+            if v:IsA("Model") or v:IsA("Folder") then
+                for _, v2 in v:GetChildren() do
+                    if n >= 40 then break end
+                    check(v2)
+                end
+            end
+        end
+        if n >= 40 then break end
+    end
+    return out, n
+end
+tbl.fireRepairSilent = function(arg)
+    if not arg then return end
+    local re = tbl.getHammerRemote()
+    if not re then return end
+    pcall(function() re:FireServer("Repair", arg) end)
+end
+tbl.doAutoRepair = function()
+    local list, n = tbl.getRichBuildables()
+    if n == 0 then return end
+    local target = nil
+    if tbl.autoRepairTargetMode == "Closest" then
+        local best = list[1]
+        for i = 2, n do if list[i].dist < best.dist then best = list[i] end end
+        target = best.obj
+    elseif tbl.autoRepairTargetMode == "LowestHealth" then
+        local best = list[1]
+        for i = 2, n do
+            local v = list[i]
+            if v.ratio < best.ratio or (v.ratio == best.ratio and v.cur < best.cur) then best = v end
+        end
+        target = best.obj
+    end
+    if target then tbl.fireRepairSilent(target) end
+end
+tbl.autoRepairLoopFunc = function()
+    while tbl.engineerAutoRepairEnabled do
+        tbl.doAutoRepair()
+        task.wait(tbl.repairCooldown)
+    end
+end
+tbl.toggleEngineerAutoRepair = function(enabled)
+    tbl.engineerAutoRepairEnabled = enabled
+    if enabled then
+        if tbl.autoRepairLoop then task.cancel(tbl.autoRepairLoop) end
+        tbl.autoRepairLoop = task.spawn(tbl.autoRepairLoopFunc)
+        tbl.notify("自动修复已开启", 2)
+    else
+        if tbl.autoRepairLoop then task.cancel(tbl.autoRepairLoop) tbl.autoRepairLoop = nil end
+        tbl.notify("自动修复已关闭", 2)
+    end
+end
+
+tbl.forceBrace = { enabled = false, thread = nil }
+tbl.forceBrace.getRemote = function()
+    local bp = localPlayer:FindFirstChild("Backpack")
+    if not bp then return nil end
+    for _, n in { "Axe", "Pickaxe", "Baguette" } do
+        local t = bp:FindFirstChild(n)
+        if t then
+            local re = t:FindFirstChild("RemoteEvent")
+            if re then return re end
+        end
+    end
+    return nil
+end
+tbl.forceBrace.loop = function()
+    while tbl.forceBrace.enabled do
+        local re = tbl.forceBrace.getRemote()
+        if re then pcall(function() re:FireServer("BraceBlock") end) end
+        task.wait(0.2)
+    end
+end
+tbl.forceBrace.start = function()
+    if tbl.forceBrace.enabled then return end
+    tbl.forceBrace.enabled = true
+    if tbl.forceBrace.thread then task.cancel(tbl.forceBrace.thread) end
+    tbl.forceBrace.thread = task.spawn(tbl.forceBrace.loop)
+    tbl.notify("静默格挡已开启", 2)
+end
+tbl.forceBrace.stop = function()
+    tbl.forceBrace.enabled = false
+    if tbl.forceBrace.thread then task.cancel(tbl.forceBrace.thread) tbl.forceBrace.thread = nil end
+    tbl.notify("静默格挡已关闭", 2)
+end
+
+tbl.axeStunActive = false
+tbl.axeStunConnection = nil
+tbl.axeStunRange = 15
+tbl.axeStunCount = 5
+tbl.axeStunDelay = 0
+tbl.axeStunLastFire = 0
+tbl.startAxeStun = function()
+    if tbl.axeStunConnection then return end
+    tbl.axeStunActive = true
+    tbl.axeStunConnection = RunService.Heartbeat:Connect(function()
+        if not tbl.axeStunActive then return end
+        if os.clock() - tbl.axeStunLastFire < tbl.axeStunDelay then return end
+        local ch = localPlayer.Character
+        if not ch then return end
+        local hrp = ch:FindFirstChild("HumanoidRootPart")
+        local h = ch:FindFirstChildOfClass("Humanoid")
+        if not hrp or not h or h.Health <= 0 then return end
+        local w = nil
+        for _, v in ch:GetChildren() do
+            if v:GetAttribute("Melee") then w = v break end
+        end
+        if not w then
+            local bp = localPlayer:FindFirstChild("Backpack")
+            if bp then
+                for _, v in bp:GetChildren() do
+                    if v:GetAttribute("Melee") then w = v break end
+                end
+            end
+        end
+        if not w or not (w.Name == "Axe" or w.Name == "Pickaxe" or w.Name == "Baguette") then return end
+        local re = w:FindFirstChild("RemoteEvent")
+        if not re then return end
+        local zs = workspace:FindFirstChild("Zombies")
+        if not zs then return end
+        local list = {}
+        for _, m in zs:GetChildren() do
+            if m:IsA("Model") and m:FindFirstChild("HumanoidRootPart") then
+                local d = (m.HumanoidRootPart.Position - hrp.Position).Magnitude
+                if d <= tbl.axeStunRange then table.insert(list, { zombie = m, dist = d }) end
+            end
+        end
+        table.sort(list, function(a, b) return a.dist < b.dist end)
+        for i = 1, math.min(tbl.axeStunCount, #list) do
+            local z = list[i].zombie
+            local s = z:FindFirstChild("State")
+            if not (s and s.Value == "Stunned") then
+                local zr = z:FindFirstChild("HumanoidRootPart")
+                if zr then
+                    pcall(function()
+                        re:FireServer("BraceBlock")
+                        re:FireServer("StopBraceBlock")
+                        re:FireServer("FeedbackStun", z, zr.CFrame.Position)
+                    end)
+                end
+            end
+        end
+        tbl.axeStunLastFire = os.clock()
+    end)
+end
+tbl.stopAxeStun = function()
+    tbl.axeStunActive = false
+    if tbl.axeStunConnection then tbl.axeStunConnection:Disconnect() tbl.axeStunConnection = nil end
+end
+tbl.onCharacterAdded(function()
+    if tbl.axeStunActive then
+        tbl.stopAxeStun()
+        local t = Library.Toggles.AxeStunToggle
+        if t then t:SetValue(false) end
+    end
+end)
+
+tbl.engineerElbowEnabled = false
+tbl.engineerAnimConnection = nil
+tbl.engineerElbowRange = 50
+tbl.engineerElbowCount = 5
+tbl.getValidMelee = function()
+    local ch = localPlayer.Character
+    if not ch then return nil end
+    local t = ch:FindFirstChildOfClass("Tool")
+    if not t then return nil end
+    if t.Name == "Pickaxe" or t.Name == "Axe" or t.Name == "Baguette" then return t end
+    return nil
+end
+tbl.stunAroundPlayer = function()
+    if not tbl.engineerElbowEnabled then return end
+    local ch = localPlayer.Character
+    if not ch then return end
+    local w = tbl.getValidMelee()
+    if not w then return end
+    local re = w:FindFirstChild("RemoteEvent")
+    if not re then return end
+    local hrp = ch:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    local pos = hrp.Position
+    local zs = workspace:FindFirstChild("Zombies")
+    if not zs then return end
+    local list = {}
+    for _, m in zs:GetChildren() do
+        if m:IsA("Model") and m:FindFirstChild("HumanoidRootPart") then
+            if m:GetAttribute("Type") ~= "Barrel" then
+                local s = m:FindFirstChild("State")
+                if not (s and s.Value == "Spawn") then
+                    local zr = m:FindFirstChild("HumanoidRootPart")
+                    if zr then
+                        local d = (zr.Position - pos).Magnitude
+                        if d <= tbl.engineerElbowRange then
+                            if not (s and s.Value == "Stunned") then table.insert(list, { zombie = m, root = zr, dist = d }) end
+                        end
+                    end
                 end
             end
         end
     end
+    table.sort(list, function(a, b) return a.dist < b.dist end)
+    for i = 1, math.min(tbl.engineerElbowCount, #list) do
+        local e = list[i]
+        pcall(function()
+            re:FireServer("BraceBlock")
+            re:FireServer("StopBraceBlock")
+            re:FireServer("FeedbackStun", e.zombie, e.root.Position)
+        end)
+    end
 end
-tbl.playerEspLoop = task.spawn(function()
+tbl.onElbowAnimationPlayed = function(arg)
+    if not tbl.engineerElbowEnabled then return end
+    local aid = arg.Animation.AnimationId
+    if aid == "rbxassetid://15345113937" then tbl.stunAroundPlayer() end
+end
+tbl.updateEngineerAnimConnection = function()
+    if tbl.engineerElbowEnabled then
+        if tbl.engineerAnimConnection then return end
+        local ch = localPlayer.Character
+        if not ch then return end
+        local h = ch:FindFirstChildOfClass("Humanoid")
+        if h then tbl.engineerAnimConnection = h.AnimationPlayed:Connect(tbl.onElbowAnimationPlayed) end
+    elseif tbl.engineerAnimConnection then
+        tbl.engineerAnimConnection:Disconnect()
+        tbl.engineerAnimConnection = nil
+    end
+end
+tbl.onCharacterAdded(tbl.updateEngineerAnimConnection)
+
+tbl.engineerRecycleEnabled = false
+tbl.recycleAnimConnection = nil
+tbl.RECYCLE_IDS = {
+    ["rbxassetid://16663569329"] = true, ["rbxassetid://16663563130"] = true,
+    ["rbxassetid://109975878922735"] = true, ["rbxassetid://12638406999"] = true,
+    ["rbxassetid://94131315859283"] = true, ["rbxassetid://12638412059"] = true,
+}
+tbl.recycleWeapon = function()
+    if not tbl.engineerRecycleEnabled then return end
+    local ch = localPlayer.Character
+    if not ch then return end
+    local t = ch:FindFirstChildOfClass("Tool")
+    if not t then return end
+    if t.Name ~= "Pickaxe" and t.Name ~= "Axe" and t.Name ~= "Baguette" then return end
+    local bp = localPlayer:FindFirstChild("Backpack")
+    if not bp then return end
+    t.Parent = bp
+    task.wait(0.1)
+    if tbl.engineerRecycleEnabled and t.Parent == bp then t.Parent = ch end
+end
+tbl.onRecycleAnimationPlayed = function(arg)
+    if not tbl.engineerRecycleEnabled then return end
+    local aid = arg.Animation.AnimationId
+    if tbl.RECYCLE_IDS[aid] then
+        task.delay(aid == "rbxassetid://12638412059" and 0.4 or 0.3, tbl.recycleWeapon)
+    end
+end
+tbl.updateRecycleAnimConnection = function()
+    if tbl.engineerRecycleEnabled then
+        if tbl.recycleAnimConnection then return end
+        local ch = localPlayer.Character
+        if not ch then return end
+        local h = ch:FindFirstChildOfClass("Humanoid")
+        if h then tbl.recycleAnimConnection = h.AnimationPlayed:Connect(tbl.onRecycleAnimationPlayed) end
+    elseif tbl.recycleAnimConnection then
+        tbl.recycleAnimConnection:Disconnect()
+        tbl.recycleAnimConnection = nil
+    end
+end
+tbl.onCharacterAdded(tbl.updateRecycleAnimConnection)
+
+-- ===== 玩家透视 =====
+tbl.espPlayerEnabled = false
+tbl.playerEspObjects = {}
+tbl.getPlayerESP = function()
+    local ch = localPlayer.Character
+    local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        for k, v in pairs(tbl.playerEspObjects) do tbl.destroyESP(v) tbl.playerEspObjects[k] = nil end
+        return
+    end
+    local mp = hrp.Position
+    for _, p in Players:GetPlayers() do
+        if p ~= localPlayer and p.Character then
+            local c = p.Character
+            local h = c:FindFirstChildOfClass("Humanoid")
+            local r = c:FindFirstChild("HumanoidRootPart")
+            if h and r and h.Health > 0 then
+                local d = (r.Position - mp).Magnitude
+                if d <= 500 then
+                    if not tbl.playerEspObjects[p] then
+                        local obj = tbl.addESP({
+                            Name = p.DisplayName, Model = c, Color = Color3.fromRGB(0, 200, 255),
+                            MaxDistance = 500, TextSize = 14, ESPType = "Highlight",
+                            FillColor = Color3.fromRGB(0, 200, 255), OutlineColor = Color3.fromRGB(0, 200, 255),
+                            FillTransparency = 0.5, OutlineTransparency = 0,
+                        })
+                        if obj then tbl.playerEspObjects[p] = obj end
+                    end
+                else
+                    if tbl.playerEspObjects[p] then tbl.destroyESP(tbl.playerEspObjects[p]) tbl.playerEspObjects[p] = nil end
+                end
+            else
+                if tbl.playerEspObjects[p] then tbl.destroyESP(tbl.playerEspObjects[p]) tbl.playerEspObjects[p] = nil end
+            end
+        end
+    end
+end
+task.spawn(function()
     while true do
         task.wait(0.5)
         if tbl.espPlayerEnabled then pcall(tbl.getPlayerESP) end
@@ -1675,15 +1864,9 @@ end)
 local Window = Library:CreateWindow({
     Title = "G&B Toolkit",
     Footer = "完整版 | SkinHUB + Pluton Lite",
-    Icon = 0,
-    NotifySide = "Right",
-    ShowCustomCursor = false,
-    Center = true,
-    AutoShow = true,
-    ToggleKeybind = Enum.KeyCode.RightControl,
-    CornerRadius = 14,
+    Icon = 0, NotifySide = "Right", ShowCustomCursor = false, Center = true,
+    AutoShow = true, ToggleKeybind = Enum.KeyCode.RightControl, CornerRadius = 14,
 })
-
 local Tabs = {
     Visuals = Window:AddTab("透视", "eye"),
     Aura = Window:AddTab("杀戮光环", "sword"),
@@ -1712,12 +1895,7 @@ espSec:AddToggle("ESPZombieHeadless", { Text = "无头骑士", Default = true, C
 local espRight = Tabs.Visuals:AddRightGroupbox("玩家透视 / 追踪线")
 espRight:AddToggle("ESPPlayer", { Text = "启用玩家透视", Default = false, Callback = function(v)
     tbl.espPlayerEnabled = v
-    if not v then
-        for k, obj in pairs(tbl.playerEspObjects) do
-            tbl.destroyESP(obj)
-            tbl.playerEspObjects[k] = nil
-        end
-    end
+    if not v then for k, obj in pairs(tbl.playerEspObjects) do tbl.destroyESP(obj) tbl.playerEspObjects[k] = nil end end
 end })
 espRight:AddDivider()
 espRight:AddToggle("TracerToggle", { Text = "2D 追踪线（最近僵尸）", Default = false, Callback = function(v)
@@ -1727,13 +1905,13 @@ end })
 espRight:AddSlider("TracerTransparency", { Text = "追踪线透明度", Default = 0.5, Min = 0, Max = 1, Rounding = 2, Callback = function(v) tbl.tracer.transparency = v end })
 espRight:AddSlider("TracerThickness", { Text = "追踪线粗细", Default = 1, Min = 1, Max = 5, Rounding = 0, Callback = function(v) tbl.tracer.thickness = v end })
 
--- ===== 杀戮光环页 =====
+-- ===== 杀戮光环页（已改回原样）=====
 local auraLeft = Tabs.Aura:AddLeftGroupbox("光环设置")
 auraLeft:AddToggle("AuraToggle", { Text = "启用杀戮光环", Default = false, Callback = function(v)
     if v then tbl.startQingShuiAura() else tbl.stopQingShuiAura() end
 end })
-auraLeft:AddSlider("AuraCount", { Text = "攻击数量", Default = 2, Min = 1, Max = 10, Rounding = 0, Callback = function(v) tbl.attackCount = v end })
-auraLeft:AddSlider("AuraRange", { Text = "攻击距离", Default = 17, Min = 10, Max = 50, Rounding = 0, Callback = function(v) tbl.displayRange = v end })
+auraLeft:AddSlider("AuraCount", { Text = "攻击数量", Default = 2, Min = 1, Max = 5, Rounding = 0, Callback = function(v) tbl.attackCount = v end })
+auraLeft:AddSlider("AuraRange", { Text = "攻击距离", Default = 17, Min = 10, Max = 35, Rounding = 0, Callback = function(v) tbl.displayRange = v end })
 auraLeft:AddSlider("AuraAngle", { Text = "攻击角度", Default = 180, Min = 50, Max = 360, Rounding = 0, Callback = function(v) tbl.attackAngle = v end })
 
 local auraRight = Tabs.Aura:AddRightGroupbox("目标选择")
@@ -1741,7 +1919,7 @@ auraRight:AddToggle("AuraBarrel", { Text = "攻击自爆", Default = false, Call
 auraRight:AddToggle("AuraDracula", { Text = "攻击德古拉", Default = false, Callback = function(v) tbl.attackDraculaEnabled = v end })
 auraRight:AddToggle("AuraSkipSpawn", { Text = "跳过生成中僵尸", Default = true, Callback = function(v) tbl.skipSpawningEnabled = v end })
 
--- ===== 反绕过/防封页 =====
+-- ===== 反绕过页 =====
 local acLeft = Tabs.AntiCheat:AddLeftGroupbox("光环防封")
 acLeft:AddToggle("SmartAuraToggle", { Text = "智能光环（卡伤检测）", Default = false, Callback = function(v)
     tbl.smartAura.enabled = v
@@ -1767,7 +1945,6 @@ silentLeft:AddToggle("SilentAimWallCheck", { Text = "墙体检测", Default = tr
 local autoLeft = Tabs.Auto:AddLeftGroupbox("武器 / 装填")
 autoLeft:AddToggle("OfficerAutoReloadToggle", { Text = "自动换弹", Default = false, Callback = function(v) if v then tbl.officer.autoReload.enable() else tbl.officer.autoReload.disable() end end })
 autoLeft:AddToggle("AutoCannonToggle", { Text = "自动装填大炮", Default = false, Callback = function(v) if v then tbl.startAutoCannon() else tbl.stopAutoCannon() end end })
-autoLeft:AddToggle("DoctorAutoHealToggle", { Text = "自动治疗受伤玩家", Default = false, Callback = function(v) if v then tbl.doctor.start() else tbl.doctor.stop() end end })
 
 local autoRight = Tabs.Auto:AddRightGroupbox("地图互动")
 autoRight:AddToggle("AutoDigToggle", { Text = "自动挖雪", Default = false, Callback = function(v) tbl.toggleAutoDig(v) end })
@@ -1780,39 +1957,44 @@ protectLeft:AddToggle("AntiVelocityToggle", { Text = "骨折可移动", Default 
 
 -- ===== 移动页 =====
 local moveLeft = Tabs.Move:AddLeftGroupbox("速度 / 跳跃")
-moveLeft:AddToggle("WalkspeedToggle", { Text = "速度修改", Default = false, Callback = function(v)
-    tbl.walkspeed.enabled = v
-    if v then tbl.walkspeed.start() else tbl.walkspeed.stop() end
-end })
+moveLeft:AddToggle("WalkspeedToggle", { Text = "速度修改", Default = false, Callback = function(v) tbl.walkspeed.enabled = v; if v then tbl.walkspeed.start() else tbl.walkspeed.stop() end end })
 moveLeft:AddSlider("WalkspeedValue", { Text = "速度值", Default = 16, Min = 16, Max = 200, Rounding = 0, Callback = function(v) tbl.walkspeed.value = v end })
 moveLeft:AddToggle("JumpPowerToggle", { Text = "跳跃力修改", Default = false, Callback = function(v) tbl.jumpPower.enabled = v tbl.jumpPower.apply() end })
 moveLeft:AddSlider("JumpPowerValue", { Text = "跳跃力值", Default = 50, Min = 20, Max = 500, Rounding = 0, Callback = function(v) tbl.jumpPower.value = v if tbl.jumpPower.enabled then tbl.jumpPower.apply() end end })
-moveLeft:AddToggle("InfJumpToggle", { Text = "无限跳", Default = false, Callback = function(v)
-    tbl.infJump.enabled = v
-    if v then tbl.infJump.start() else tbl.infJump.stop() end
-end })
+moveLeft:AddToggle("InfJumpToggle", { Text = "无限跳", Default = false, Callback = function(v) tbl.infJump.enabled = v; if v then tbl.infJump.start() else tbl.infJump.stop() end end })
 
 local moveRight = Tabs.Move:AddRightGroupbox("飞行 / 穿墙")
 moveRight:AddToggle("WarpFlyToggle", { Text = "飞行（WarpFly）", Default = false, Callback = function(v) if v then tbl.warpFly.start() else tbl.warpFly.stop() end end })
 moveRight:AddSlider("WarpFlySpeed", { Text = "飞行速度", Default = 35, Min = 10, Max = 200, Rounding = 0, Callback = function(v) tbl.warpFly.flySpeed = v end })
 moveRight:AddToggle("NoclipToggle", { Text = "穿墙", Default = false, Callback = function(v)
-    if v then
-        tbl.warpFly.start()
-        tbl.warpFly.enterNoClip()
-    else
-        tbl.warpFly.exitNoClip()
-        tbl.warpFly.stop()
-    end
+    if v then tbl.warpFly.start() tbl.warpFly.enterNoClip() else tbl.warpFly.exitNoClip() tbl.warpFly.stop() end
 end })
 
 -- ===== 职业功能页 =====
-local classLeft = Tabs.Class:AddLeftGroupbox("军官 / 线列")
-classLeft:AddToggle("OfficerAutoReloadToggle2", { Text = "自动换弹", Default = false, Callback = function(v) if v then tbl.officer.autoReload.enable() else tbl.officer.autoReload.disable() end end })
+local classLeft = Tabs.Class:AddLeftGroupbox("军官 / 医生 / 牧师 / 自爆")
+classLeft:AddToggle("OfficerAutoReloadToggle2", { Text = "军官自动换弹", Default = false, Callback = function(v) if v then tbl.officer.autoReload.enable() else tbl.officer.autoReload.disable() end end })
+classLeft:AddToggle("DoctorAutoHealToggle", { Text = "医生自动治疗", Default = false, Callback = function(v) if v then tbl.doctor.start() else tbl.doctor.stop() end end })
+classLeft:AddToggle("ChaplainAutoBlessToggle", { Text = "牧师自动祝福", Default = false, Callback = function(v) if v then tbl.chaplain.start() else tbl.chaplain.stop() end end })
+classLeft:AddToggle("MartyrAutoChargeToggle", { Text = "自爆自动冲锋", Default = false, Callback = function(v) if v then tbl.martyr.autoCharge.start() else tbl.martyr.autoCharge.stop() end end })
 
-local classRight = Tabs.Class:AddRightGroupbox("工兵 / 医生 / 牧师 / 自爆")
-classRight:AddToggle("DoctorAutoHealToggle2", { Text = "医生自动治疗", Default = false, Callback = function(v) if v then tbl.doctor.start() else tbl.doctor.stop() end end })
-classRight:AddToggle("ChaplainAutoBlessToggle", { Text = "牧师自动祝福", Default = false, Callback = function(v) if v then tbl.chaplain.start() else tbl.chaplain.stop() end end })
-classRight:AddToggle("MartyrAutoChargeToggle", { Text = "自爆自动冲锋", Default = false, Callback = function(v) if v then tbl.martyr.autoCharge.start() else tbl.martyr.autoCharge.stop() end end })
+local classRight = Tabs.Class:AddRightGroupbox("工兵")
+classRight:AddToggle("AutoRepairToggle", { Text = "静默自动修建筑", Default = false, Callback = function(v) tbl.toggleEngineerAutoRepair(v) end })
+classRight:AddDropdown("AutoRepairMode", {
+    Text = "修复模式", Values = { "最近建筑", "最低生命值建筑" }, Default = "最近建筑",
+    Callback = function(v)
+        if v == "最近建筑" then tbl.autoRepairTargetMode = "Closest"
+        elseif v == "最低生命值建筑" then tbl.autoRepairTargetMode = "LowestHealth" end
+    end,
+})
+classRight:AddToggle("ForceBraceToggle", { Text = "静默格挡", Default = false, Callback = function(v) if v then tbl.forceBrace.start() else tbl.forceBrace.stop() end end })
+classRight:AddToggle("AxeStunToggle", { Text = "肘击", Default = false, Callback = function(v) if v then tbl.startAxeStun() else tbl.stopAxeStun() end end })
+classRight:AddSlider("AxeStunRange", { Text = "肘击距离", Default = 15, Min = 5, Max = 35, Rounding = 0, Callback = function(v) tbl.axeStunRange = v end })
+classRight:AddSlider("AxeStunCount", { Text = "肘击数量", Default = 5, Min = 1, Max = 5, Rounding = 0, Callback = function(v) tbl.axeStunCount = v end })
+classRight:AddSlider("AxeStunDelay", { Text = "肘击间隔", Default = 0, Min = 0, Max = 1, Rounding = 2, Callback = function(v) tbl.axeStunDelay = v end })
+classRight:AddToggle("EngineerElbowToggle", { Text = "肘击范围扩大", Default = false, Callback = function(v) tbl.engineerElbowEnabled = v tbl.updateEngineerAnimConnection() end })
+classRight:AddSlider("EngineerElbowRange", { Text = "肘击扩大距离", Default = 50, Min = 5, Max = 50, Rounding = 0, Callback = function(v) tbl.engineerElbowRange = v end })
+classRight:AddSlider("EngineerElbowCount", { Text = "肘击扩大数量", Default = 5, Min = 1, Max = 5, Rounding = 0, Callback = function(v) tbl.engineerElbowCount = v end })
+classRight:AddToggle("EngineerRecycleToggle", { Text = "攻击武器回收", Default = false, Callback = function(v) tbl.engineerRecycleEnabled = v tbl.updateRecycleAnimConnection() end })
 
 -- ===== 杂项页 =====
 local miscLeft = Tabs.Misc:AddLeftGroupbox("娱乐")
@@ -1822,13 +2004,12 @@ miscLeft:AddToggle("AnimFreezeToggle", { Text = "人体十字架", Default = fal
 
 local miscRight = Tabs.Misc:AddRightGroupbox("操作")
 miscRight:AddButton({ Text = "重置角色", Func = function()
-    local character = localPlayer.Character
-    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-    if humanoid then humanoid.Health = 0 end
+    local ch = localPlayer.Character
+    local h = ch and ch:FindFirstChildOfClass("Humanoid")
+    if h then h.Health = 0 end
 end })
 
 -- ===== 僵尸透视主循环 =====
-tbl.ZombieWatch = { _models = {}, _addedSubs = {}, _started = false }
 tbl.ZOMBIE_ESP_RANGE = 200
 tbl.zombieEspEnabled = { Axe = false, Eye = false, Sword = false, Barrel = false, FTorso = false, Normal = false, Headless = false }
 tbl.zombieEffects = {}
@@ -1851,69 +2032,69 @@ tbl.ZOMBIE_TYPES = {
     Headless = { name = "无头士兵", color = Color3.fromRGB(255, 215, 0) },
 }
 tbl.createZombieESP = function(arg, arg2)
-    local v26 = tbl.ZOMBIE_TYPES[arg2]
-    if not v26 then return nil end
+    local t = tbl.ZOMBIE_TYPES[arg2]
+    if not t then return nil end
     return tbl.addESP({
-        Name = v26.name, Model = arg, Color = v26.color,
+        Name = t.name, Model = arg, Color = t.color,
         MaxDistance = tbl.ZOMBIE_ESP_RANGE, TextSize = 14,
-        ESPType = "Highlight", FillColor = v26.color, OutlineColor = v26.color,
+        ESPType = "Highlight", FillColor = t.color, OutlineColor = t.color,
         FillTransparency = 0.5, OutlineTransparency = 0,
     })
 end
 tbl.removeZombieEffects = function(arg)
-    local v26 = tbl.zombieEffects[arg]
-    if v26 then tbl.destroyESP(v26.esp) tbl.zombieEffects[arg] = nil end
+    local e = tbl.zombieEffects[arg]
+    if e then tbl.destroyESP(e.esp) tbl.zombieEffects[arg] = nil end
 end
 tbl.clearAllZombieEffects = function()
     for k in tbl.zombieEffects do tbl.removeZombieEffects(k) end
 end
 tbl.updateZombieESP = function()
-    local flag = false
-    for _, v26 in tbl.zombieEspEnabled do if v26 then flag = true break end end
-    if not flag then tbl.clearAllZombieEffects() return end
-    local character = localPlayer.Character
-    character = character and character:FindFirstChild("HumanoidRootPart")
-    character = character and character.Position
-    if not character then tbl.clearAllZombieEffects() return end
-    for k, v26 in tbl.zombieEffects do
-        if not k.Parent or v26.esp == nil or v26.esp.Deleted then tbl.removeZombieEffects(k) end
+    local any = false
+    for _, v in tbl.zombieEspEnabled do if v then any = true break end end
+    if not any then tbl.clearAllZombieEffects() return end
+    local ch = localPlayer.Character
+    ch = ch and ch:FindFirstChild("HumanoidRootPart")
+    ch = ch and ch.Position
+    if not ch then tbl.clearAllZombieEffects() return end
+    for k, e in tbl.zombieEffects do
+        if not k.Parent or e.esp == nil or e.esp.Deleted then tbl.removeZombieEffects(k) end
     end
-    local tbl7 = {}
-    local camera = workspace:FindFirstChild("Camera")
-    if camera then
-        for _, v26 in camera:GetDescendants() do
-            if v26:IsA("Model") and v26.Name:find("Zombie") then table.insert(tbl7, v26) end
+    local list = {}
+    local cam = workspace:FindFirstChild("Camera")
+    if cam then
+        for _, m in cam:GetDescendants() do
+            if m:IsA("Model") and m.Name:find("Zombie") then table.insert(list, m) end
         end
     end
-    local zombies = workspace:FindFirstChild("Zombies")
-    if zombies then
-        for _, v26 in zombies:GetChildren() do
-            if v26:IsA("Model") and v26.Name:find("Zombie") then table.insert(tbl7, v26) end
+    local zs = workspace:FindFirstChild("Zombies")
+    if zs then
+        for _, m in zs:GetChildren() do
+            if m:IsA("Model") and m.Name:find("Zombie") then table.insert(list, m) end
         end
     end
-    for _, v26 in tbl7 do
-        local humanoidRootPart = v26:FindFirstChild("HumanoidRootPart") or v26:FindFirstChild("Head") or v26:FindFirstChild("Torso")
-        if humanoidRootPart then
-            local magnitude = (humanoidRootPart.Position - character).Magnitude
-            local v27 = tbl.getZombieTypeKey(v26)
-            local v28 = tbl.zombieEspEnabled[v27]
-            local v29 = tbl.zombieEffects[v26]
-            if v28 and magnitude <= tbl.ZOMBIE_ESP_RANGE then
-                if v29 == nil then
-                    local v31 = tbl.createZombieESP(v26, v27)
-                    if v31 then tbl.zombieEffects[v26] = { esp = v31, typeKey = v27 } end
+    for _, m in list do
+        local p = m:FindFirstChild("HumanoidRootPart") or m:FindFirstChild("Head") or m:FindFirstChild("Torso")
+        if p then
+            local d = (p.Position - ch).Magnitude
+            local key = tbl.getZombieTypeKey(m)
+            local enabled = tbl.zombieEspEnabled[key]
+            local e = tbl.zombieEffects[m]
+            if enabled and d <= tbl.ZOMBIE_ESP_RANGE then
+                if e == nil then
+                    local obj = tbl.createZombieESP(m, key)
+                    if obj then tbl.zombieEffects[m] = { esp = obj, typeKey = key } end
                 end
-            elseif v29 ~= nil then
-                tbl.removeZombieEffects(v26)
+            elseif e ~= nil then
+                tbl.removeZombieEffects(m)
             end
         end
     end
 end
-local lastZombieESPUpdate = 0
+local lastZ = 0
 RunService.Heartbeat:Connect(function()
-    local v26 = os.clock()
-    if v26 - lastZombieESPUpdate >= 0.2 then
-        lastZombieESPUpdate = v26
+    local now = os.clock()
+    if now - lastZ >= 0.2 then
+        lastZ = now
         tbl.updateZombieESP()
     end
 end)
@@ -1922,10 +2103,7 @@ end)
 localPlayer.CharacterAdded:Connect(function()
     task.wait(0.5)
     tbl.clearAllZombieEffects()
-    for k, obj in pairs(tbl.playerEspObjects) do
-        tbl.destroyESP(obj)
-        tbl.playerEspObjects[k] = nil
-    end
+    for k, obj in pairs(tbl.playerEspObjects) do tbl.destroyESP(obj) tbl.playerEspObjects[k] = nil end
     if tbl.warpFly.enabled then tbl.warpFly.stop() task.wait(0.1) tbl.warpFly.start() end
     if tbl.animFreeze.enabled then tbl.animFreeze.stop() task.wait(0.1) tbl.animFreeze.start() end
     if tbl.smartAura.enabled then tbl.stopSmartAuraThread() task.wait(0.1) tbl.startSmartAuraThread() end
@@ -1941,6 +2119,11 @@ Library:OnUnload(function()
     tbl.doctor.stop()
     tbl.chaplain.stop()
     tbl.martyr.autoCharge.stop()
+    tbl.toggleEngineerAutoRepair(false)
+    tbl.forceBrace.stop()
+    tbl.stopAxeStun()
+    if tbl.engineerAnimConnection then tbl.engineerAnimConnection:Disconnect() end
+    if tbl.recycleAnimConnection then tbl.recycleAnimConnection:Disconnect() end
     tbl.stopAutoCannon()
     tbl.toggleAutoDig(false)
     tbl.toggleAutoCollect(false)
@@ -1967,4 +2150,4 @@ SaveManager:SetFolder("GBToolkit")
 SaveManager:BuildConfigSection(Tabs.Misc)
 ThemeManager:ApplyToTab(Tabs.Misc)
 
-warn("G&B Toolkit 完整版已加载（老牧师加老牧师）")
+warn("G&B Toolkit 完整版已加载（杀戮光环已改回原样：距离 17~35 / 数量 1~5 / 角度 50~360 / 智能内环固定 13）")
