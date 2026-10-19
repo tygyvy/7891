@@ -7,6 +7,7 @@ local Workspace = game:GetService("Workspace")
 local Debris = game:GetService("Debris")
 local TeleportService = game:GetService("TeleportService")
 local Lighting = game:GetService("Lighting")
+local TweenService = game:GetService("TweenService")
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
@@ -33,6 +34,7 @@ local RagdollRemote = CE:WaitForChild("RagdollRemote")
 local SpawnToy = MT:WaitForChild("SpawnToyRemoteFunction")
 local DestroyToy = MT:WaitForChild("DestroyToy")
 local IsHeld = LocalPlayer:WaitForChild("IsHeld", 5)
+local StickyPartEvent = RS:WaitForChild("PlayerEvents"):WaitForChild("StickyPartEvent")
 
 local S = {
     AntiGrab = false, AntiGrabV2 = false, AntiVoid = false, InfJump = false, Noclip = false,
@@ -74,6 +76,8 @@ local S = {
     espTracer = false,
     espTracerThickness = 0.2,
     grabKickAllActive = false, grabKickAllHeight = "Spawn",
+    grabKickSelectEnabled = false,
+    grabKickSelected = {},
     KickAura = false,
     ThirdPerson = false,
     ClickAura = false,
@@ -85,6 +89,13 @@ local S = {
     FOVValue = 70,
     FPSBooster = false,
     NightMode = false,
+    AntiKickKunai = false,
+    ShurikenAntiKick = false,
+    destroyGucciActive = false,
+    AntiAntiKickAura = false,
+    AntiBananaAura = false,
+    AntiWDAura = false,
+    AntiPalletFlingAura = false,
 }
 
 local T = {
@@ -124,6 +135,14 @@ local T = {
     playerWS = nil,
     auraVisual = nil,
     auraVisualConn = nil,
+    kunaiAttaching = false,
+    currentKunai = nil,
+    kunaiCheckLoop = nil,
+    destroyGucciTask = nil,
+    antiBananaAuraTask = nil,
+    antiWDAuraTask = nil,
+    antiPalletAuraTask = nil,
+    destroyAuraCancelId = 0,
 }
 
 local function char() return LocalPlayer.Character end
@@ -145,7 +164,6 @@ local function auraGetRoot()
     local c = LocalPlayer.Character
     return c and (c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso"))
 end
-local function auraIsFriend(player) return false end
 local function auraSetNetworkOwner(part)
     pcall(function() SetOwner:FireServer(part, auraGetRoot().CFrame) end)
 end
@@ -156,11 +174,17 @@ local function auraBodyVelocity(part, vel, lifetime)
     bv.Parent = part
     Debris:AddItem(bv, lifetime or 1)
 end
-
--- 光环目标过滤：未开启选择时对所有人生效；开启时只对选中玩家生效
 local function auraPlayerAllowed(player)
     if not S.AuraPlayerSelect then return true end
     return player and S.AuraTargetName and player.Name == S.AuraTargetName
+end
+local function grabKickPlayerAllowed(player)
+    if not S.grabKickSelectEnabled then return true end
+    if not player then return false end
+    for name, v in pairs(S.grabKickSelected) do
+        if v and name == player.Name then return true end
+    end
+    return false
 end
 
 -- ===== 第三人称 =====
@@ -294,7 +318,7 @@ Workspace.ChildAdded:Connect(function(model)
     end
 end)
 
--- ===== Raycast 自瞄（支持指定玩家）=====
+-- ===== Raycast 自瞄 =====
 local S_OriginalRaycast = nil
 local S_RaycastModule = nil
 task.spawn(function()
@@ -388,7 +412,7 @@ local function setupAntiExplosion(character)
     end)
 end
 
--- ===== 反击（带模式）=====
+-- ===== 反击 =====
 local function startFightBack()
     if T.fightBackConn then task.cancel(T.fightBackConn) T.fightBackConn = nil end
     T.fightBackConn = task.spawn(function()
@@ -533,7 +557,7 @@ local function stopKickAura()
     T.kickAuraKickedPlayers = {}
 end
 
--- ===== 防大玩具（Anti Gucci Blobman）=====
+-- ===== 防大玩具 =====
 local function startAntiGucci()
     if T.antiGucciTask then task.cancel(T.antiGucciTask) T.antiGucciTask = nil end
     T.antiGucciTask = task.spawn(function()
@@ -739,7 +763,8 @@ combatSec:AddToggle("Triggerbot", {
             end)
         else
             if T.triggerConn then T.triggerConn:Disconnect() T.triggerConn = nil end
-        end    end,
+        end
+    end,
 })
 combatSec:AddToggle("LegitAim", {
     Text = "合法自瞄（会转动视角）", Default = false,
@@ -1199,21 +1224,287 @@ antiSec:AddToggle("AntiFire", {
     end,
 })
 
-task.spawn(function()
-    while true do
-        task.wait(0.1)
-        if S.AntiGrabV2 and IsHeld.Value then
-            local c = char(); local h = c and c:FindFirstChild("Head")
-            if h and h:FindFirstChild("PartOwner") then
-                pcall(function() Struggle:FireServer() end)
-                local r = root()
-                if r then pcall(function() RagdollRemote:FireServer(r, 0) end) end
+-- ===== 防踢组（防身右栏）=====
+local antiKickSec = Tabs.Anti:AddRightGroupbox("防踢")
+antiKickSec:AddToggle("GravityAntiKick", {
+    Text = "重力反踢", Default = false,
+    Callback = function(enabled)
+        S.AntiKickKunai = enabled
+        if enabled then Workspace.Gravity = 5000 else Workspace.Gravity = 196.2 end
+    end,
+})
+antiKickSec:AddToggle("ShurikenAntiKick", {
+    Text = "飞镖反踢", Default = false,
+    Callback = function(v)
+        S.ShurikenAntiKick = v
+        if v then
+            task.spawn(function()
+                local plr = LocalPlayer
+                local setOwner = RS:WaitForChild("GrabEvents"):WaitForChild("SetNetworkOwner")
+                local stickyEvent = RS:WaitForChild("PlayerEvents"):WaitForChild("StickyPartEvent")
+                local spawnRemote = RS.MenuToys.SpawnToyRemoteFunction
+                local destroyrem = RS:WaitForChild("MenuToys"):WaitForChild("DestroyToy")
+                local canSpawn = plr:WaitForChild("CanSpawnToy")
+                local function getHRP()
+                    if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then return plr.Character.HumanoidRootPart end
+                    local c = plr.CharacterAdded:Wait()
+                    return c:WaitForChild("HumanoidRootPart")
+                end
+                local function CheckForHome()
+                    if not Workspace.PlotItems.PlayersInPlots:FindFirstChild(plr.Name) then return false end
+                    for _, v in pairs(Workspace.Plots:GetChildren()) do
+                        local sign = v:FindFirstChild("PlotSign")
+                        local owners = sign and sign:FindFirstChild("ThisPlotsOwners")
+                        if owners then
+                            for _, b in pairs(owners:GetChildren()) do
+                                if b.Value == plr.Name then
+                                    local folder = Workspace.PlotItems:FindFirstChild(v.Name)
+                                    if folder then return true, folder end
+                                end
+                            end
+                        end
+                    end
+                    return false
+                end
+                local function ClearKunai()
+                    local inv = Workspace:FindFirstChild(plr.Name.."SpawnedInToys")
+                    if inv and destroyrem then
+                        for _, vv in pairs(inv:GetChildren()) do
+                            if vv.Name == "AntiKick" or vv.Name == "NinjaShuriken" then pcall(function() destroyrem:FireServer(vv) end) end
+                        end
+                    end
+                end
+                local function StickKunai(kunai)
+                    if not kunai or not kunai:FindFirstChild("StickyPart") then return end
+                    local currentHRP = getHRP()
+                    if not currentHRP then return end
+                    if kunai:FindFirstChild("SoundPart") then
+                        if not kunai.SoundPart:FindFirstChild("PartOwner") or kunai.SoundPart.PartOwner.Value ~= plr.Name then
+                            setOwner:FireServer(kunai.SoundPart, kunai.SoundPart.CFrame)
+                        end
+                    end
+                    local firePart = currentHRP:FindFirstChild("FirePlayerPart") or currentHRP:WaitForChild("FirePlayerPart", 5)
+                    if firePart then
+                        stickyEvent:FireServer(kunai.StickyPart, firePart, CFrame.new(0,0,0) * CFrame.Angles(0, math.rad(90), math.rad(90)))
+                    end
+                    for _, obj in pairs(kunai:GetChildren()) do
+                        if obj:IsA("BasePart") then
+                            obj.CanTouch = false; obj.CanCollide = false; obj.CanQuery = false
+                        end
+                    end
+                end
+                local function SpawnToy(name)
+                    local t = tick()
+                    while not canSpawn.Value do
+                        if not S.ShurikenAntiKick or tick() - t > 5 then return nil end
+                        task.wait(0.1)
+                    end
+                    local currentHRP = getHRP()
+                    if currentHRP then
+                        task.spawn(function()
+                            pcall(function() spawnRemote:InvokeServer(name, currentHRP.CFrame * CFrame.new(0, 3, 15), Vector3.new(0,0,0)) end)
+                        end)
+                    end
+                    local boolik, house = CheckForHome()
+                    local inv = Workspace:FindFirstChild(plr.Name.."SpawnedInToys")
+                    if boolik and house then
+                        return house:WaitForChild(name, 2)
+                    elseif not Workspace.PlotItems.PlayersInPlots:FindFirstChild(plr.Name) and inv then
+                        return inv:WaitForChild(name, 2)
+                    end
+                    return nil
+                end
+                while S.ShurikenAntiKick do
+                    task.wait(0.05)
+                    if not plr.Character or not plr.Character:FindFirstChild("Humanoid") or plr.Character.Humanoid.Health <= 0 then continue end
+                    local inv = Workspace:FindFirstChild(plr.Name.."SpawnedInToys")
+                    local kunai = inv and inv:FindFirstChild("NinjaShuriken")
+                    if Workspace.PlotItems.PlayersInPlots:FindFirstChild(plr.Name) then
+                        local boolik, house = CheckForHome()
+                        if boolik and house and Workspace.Plots:FindFirstChild(house.Name) then
+                            local sign = Workspace.Plots[house.Name]:FindFirstChild("PlotSign")
+                            if sign and sign.ThisPlotsOwners.Value.TimeRemainingNum.Value > 89 then
+                                kunai = SpawnToy("NinjaShuriken")
+                                if kunai == nil then continue end
+                                kunai.Name = "AntiKick"
+                                StickKunai(kunai)
+                            end
+                        end
+                    end
+                    if not kunai then
+                        if Workspace.PlotItems.PlayersInPlots:FindFirstChild(plr.Name) then continue end
+                        kunai = SpawnToy("NinjaShuriken")
+                        if kunai == nil then continue end
+                        kunai.Name = "AntiKick"
+                        if not kunai then continue end
+                    end
+                    repeat
+                        if kunai and kunai:FindFirstChild("StickyPart") and kunai.StickyPart.CanTouch == true then
+                            StickKunai(kunai)
+                            kunai.Name = "AntiKick"
+                        end
+                        task.wait(0.3)
+                    until not kunai or not S.ShurikenAntiKick or not kunai:FindFirstChild("StickyPart") or kunai.StickyPart.CanTouch == false
+                        or not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart")
+                        or not kunai:FindFirstChild("StickyPart")
+                        or (plr.Character.HumanoidRootPart.Position - kunai.StickyPart.Position).Magnitude >= 20
+                    if not kunai or not kunai:FindFirstChild("StickyPart") or not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") or (plr.Character.HumanoidRootPart.Position - kunai.StickyPart.Position).Magnitude >= 20 then
+                        ClearKunai()
+                    end
+                    pcall(function()
+                        repeat
+                            task.wait(0.05)
+                        until not S.ShurikenAntiKick or not plr.Character or not plr.Character:FindFirstChild("Humanoid") or not kunai or not kunai:FindFirstChild("StickyPart") or not kunai.StickyPart:FindFirstChild("StickyWeld") or not kunai.StickyPart.StickyWeld.Part1
+                        if not kunai or not kunai:FindFirstChild("StickyPart") or (plr.Character and plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health <= 0) or not kunai["StickyPart"]:FindFirstChild("StickyWeld").Part1 then
+                            ClearKunai()
+                        end
+                    end)
+                end
+                ClearKunai()
+            end)
+        else
+            local inv = Workspace:FindFirstChild(LocalPlayer.Name.."SpawnedInToys")
+            if inv then
+                for _, v in pairs(inv:GetChildren()) do
+                    if v.Name == "AntiKick" or v.Name == "NinjaShuriken" then pcall(function() DestroyToy:FireServer(v) end) end
+                end
             end
         end
-    end
-end)
+    end,
+})
+antiKickSec:AddToggle("AntiKickKunai", {
+    Text = "飞刀反踢", Default = false,
+    Callback = function(enabled)
+        S.AntiKickKunai = enabled
+        if enabled then
+            attachKunai(false)
+            if T.kunaiCheckLoop then task.cancel(T.kunaiCheckLoop) end
+            T.kunaiCheckLoop = task.spawn(function()
+                local tryShuriken = false
+                local failCount = 0
+                while S.AntiKickKunai do
+                    task.wait(0.2)
+                    local c = LocalPlayer.Character
+                    if not c then continue end
+                    local leg = getRightLeg(c)
+                    if not leg then continue end
+                    local myActive = T.currentKunai
+                    if myActive and (not myActive.Parent or not myActive:FindFirstChild("StickyPart")) then
+                        myActive = nil
+                        T.currentKunai = nil
+                    end
+                    if myActive then
+                        local sticky = myActive:FindFirstChild("StickyPart")
+                        if sticky then
+                            local weld = sticky:FindFirstChild("StickyWeld")
+                            local attachedPart = weld and weld.Part1
+                            if weld and attachedPart == leg then
+                                failCount = 0
+                                continue
+                            end
+                        end
+                        pcall(function() DestroyToy:FireServer(myActive) end)
+                        T.currentKunai = nil
+                        task.wait(0.2)
+                    end
+                    failCount = failCount + 1
+                    if failCount > 3 and S.ShurikenAntiKick then
+                        tryShuriken = not tryShuriken
+                        failCount = 0
+                    elseif failCount > 3 then
+                        failCount = 0
+                    end
+                    if tryShuriken then
+                        pcall(function()
+                            local hrp = c:FindFirstChild("HumanoidRootPart")
+                            if hrp then
+                                SpawnToy:InvokeServer("NinjaShuriken", hrp.CFrame * CFrame.new(0, 12, 20), Vector3.new(0,0,0))
+                            end
+                        end)
+                        task.wait(0.5)
+                        local folder = Workspace:FindFirstChild(LocalPlayer.Name .. "SpawnedInToys")
+                        if folder then
+                            for _, obj in folder:GetChildren() do
+                                if obj.Name == "NinjaShuriken" and obj ~= T.currentKunai then
+                                    obj.Name = "AntiKick"
+                                    T.currentKunai = obj
+                                    local sticky = obj:FindFirstChild("StickyPart")
+                                    if sticky then
+                                        pcall(function() SetOwner:FireServer(sticky, sticky.CFrame) end)
+                                        local firePart = c:FindFirstChild("HumanoidRootPart") and c.HumanoidRootPart:FindFirstChild("FirePlayerPart")
+                                        if firePart then
+                                            pcall(function() StickyPartEvent:FireServer(sticky, firePart, CFrame.new(0,0,0) * CFrame.Angles(0, math.rad(90), math.rad(90))) end)
+                                        end
+                                    end
+                                    break
+                                end
+                            end
+                        end
+                    else
+                        attachKunai(true)
+                    end
+                end
+            end)
+        else
+            if T.kunaiCheckLoop then task.cancel(T.kunaiCheckLoop) T.kunaiCheckLoop = nil end
+            if T.currentKunai and T.currentKunai.Parent then
+                pcall(function() DestroyToy:FireServer(T.currentKunai) end)
+            end
+            T.currentKunai = nil
+        end
+    end,
+})
+antiKickSec:AddToggle("DestroyGucciLoop", {
+    Text = "清除所有古驰", Default = false,
+    Callback = function(v)
+        S.destroyGucciActive = v
+        if v then
+            T.destroyGucciTask = task.spawn(function()
+                while S.destroyGucciActive do
+                    for _, player in ipairs(Players:GetPlayers()) do
+                        if player ~= LocalPlayer and player.Character then
+                            local folderName = player.Name .. "SpawnedInToys"
+                            local toysFolder = Workspace:FindFirstChild(folderName)
+                            if toysFolder then
+                                local myChar = LocalPlayer.Character
+                                local myHum = myChar and myChar:FindFirstChild("Humanoid")
+                                local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+                                if myHum and myRoot then
+                                    for _, obj in ipairs(toysFolder:GetChildren()) do
+                                        if obj.Name == "CreatureBlobman" or obj.Name == "TractorGreen" then
+                                            local seat = obj:FindFirstChild("VehicleSeat") or obj:FindFirstChildWhichIsA("VehicleSeat", true)
+                                            if seat then
+                                                local safeSpot = myRoot.CFrame
+                                                myRoot.CFrame = seat.CFrame
+                                                myRoot.Velocity = Vector3.zero
+                                                seat:Sit(myHum)
+                                                task.wait(0.3)
+                                                if myHum.SeatPart == seat then
+                                                    myHum.Sit = false
+                                                    task.wait(0.1)
+                                                    myRoot.CFrame = safeSpot
+                                                    task.wait(1)
+                                                    obj:Destroy()
+                                                else
+                                                    myRoot.CFrame = safeSpot
+                                                end
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    task.wait(2)
+                end
+            end)
+        else
+            if T.destroyGucciTask then task.cancel(T.destroyGucciTask) T.destroyGucciTask = nil end
+        end
+    end,
+})
 
--- ===== 玩家：速度 =====
+-- ===== 玩家 =====
 local playerMove = Tabs.Player:AddLeftGroupbox("移动")
 playerMove:AddToggle("PlayerWalkspeed", {
     Text = "速度",
@@ -1269,7 +1560,6 @@ playerMove:AddToggle("Noclip", {
     end,
 })
 
--- ===== 玩家：跳跃 / 重力 =====
 local playerJumpSec = Tabs.Player:AddRightGroupbox("跳跃 / 重力")
 playerJumpSec:AddToggle("JumpPowerToggle", {
     Text = "跳跃力", Default = false,
@@ -1327,7 +1617,6 @@ playerJumpSec:AddSlider("GravityValue", {
     end,
 })
 
--- ===== 玩家：飞行 =====
 local flyBV, flyBG, flyConn
 local playerFly = Tabs.Player:AddRightGroupbox("飞行")
 playerFly:AddToggle("Fly", {
@@ -1369,7 +1658,7 @@ playerFly:AddToggle("Fly", {
 })
 playerFly:AddSlider("FlySpeed", { Text = "飞行速度", Default = 50, Min = 10, Max = 300, Callback = function(v) S.FlySpeed = v end })
 
--- ===== 抓取（左栏抓取功能，右栏调试）=====
+-- ===== 抓取 =====
 local grabSec = Tabs.Grab:AddLeftGroupbox("抓取增强")
 grabSec:AddSlider("GrabStrength", {
     Text = "投掷力量", Default = 1000, Min = 300, Max = 40000,
@@ -1621,7 +1910,6 @@ grabSec:AddToggle("PhysicsGrab", {
     end,
 })
 
--- 右栏：调试
 local grabDebugSec = Tabs.Grab:AddRightGroupbox("缩放调试")
 do
     local infZoomValue = 0
@@ -1700,16 +1988,9 @@ auraSetSec:AddToggle("ShowAuraRadius", {
     Default = false,
     Callback = function(v)
         S.ShowAuraRadius = v
-        if T.auraVisual then
-            T.auraVisual:Destroy()
-            T.auraVisual = nil
-        end
-        if T.auraVisualConn then
-            T.auraVisualConn:Disconnect()
-            T.auraVisualConn = nil
-        end
+        if T.auraVisual then T.auraVisual:Destroy() T.auraVisual = nil end
+        if T.auraVisualConn then T.auraVisualConn:Disconnect() T.auraVisualConn = nil end
         if not v then return end
-
         local circle = Instance.new("Part")
         circle.Name = "_PlutonAuraCircle"
         circle.Shape = Enum.PartType.Cylinder
@@ -1724,7 +2005,6 @@ auraSetSec:AddToggle("ShowAuraRadius", {
         circle.Transparency = 0.6
         circle.Parent = Workspace
         T.auraVisual = circle
-
         T.auraVisualConn = RunService.Heartbeat:Connect(function()
             if not S.ShowAuraRadius then return end
             local r = auraGetRoot()
@@ -2073,12 +2353,154 @@ auraAtkSec:AddToggle("FreezeAura", { Text = "冻结光环", Default = false, Cal
     end) end
 end })
 
--- ===== 循环：Grab Kick All =====
+-- 光环防御（光环右栏）
+local auraDefSec = Tabs.Aura:AddRightGroupbox("光环防御")
+auraDefSec:AddToggle("AntiBananaAura", { Text = "反香蕉光环", Default = false, Callback = function(enabled)
+    S.AntiBananaAura = enabled
+    if not enabled then
+        if T.antiBananaAuraTask then task.cancel(T.antiBananaAuraTask) T.antiBananaAuraTask = nil end
+        return
+    end
+    T.antiBananaAuraTask = task.spawn(function()
+        local auraFrame = 0
+        while S.AntiBananaAura do
+            local r = auraGetRoot()
+            if not r then task.wait(0.2) continue end
+            local myPos = r.Position
+            local myChar = LocalPlayer.Character
+            for _, obj in ipairs(Workspace:GetPartBoundsInRadius(myPos, S.AuraRadius)) do
+                if not S.AntiBananaAura then return end
+                if not obj:IsA("BasePart") then continue end
+                if obj.Name ~= "HitboxPart" then continue end
+                if myChar and myChar:IsAncestorOf(obj) then continue end
+                if auraFrame % 3 == 0 then
+                    pcall(function() SetOwner:FireServer(obj, obj.CFrame) end)
+                elseif auraFrame % 3 == 1 then
+                    pcall(function() CreateLine:FireServer(obj, Vector3.zero, obj.Position, false) end)
+                else
+                    pcall(function() DestroyLine:FireServer(obj) end)
+                end
+                pcall(function()
+                    local direction = (obj.Position - myPos).Unit
+                    local bv = Instance.new("BodyVelocity")
+                    bv.Velocity = direction * 5000 + Vector3.new(0, 2000, 0)
+                    bv.MaxForce = Vector3.one * math.huge
+                    bv.Parent = obj
+                    Debris:AddItem(bv, 0.3)
+                end)
+            end
+            auraFrame = auraFrame + 1
+            task.wait()
+        end
+    end)
+end })
+auraDefSec:AddToggle("AntiWDAura", { Text = "反喷雾光环", Default = false, Callback = function(enabled)
+    S.AntiWDAura = enabled
+    if enabled then
+        T.antiWDAuraTask = task.spawn(function()
+            local auraFrame = 0
+            while S.AntiWDAura do
+                local r = auraGetRoot()
+                if r then
+                    for _, part in ipairs(Workspace:GetPartBoundsInRadius(r.Position, S.AuraRadius)) do
+                        if part:IsA("BasePart") then
+                            local parent = part.Parent
+                            if parent and parent.Name == "SprayCanWD" and not part:IsDescendantOf(Workspace:FindFirstChild(LocalPlayer.Name .. "SpawnedInToys")) then
+                                local dir = (part.Position - r.Position)
+                                if dir.Magnitude > 0 then dir = dir.Unit else dir = Vector3.new(0,1,0) end
+                                if auraFrame % 3 == 0 then
+                                    pcall(function() SetOwner:FireServer(part, r.CFrame) end)
+                                elseif auraFrame % 3 == 1 then
+                                    pcall(function() CreateLine:FireServer(part, Vector3.zero, part.Position, false) end)
+                                else
+                                    pcall(function() DestroyLine:FireServer(part) end)
+                                end
+                                pcall(function() part.AssemblyLinearVelocity = dir * S.RepelForce + Vector3.new(0, 50, 0) end)
+                            end
+                        end
+                    end
+                end
+                auraFrame = auraFrame + 1
+                task.wait(0.1)
+            end
+        end)
+    else
+        if T.antiWDAuraTask then task.cancel(T.antiWDAuraTask) T.antiWDAuraTask = nil end
+    end
+end })
+auraDefSec:AddToggle("AntiPalletFlingAura", { Text = "反托盘弹飞光环", Default = false, Callback = function(enabled)
+    S.AntiPalletFlingAura = enabled
+    if enabled then
+        T.antiPalletAuraTask = task.spawn(function()
+            local auraFrame = 0
+            while S.AntiPalletFlingAura do
+                local r = auraGetRoot()
+                if r then
+                    for _, part in ipairs(Workspace:GetPartBoundsInRadius(r.Position, S.AuraRadius)) do
+                        if part:IsA("BasePart") then
+                            local parent = part.Parent
+                            if parent and parent.Name == "PalletLightBrown" and not part:IsDescendantOf(Workspace:FindFirstChild(LocalPlayer.Name .. "SpawnedInToys")) then
+                                local dir = (part.Position - r.Position)
+                                if dir.Magnitude > 0 then dir = dir.Unit else dir = Vector3.new(0,1,0) end
+                                if auraFrame % 3 == 0 then
+                                    pcall(function() SetOwner:FireServer(part, r.CFrame) end)
+                                elseif auraFrame % 3 == 1 then
+                                    pcall(function() CreateLine:FireServer(part, Vector3.zero, part.Position, false) end)
+                                else
+                                    pcall(function() DestroyLine:FireServer(part) end)
+                                end
+                                pcall(function() part.AssemblyLinearVelocity = dir * S.RepelForce + Vector3.new(0, 50, 0) end)
+                            end
+                        end
+                    end
+                end
+                auraFrame = auraFrame + 1
+                task.wait(0.1)
+            end
+        end)
+    else
+        if T.antiPalletAuraTask then task.cancel(T.antiPalletAuraTask) T.antiPalletAuraTask = nil end
+    end
+end })
+
+-- ===== 循环 =====
 local loopSec = Tabs.Loop:AddLeftGroupbox("抓取全部踢")
 loopSec:AddDropdown("GrabKickAllHeight", {
     Text = "销毁高度", Values = {"Spawn", "Heaven"}, Default = 1,
     Callback = function(v) S.grabKickAllHeight = v end,
 })
+loopSec:AddToggle("GrabKickSelectEnabled", {
+    Text = "启用目标玩家选择",
+    Default = false,
+    Callback = function(v)
+        S.grabKickSelectEnabled = v
+        if not v then S.grabKickSelected = {} end
+    end,
+})
+local grabKickTargetDD
+grabKickTargetDD = loopSec:AddDropdown("GrabKickTargetDD", {
+    Text = "选择目标（可多选）",
+    Values = plist(),
+    Multi = true,
+    Default = 1,
+    Callback = function(v)
+        S.grabKickSelected = {}
+        if type(v) == "table" then
+            for val, on in pairs(v) do
+                if on then
+                    local name = tostring(val):match("@(.+)$")
+                    if name then S.grabKickSelected[name] = true end
+                end
+            end
+        elseif type(v) == "string" then
+            local name = v:match("@(.+)$")
+            if name then S.grabKickSelected[name] = true end
+        end
+    end,
+})
+loopSec:AddButton({ Text = "刷新目标列表", Func = function()
+    pcall(function() grabKickTargetDD:Refresh(plist()) end)
+end})
 
 loopSec:AddToggle("GrabKickAll", {
     Text = "抓取全部踢", Default = false,
@@ -2097,7 +2519,7 @@ loopSec:AddToggle("GrabKickAll", {
             local function getAllPlayers()
                 local players = {}
                 for _, plr in pairs(Players:GetPlayers()) do
-                    if plr ~= LocalPlayer then table.insert(players, plr) end
+                    if plr ~= LocalPlayer and grabKickPlayerAllowed(plr) then table.insert(players, plr) end
                 end
                 return players
             end
@@ -2466,6 +2888,58 @@ visualSec:AddSlider("FOVValue", {
     end,
 })
 
+-- ===== 玩家离开/被踢提示 =====
+local notifyGui = Instance.new("ScreenGui")
+notifyGui.Name = "PlutonLeaveNotify"
+notifyGui.ResetOnSpawn = false
+notifyGui.DisplayOrder = 9999
+notifyGui.Parent = PlayerGui
+
+local function showLeaveNotify(plr)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 220, 0, 56)
+    frame.Position = UDim2.new(0.5, -110, 0, -70)
+    frame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+    frame.BackgroundTransparency = 0.1
+    frame.BorderSizePixel = 0
+    frame.Parent = notifyGui
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
+
+    local avatar = Instance.new("ImageLabel")
+    avatar.Size = UDim2.new(0, 40, 0, 40)
+    avatar.Position = UDim2.new(0, 8, 0.5, -20)
+    avatar.BackgroundTransparency = 1
+    avatar.Image = loadThumb(plr)
+    avatar.Parent = frame
+    Instance.new("UICorner", avatar).CornerRadius = UDim.new(1, 0)
+
+    local nameLbl = Instance.new("TextLabel")
+    nameLbl.Size = UDim2.new(1, -64, 1, 0)
+    nameLbl.Position = UDim2.new(0, 56, 0, 0)
+    nameLbl.BackgroundTransparency = 1
+    nameLbl.Text = plr.DisplayName .. "\n已离开游戏"
+    nameLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+    nameLbl.Font = Enum.Font.GothamBold
+    nameLbl.TextSize = 14
+    nameLbl.TextXAlignment = Enum.TextXAlignment.Left
+    nameLbl.Parent = frame
+
+    TweenService:Create(frame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Position = UDim2.new(0.5, -110, 0, 10)
+    }):Play()
+    task.delay(5, function()
+        TweenService:Create(frame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+            Position = UDim2.new(0.5, -110, 0, -70)
+        }):Play()
+        task.delay(0.35, function() frame:Destroy() end)
+    end)
+end
+
+Players.PlayerRemoving:Connect(function(plr)
+    if plr == LocalPlayer then return end
+    pcall(function() showLeaveNotify(plr) end)
+end)
+
 -- ===== 杂项 =====
 local miscSec = Tabs.Misc:AddLeftGroupbox("工具")
 miscSec:AddToggle("ThirdPerson", {
@@ -2570,4 +3044,4 @@ SaveManager:SetFolder("PlutonLite")
 SaveManager:BuildConfigSection(Tabs.Misc)
 ThemeManager:ApplyToTab(Tabs.Misc)
 
-warn("Pluton Lite (完整版 + 光环目标选择 + 防火) 已加载")
+warn("Pluton Lite (完整版 + 防踢组 + 光环防御 + 循环选人 + 离开提示) 已加载")
