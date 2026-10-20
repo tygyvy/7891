@@ -1,4 +1,5 @@
 -- Pluton Lite (Obsidian UI) | FTAP | 手机可用 | 无踢人
+-- 已整合 Mercury 防御 + 载具飞行 + 移除玩具
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -96,6 +97,21 @@ local S = {
     AntiBananaAura = false,
     AntiWDAura = false,
     AntiPalletFlingAura = false,
+    MercuryDefense = false,
+    MercuryAntiVoid = false,
+    AutoBreakPCLD = false,
+    AntiShurikenLag = false,
+    AntiLineLag = false,
+    AntiNetworkStruggle = false,
+    AntiBarrier = false,
+    AntiBurn = false,
+    VehicleFly = false,
+    VehicleFlySpeed = 5,
+    -- 移除玩具新增
+    RemoveAntiKick = false,
+    RemoveAllToy = false,
+    RemoveMethod = "Aura",
+    RemoveAllToyMethod = "Inventory",
 }
 
 local T = {
@@ -143,6 +159,44 @@ local T = {
     antiWDAuraTask = nil,
     antiPalletAuraTask = nil,
     destroyAuraCancelId = 0,
+    mercuryCons = {},
+    mercuryFlagGrab = false,
+    mercuryFlagRagdoll = false,
+    mercuryFlagVoid = false,
+    mercuryWalkSpeed = nil,
+    mercuryConnection = nil,
+    mercuryAntiVoidConns = {},
+    mercuryAntiVoidEnabled = false,
+    mercuryAutoBreakActive = false,
+    mercuryAntiShurikenEnabled = false,
+    mercuryAntiShurikenThread = nil,
+    mercuryAntiShurikenLastNotify = 0,
+    mercuryAntiLineLagEnabled = false,
+    mercuryAntiLineLagConn = nil,
+    mercuryAntiLineLagThread = nil,
+    mercuryAntiLineLagPlayerData = {},
+    mercuryAntiNetworkEnabled = false,
+    mercuryAntiNetworkThread = nil,
+    mercuryAntiBarrierEnabled = false,
+    mercuryAntiBarrierConns = {},
+    mercuryAntiBurnEnabled = false,
+    mercuryAntiBurnConn = nil,
+    mercuryAntiBurnSavedCF = nil,
+    mercuryAntiBurnSavedTrans = nil,
+    mercuryAntiBurnSavedSize = nil,
+    vehicleFlyActive = false,
+    vehicleFlyConn1 = nil,
+    vehicleFlyConn2 = nil,
+    vehicleFlyGyro = nil,
+    vehicleFlyVel = nil,
+    vehicleFlyThread = nil,
+    vehicleFlyFlag = false,
+    -- 移除玩具新增
+    removeAntiKickThread = nil,
+    removeAntiKickConn = nil,
+    removeAllToyThread = nil,
+    removeKickPlayer = nil,
+    removeSelectedConn = nil,
 }
 
 local function char() return LocalPlayer.Character end
@@ -185,6 +239,701 @@ local function grabKickPlayerAllowed(player)
         if v and name == player.Name then return true end
     end
     return false
+end
+
+-- ============================================================
+-- Mercury 防御核心（整合）
+-- ============================================================
+local mercuryLimbOffsets = {
+    Head = { X = 0, Y = 1.5, Z = 0, RX = 0, RY = 0, RZ = 0 },
+    ["Left Arm"] = { X = -1.5, Y = 0, Z = 0, RX = 0, RY = 0, RZ = 0 },
+    ["Right Arm"] = { X = 1.5, Y = 0, Z = 0, RX = 0, RY = 0, RZ = 0 },
+    ["Left Leg"] = { X = -0.5, Y = -2, Z = 0, RX = 0, RY = 0, RZ = 0 },
+    ["Right Leg"] = { X = 0.5, Y = -2, Z = 0, RX = 0, RY = 0, RZ = 0 },
+}
+
+local function mercuryFindChild(parent, name, timeout)
+    return parent:FindFirstChild(name) or parent:WaitForChild(name, timeout or 3)
+end
+
+local function mercuryCleanup(key)
+    if T.mercuryCons[key] then
+        pcall(function() T.mercuryCons[key]:Disconnect() end)
+        T.mercuryCons[key] = nil
+    end
+end
+
+local function mercurySetLimbsNoCollide(character)
+    for k in pairs(mercuryLimbOffsets) do
+        local part = character:FindFirstChild(k)
+        if part and part:IsA("BasePart") then
+            part.CanCollide = false
+            part.Massless = false
+            local rag = part:FindFirstChild("RagdollLimbPart")
+            if rag then rag.CanCollide = false end
+        end
+    end
+end
+
+local function mercurySetLimbsCollide(character)
+    for k in pairs(mercuryLimbOffsets) do
+        local part = character:FindFirstChild(k)
+        if part and part:IsA("BasePart") then
+            part.CanCollide = true
+            part.CanTouch = true
+        end
+    end
+end
+
+local function mercuryPositionLimbs(character, baseCFrame, isBlob)
+    for k, off in pairs(mercuryLimbOffsets) do
+        local part = character:FindFirstChild(k)
+        if part and part:IsA("BasePart") then
+            local y = off.Y
+            local legFlag = false
+            if isBlob ~= nil then legFlag = isBlob else legFlag = (k == "Left Leg" or k == "Right Leg") end
+            if legFlag and (k == "Left Leg" or k == "Right Leg") then y = 8888 end
+            part.CFrame = baseCFrame * CFrame.new(off.X, y, off.Z) * CFrame.Angles(math.rad(off.RX), math.rad(off.RY), math.rad(off.RZ))
+        end
+    end
+end
+
+local function mercuryEnableBlobMovement(character)
+    if T.mercuryFlagBlobMove then return end
+    T.mercuryFlagBlobMove = true
+    local h = character:FindFirstChildOfClass("Humanoid")
+    if h then T.mercuryWalkSpeed = h.WalkSpeed; h.WalkSpeed = 60 end
+    if T.mercuryConnection then T.mercuryConnection:Disconnect() end
+    T.mercuryConnection = RunService.Stepped:Connect(function(_, dt)
+        if not T.mercuryFlagBlobMove then return end
+        local c = LocalPlayer.Character
+        if not c then return end
+        local hrp = c:FindFirstChild("HumanoidRootPart")
+        local hm = c:FindFirstChildOfClass("Humanoid")
+        if not hrp or not hm then return end
+        if not (hm.SeatPart and hm.SeatPart.Parent and hm.SeatPart.Parent.Name == "CreatureBlobman") then return end
+        hm.WalkSpeed = 60
+        local md = hm.MoveDirection
+        if md.Magnitude > 0 then
+            local n = md.Unit * 60 * dt
+            hrp.CFrame = hrp.CFrame + Vector3.new(n.X, 0, n.Z)
+        end
+    end)
+end
+
+local function mercuryDisableBlobMovement()
+    if not T.mercuryFlagBlobMove then return end
+    T.mercuryFlagBlobMove = false
+    if T.mercuryConnection then T.mercuryConnection:Disconnect(); T.mercuryConnection = nil end
+    local c = LocalPlayer.Character
+    if c then
+        local h = c:FindFirstChildOfClass("Humanoid")
+        if h and T.mercuryWalkSpeed then h.WalkSpeed = T.mercuryWalkSpeed; T.mercuryWalkSpeed = nil end
+    end
+end
+
+local function mercuryClearRagdollConns()
+    for _, key in ipairs({"A_observer","A_loop","A_blobSeat","A_blobFastRagdoll","A_connection","A_Death"}) do
+        mercuryCleanup(key)
+    end
+end
+
+local function mercurySetupRagdoll(character)
+    mercuryClearRagdollConns()
+    if not character then return end
+    local hm = mercuryFindChild(character, "Humanoid", 5)
+    local torso = mercuryFindChild(character, "Torso", 5) or mercuryFindChild(character, "UpperTorso", 5)
+    local hrp = mercuryFindChild(character, "HumanoidRootPart", 5)
+    if not hm or not torso or not hrp then return end
+    if not T.mercuryFlagRagdoll then return end
+    local rag = mercuryFindChild(hm, "Ragdolled", 10)
+    if not rag then return end
+
+    T.mercuryCons.A_Death = hm.Died:Connect(function()
+        mercuryClearRagdollConns(); mercuryDisableBlobMovement(); T.mercuryFlagBlobResetting = false
+    end)
+
+    local blobResetting = false
+    local rr = RagdollRemote
+    local cam = Workspace.CurrentCamera
+
+    local function resetBlob()
+        if T.mercuryFlagBlobResetting then return end
+        T.mercuryFlagBlobResetting = true
+        if T.mercuryCons.A_blobFastRagdoll then T.mercuryCons.A_blobFastRagdoll:Disconnect(); T.mercuryCons.A_blobFastRagdoll = nil end
+        mercuryDisableBlobMovement()
+        if hrp.Parent then hrp.CFrame = hrp.CFrame + Vector3.new(0, 4, 0) end
+        task.spawn(function()
+            for _ = 1, 20 do
+                if hm.Parent then hm.Sit = false end
+                task.wait(0.1)
+            end
+            blobResetting = false; T.mercuryFlagBlobResetting = false
+        end)
+    end
+
+    T.mercuryCons.A_blobSeat = hm:GetPropertyChangedSignal("SeatPart"):Connect(function()
+        if T.mercuryFlagBlobResetting then return end
+        if not T.mercuryFlagRagdoll then return end
+        if not rag.Value then return end
+        if hm.SeatPart and hm.SeatPart.Parent and hm.SeatPart.Parent.Name == "CreatureBlobman" and not blobResetting then
+            blobResetting = true
+            local seat = hm.SeatPart
+            mercuryEnableBlobMovement(character)
+            while not hm.Sit and T.mercuryFlagRagdoll and rag.Value do task.wait() end
+            if rr and hrp.Parent then rr:FireServer(hrp, 3) end
+            while not rag.Value and not hm.Sit and T.mercuryFlagRagdoll do task.wait() end
+            task.wait(0.15)
+            if hm.Parent and seat.Parent then hm.Sit = true; seat:Sit(hm) end
+            task.delay(0.25, function()
+                if T.mercuryCons.A_blobFastRagdoll then T.mercuryCons.A_blobFastRagdoll:Disconnect() end
+                if T.mercuryFlagBlobResetting or not T.mercuryFlagRagdoll then return end
+                T.mercuryCons.A_blobFastRagdoll = RunService.Heartbeat:Connect(function()
+                    if rag.Value and hm.SeatPart and hm.SeatPart.Parent and hm.SeatPart.Parent.Name == "CreatureBlobman" and rr and hrp.Parent then
+                        rr:FireServer(hrp, 1)
+                    elseif not T.mercuryFlagBlobResetting then
+                        resetBlob()
+                    end
+                end)
+            end)
+        end
+    end)
+
+    local BombExplode = RS:FindFirstChild("BombEvents") and RS.BombEvents:FindFirstChild("BombExplode")
+    if BombExplode then
+        T.mercuryCons.A_connection = BombExplode.OnClientEvent:Connect(function(part, pos)
+            if not T.mercuryFlagRagdoll or not hrp.Parent or not hm.Parent then return end
+            task.spawn(function()
+                if part.Radius + 10 > (pos - hrp.Position).Magnitude then
+                    hrp.Anchored = true
+                    task.wait()
+                    hm:ChangeState(Enum.HumanoidStateType.Running)
+                    hrp.Anchored = false
+                    mercurySetLimbsNoCollide(character)
+                end
+            end)
+        end)
+    end
+
+    local function ragLoop()
+        if rag.Value and T.mercuryFlagRagdoll then
+            mercurySetLimbsNoCollide(character)
+            if T.mercuryCons.A_loop then T.mercuryCons.A_loop:Disconnect() end
+            T.mercuryCons.A_loop = RunService.RenderStepped:Connect(function()
+                local isBlob = hm and hm.SeatPart and hm.SeatPart.Parent and hm.SeatPart.Parent.Name == "CreatureBlobman"
+                if not character.Parent or not hrp.Parent or not torso.Parent or not hm.Parent or not rag.Value then
+                    if T.mercuryCons.A_loop then T.mercuryCons.A_loop:Disconnect(); T.mercuryCons.A_loop = nil end
+                    return
+                end
+                if isBlob and not T.mercuryFlagBlobResetting then
+                    if UserInputService:IsKeyDown(Enum.KeyCode.Space) then resetBlob(); return end
+                end
+                if not isBlob and not T.mercuryFlagBlobResetting then
+                    hm.PlatformStand = false
+                    hm.Sit = false
+                end
+                local lv = cam.CFrame.LookVector
+                hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.atan2(-lv.X, -lv.Z), 0)
+                if torso.Parent then mercuryPositionLimbs(character, torso.CFrame, isBlob) end
+            end)
+        else
+            if T.mercuryCons.A_loop then T.mercuryCons.A_loop:Disconnect(); T.mercuryCons.A_loop = nil end
+            if T.mercuryCons.A_blobFastRagdoll then T.mercuryCons.A_blobFastRagdoll:Disconnect(); T.mercuryCons.A_blobFastRagdoll = nil end
+            mercurySetLimbsCollide(character)
+            if hrp then hrp.Anchored = false end
+            if hm then hm.PlatformStand = false end
+            blobResetting = false
+            mercuryDisableBlobMovement()
+        end
+    end
+
+    T.mercuryCons.A_observer = rag:GetPropertyChangedSignal("Value"):Connect(ragLoop)
+    if rag.Value then ragLoop() end
+end
+
+local function mercurySetupGrab(character)
+    local hrp = mercuryFindChild(character, "HumanoidRootPart", 5)
+    local hm = mercuryFindChild(character, "Humanoid", 5)
+    local torso = mercuryFindChild(character, "Torso", 5) or mercuryFindChild(character, "UpperTorso", 5)
+    local held = mercuryFindChild(LocalPlayer, "IsHeld", 5)
+    if not (hrp and hm and torso and held) then return end
+    if not T.mercuryFlagGrab then return end
+    mercuryCleanup("AG_GrabDetect")
+    if T.mercuryCons.AG_StruggleTask then task.cancel(T.mercuryCons.AG_StruggleTask); T.mercuryCons.AG_StruggleTask = nil end
+    local cam = Workspace.CurrentCamera
+
+    local function struggle()
+        if T.mercuryCons.AG_StruggleTask then task.cancel(T.mercuryCons.AG_StruggleTask) end
+        T.mercuryCons.AG_StruggleTask = task.spawn(function()
+            while held.Value and T.mercuryFlagGrab and hm.Parent and hrp.Parent do
+                local ce = RS:FindFirstChild("CharacterEvents")
+                if ce then
+                    if ce:FindFirstChild("Struggle") then ce.Struggle:FireServer(LocalPlayer) end
+                    if ce:FindFirstChild("RagdollRemote") then ce.RagdollRemote:FireServer(hrp, 0) end
+                end
+                task.wait(0.15)
+            end
+        end)
+    end
+
+    T.mercuryCons.AG_GrabDetect = held:GetPropertyChangedSignal("Value"):Connect(function()
+        if held.Value then
+            T.mercuryFlagGrabbed = false
+            task.wait()
+            T.mercuryFlagGrabbed = true
+            if hrp.Parent then hrp.Anchored = true; task.wait(); hrp.Anchored = false end
+            struggle()
+        else
+            T.mercuryFlagGrabbed = false
+            if T.mercuryCons.AG_StruggleTask then task.cancel(T.mercuryCons.AG_StruggleTask); T.mercuryCons.AG_StruggleTask = nil end
+        end
+    end)
+
+    if held.Value then struggle() end
+    if T.mercuryCons.AG_MainLoop then T.mercuryCons.AG_MainLoop:Disconnect() end
+    T.mercuryCons.AG_MainLoop = RunService.RenderStepped:Connect(function()
+        if not held.Value or not hrp.Parent or not hm.Parent then return end
+        hm.PlatformStand = false
+        hm.Sit = false
+        local lv = cam.CFrame.LookVector
+        hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.atan2(-lv.X, -lv.Z), 0)
+        if torso.Parent and T.mercuryFlagGrabbed then
+            local rag = hm:FindFirstChild("Ragdolled")
+            if rag and rag.Value == true then mercuryPositionLimbs(character, torso.CFrame, false) end
+        end
+    end)
+end
+
+local function mercuryEnableDefense()
+    T.mercuryFlagGrab = true
+    T.mercuryFlagRagdoll = true
+    if LocalPlayer.Character then
+        task.spawn(function()
+            mercurySetupGrab(LocalPlayer.Character)
+            mercurySetupRagdoll(LocalPlayer.Character)
+        end)
+    end
+    mercuryCleanup("AG_CharAdded")
+    T.mercuryCons.AG_CharAdded = LocalPlayer.CharacterAdded:Connect(function(c)
+        task.wait()
+        if T.mercuryFlagGrab then mercurySetupGrab(c) end
+        if T.mercuryFlagRagdoll then mercurySetupRagdoll(c) end
+    end)
+end
+
+local function mercuryDisableDefense()
+    T.mercuryFlagGrab = false
+    T.mercuryFlagRagdoll = false
+    mercuryClearRagdollConns()
+    mercuryCleanup("AG_GrabDetect")
+    mercuryCleanup("AG_MainLoop")
+    mercuryCleanup("AG_CharAdded")
+    mercuryDisableBlobMovement()
+end
+
+local mercuryDefaultFallen = Workspace.FallenPartsDestroyHeight
+local function mercuryApplyAntiVoid()
+    Workspace.FallenPartsDestroyHeight = (0/0)
+end
+local function mercuryStartAntiVoid()
+    T.mercuryAntiVoidEnabled = true
+    mercuryApplyAntiVoid()
+    table.insert(T.mercuryAntiVoidConns, Workspace:GetPropertyChangedSignal("FallenPartsDestroyHeight"):Connect(function()
+        if T.mercuryAntiVoidEnabled then mercuryApplyAntiVoid() end
+    end))
+    table.insert(T.mercuryAntiVoidConns, LocalPlayer.CharacterAdded:Connect(function()
+        if T.mercuryAntiVoidEnabled then mercuryApplyAntiVoid() end
+    end))
+end
+local function mercuryStopAntiVoid()
+    T.mercuryAntiVoidEnabled = false
+    Workspace.FallenPartsDestroyHeight = mercuryDefaultFallen
+    for _, c in ipairs(T.mercuryAntiVoidConns) do pcall(function() c:Disconnect() end) end
+    T.mercuryAntiVoidConns = {}
+end
+
+local function mercuryAutoBreakLoop()
+    local c = LocalPlayer.Character
+    if c then
+        local h = c:FindFirstChild("Humanoid")
+        if h and h.Health > 0 then pcall(function() c:BreakJoints() end) end
+    end
+    while T.mercuryAutoBreakActive do
+        local newC = LocalPlayer.CharacterAdded:Wait()
+        if not T.mercuryAutoBreakActive then break end
+        local h = newC:WaitForChild("Humanoid", 5)
+        task.wait(0.3)
+        if T.mercuryAutoBreakActive and h and h.Health > 0 then
+            pcall(function() newC:BreakJoints() end)
+        end
+    end
+end
+local function mercuryStartAutoBreak()
+    T.mercuryAutoBreakActive = true
+    task.spawn(mercuryAutoBreakLoop)
+end
+local function mercuryStopAutoBreak()
+    T.mercuryAutoBreakActive = false
+end
+
+local mercuryShurikenItems = {
+    NinjaKatana = true, NinjaKunai = true, NinjaShuriken = true,
+    ToolCleaver = true, ToolDiggingForkRusty = true, ToolPencil = true, ToolPickaxe = true,
+}
+local function mercuryShurikenScan()
+    local c = LocalPlayer.Character
+    local hrp = c and (c:FindFirstChild("HumanoidRootPart") or c:FindFirstChildWhichIsA("BasePart"))
+    local myPos = hrp and hrp.Position
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            local folder = Workspace:FindFirstChild(plr.Name .. "SpawnedInToys")
+            if folder then
+                for _, child in ipairs(folder:GetChildren()) do
+                    if mercuryShurikenItems[child.Name] then
+                        local sticky = child:FindFirstChild("StickyPart") or child:FindFirstChildWhichIsA("BasePart")
+                        if sticky then
+                            local pos = sticky.Position
+                            local mag = myPos and (pos - myPos).Magnitude or nil
+                            if not (mag and mag <= 100) then
+                                if math.abs(pos.X) > 5e11 or math.abs(pos.Y) > 5e11 or math.abs(pos.Z) > 5e11 then
+                                    pcall(function() child:Destroy() end)
+                                    local now = tick()
+                                    if now - T.mercuryAntiShurikenLastNotify >= 6 then
+                                        T.mercuryAntiShurikenLastNotify = now
+                                        warn("[Mercury] Blocked lag shuriken from: " .. plr.DisplayName)
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+local function mercuryStartAntiShuriken()
+    T.mercuryAntiShurikenEnabled = true
+    if T.mercuryAntiShurikenThread then task.cancel(T.mercuryAntiShurikenThread) end
+    T.mercuryAntiShurikenThread = task.spawn(function()
+        while T.mercuryAntiShurikenEnabled do
+            mercuryShurikenScan()
+            task.wait()
+        end
+    end)
+end
+local function mercuryStopAntiShuriken()
+    T.mercuryAntiShurikenEnabled = false
+    if T.mercuryAntiShurikenThread then task.cancel(T.mercuryAntiShurikenThread); T.mercuryAntiShurikenThread = nil end
+end
+
+local MLL_THRESHOLD = 5
+local MLL_WINDOW = 1.5
+local MLL_NOTIFY_COOLDOWN = 6
+local function mercuryGetBeamMove()
+    local ps = LocalPlayer:FindFirstChild("PlayerScripts")
+    return ps and ps:FindFirstChild("CharacterAndBeamMove")
+end
+local function mercuryDisableBeam()
+    pcall(function()
+        local b = mercuryGetBeamMove()
+        if b and b.Enabled then b.Enabled = false end
+    end)
+end
+local function mercuryEnableBeam()
+    pcall(function()
+        local b = mercuryGetBeamMove()
+        if b and not b.Enabled then b.Enabled = true end
+    end)
+end
+local function mercuryIsMaliciousLine(myPos, targetPart)
+    if not myPos or not targetPart then return false end
+    local p = targetPart.Position
+    return math.abs(myPos.X - p.X) >= 40000 or math.abs(myPos.Y - p.Y) >= 40000 or math.abs(myPos.Z - p.Z) >= 40000
+end
+local function mercuryCleanupLineData()
+    local now = tick()
+    for k, data in pairs(T.mercuryAntiLineLagPlayerData) do
+        if not data or not data.lastTime or now - data.lastTime > 3 then
+            T.mercuryAntiLineLagPlayerData[k] = nil
+        else
+            local t = {}
+            for _, ts in ipairs(data.timestamps or {}) do
+                if ts >= now - MLL_WINDOW then table.insert(t, ts) end
+            end
+            data.timestamps = t
+        end
+    end
+end
+local function mercuryStartAntiLineLag()
+    T.mercuryAntiLineLagEnabled = true
+    mercuryDisableBeam()
+    if not CreateLine then return end
+    T.mercuryAntiLineLagConn = CreateLine.OnClientEvent:Connect(function(player, target, cframe)
+        if not T.mercuryAntiLineLagEnabled or not player or player == LocalPlayer then return end
+        local chr = player.Character
+        local hrp = chr and chr:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+        local targetPart = cframe or (typeof(target) == "CFrame" and target)
+        if not targetPart then return end
+        if mercuryIsMaliciousLine(hrp.Position, targetPart) then
+            local now = tick()
+            if not T.mercuryAntiLineLagPlayerData[player] then
+                T.mercuryAntiLineLagPlayerData[player] = { lastNotify = 0, timestamps = {}, lastTime = now }
+            end
+            local d = T.mercuryAntiLineLagPlayerData[player]
+            table.insert(d.timestamps, now)
+            d.lastTime = now
+            local t = {}
+            for _, ts in ipairs(d.timestamps) do
+                if ts >= now - MLL_WINDOW then table.insert(t, ts) end
+            end
+            d.timestamps = t
+            if #d.timestamps >= MLL_THRESHOLD and now - d.lastNotify >= MLL_NOTIFY_COOLDOWN then
+                d.lastNotify = now
+                warn("[Mercury] Line lag detected! " .. (player.DisplayName or player.Name) .. " is spamming lines!")
+            end
+        end
+    end)
+    T.mercuryAntiLineLagThread = task.spawn(function()
+        while T.mercuryAntiLineLagEnabled do
+            task.wait(0.05)
+            mercuryCleanupLineData()
+        end
+    end)
+end
+local function mercuryStopAntiLineLag()
+    T.mercuryAntiLineLagEnabled = false
+    if T.mercuryAntiLineLagConn then T.mercuryAntiLineLagConn:Disconnect(); T.mercuryAntiLineLagConn = nil end
+    if T.mercuryAntiLineLagThread then task.cancel(T.mercuryAntiLineLagThread); T.mercuryAntiLineLagThread = nil end
+    T.mercuryAntiLineLagPlayerData = {}
+    mercuryEnableBeam()
+end
+
+local function mercuryStartAntiNetwork()
+    T.mercuryAntiNetworkEnabled = true
+    if T.mercuryAntiNetworkThread then task.cancel(T.mercuryAntiNetworkThread) end
+    T.mercuryAntiNetworkThread = task.spawn(function()
+        while T.mercuryAntiNetworkEnabled do
+            local c = LocalPlayer.Character
+            if c and RagdollRemote then
+                local h = c:FindFirstChild("Humanoid")
+                local hrp = c:FindFirstChild("HumanoidRootPart")
+                local isBlob = h and h.SeatPart and h.SeatPart.Parent and h.SeatPart.Parent.Name == "CreatureBlobman"
+                if not isBlob and hrp then
+                    pcall(function() RagdollRemote:FireServer(hrp, 1) end)
+                end
+            end
+            task.wait(0.1)
+        end
+    end)
+end
+local function mercuryStopAntiNetwork()
+    T.mercuryAntiNetworkEnabled = false
+    if T.mercuryAntiNetworkThread then task.cancel(T.mercuryAntiNetworkThread); T.mercuryAntiNetworkThread = nil end
+end
+
+local function mercuryProcessBarrier(barrier)
+    if not barrier or not barrier.Parent then return end
+    for _, c in ipairs(barrier:GetChildren()) do
+        if c:IsA("BasePart") and c.Name == "PlotBarrier" then c.CanCollide = false end
+    end
+    table.insert(T.mercuryAntiBarrierConns, barrier.ChildAdded:Connect(function(c)
+        if c:IsA("BasePart") and c.Name == "PlotBarrier" then c.CanCollide = false end
+    end))
+end
+local function mercuryProcessPlot(plot)
+    if not plot or not plot.Parent then return end
+    local barrier = plot:FindFirstChild("Barrier")
+    if barrier then mercuryProcessBarrier(barrier) end
+    table.insert(T.mercuryAntiBarrierConns, plot.ChildAdded:Connect(function(c)
+        if c.Name == "Barrier" then mercuryProcessBarrier(c) end
+    end))
+end
+local function mercuryStartAntiBarrier()
+    T.mercuryAntiBarrierEnabled = true
+    for _, c in ipairs(T.mercuryAntiBarrierConns) do pcall(function() c:Disconnect() end) end
+    T.mercuryAntiBarrierConns = {}
+    local plots = Workspace:FindFirstChild("Plots")
+    if plots then
+        for _, plot in ipairs(plots:GetChildren()) do mercuryProcessPlot(plot) end
+        table.insert(T.mercuryAntiBarrierConns, plots.ChildAdded:Connect(function(c)
+            if c:IsA("Model") and c.Name:find("Plot") then mercuryProcessPlot(c) end
+        end))
+    end
+end
+local function mercuryStopAntiBarrier()
+    T.mercuryAntiBarrierEnabled = false
+    for _, c in ipairs(T.mercuryAntiBarrierConns) do pcall(function() c:Disconnect() end) end
+    T.mercuryAntiBarrierConns = {}
+end
+
+local function mercuryGetBurnBarrier()
+    local plots = Workspace:FindFirstChild("Plots")
+    local p1 = plots and plots:FindFirstChild("Plot1")
+    local barrier = p1 and p1:FindFirstChild("Barrier")
+    return barrier and barrier:FindFirstChild("PlotBarrier")
+end
+local function mercurySaveBurnState()
+    local b = mercuryGetBurnBarrier()
+    if b then
+        T.mercuryAntiBurnSavedCF = b.CFrame
+        T.mercuryAntiBurnSavedTrans = b.Transparency
+        T.mercuryAntiBurnSavedSize = b.Size
+    end
+end
+local function mercuryRestoreBurnState()
+    local b = mercuryGetBurnBarrier()
+    if b and T.mercuryAntiBurnSavedCF then
+        b.CFrame = T.mercuryAntiBurnSavedCF
+        b.Transparency = T.mercuryAntiBurnSavedTrans or 0
+        b.Size = T.mercuryAntiBurnSavedSize or Vector3.one
+    end
+end
+local function mercuryHandleBurn(character, hum, debounce)
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    local b = mercuryGetBurnBarrier()
+    if not b or not b.Parent then return end
+    mercurySaveBurnState()
+    b.Transparency = 1
+    b.Size = Vector3.zero
+    while debounce and debounce.Value == true and b.Parent and hrp.Parent do
+        b.CFrame = hrp.CFrame
+        b.Size = Vector3.zero
+        task.wait()
+    end
+    if debounce and debounce.Parent then debounce.Value = false end
+    mercuryRestoreBurnState()
+end
+local function mercuryWatchCharacterBurn(character)
+    task.wait(0.3)
+    if not T.mercuryAntiBurnEnabled then return end
+    local h = character:FindFirstChild("Humanoid")
+    if not h then return end
+    local conn
+    conn = h:GetPropertyChangedSignal("Health"):Connect(function()
+        if not T.mercuryAntiBurnEnabled then conn:Disconnect(); return end
+        local fd = h:FindFirstChild("FireDebounce")
+        if fd and fd.Value == true then task.spawn(mercuryHandleBurn, character, h, fd) end
+    end)
+end
+local function mercuryStartAntiBurn()
+    T.mercuryAntiBurnEnabled = true
+    if LocalPlayer.Character then mercuryWatchCharacterBurn(LocalPlayer.Character) end
+    T.mercuryAntiBurnConn = LocalPlayer.CharacterAdded:Connect(mercuryWatchCharacterBurn)
+end
+local function mercuryStopAntiBurn()
+    T.mercuryAntiBurnEnabled = false
+    if T.mercuryAntiBurnConn then T.mercuryAntiBurnConn:Disconnect(); T.mercuryAntiBurnConn = nil end
+    mercuryRestoreBurnState()
+end
+
+-- ============================================================
+-- 载具飞行 Vehicle Fly
+-- ============================================================
+local vfSpeed = 5
+local vfActive = false
+local vfConn1, vfConn2 = nil, nil
+local vfTable = { F = 0, B = 0, L = 0, R = 0, Q = 0, E = 0 }
+local vfLast = { F = 0, B = 0, L = 0, R = 0, Q = 0, E = 0 }
+local vfMag = 0
+
+local function vfGetHRP()
+    local c = LocalPlayer.Character
+    return c and c:FindFirstChild("HumanoidRootPart")
+end
+
+local function vfStop()
+    vfActive = false
+    if vfConn1 then vfConn1:Disconnect(); vfConn1 = nil end
+    if vfConn2 then vfConn2:Disconnect(); vfConn2 = nil end
+    local c = LocalPlayer.Character
+    if c then
+        local h = c:FindFirstChildOfClass("Humanoid")
+        if h then h.PlatformStand = false end
+    end
+    pcall(function() Workspace.CurrentCamera.CameraType = Enum.CameraType.Custom end)
+end
+
+local function vfStart()
+    local c = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local h = c:FindFirstChildOfClass("Humanoid")
+    if not h then
+        repeat task.wait() until c:FindFirstChildOfClass("Humanoid")
+        h = c:FindFirstChildOfClass("Humanoid")
+    end
+    if vfConn1 then vfConn1:Disconnect() end
+    if vfConn2 then vfConn2:Disconnect() end
+    local hrp = vfGetHRP()
+    if not hrp then return end
+    vfTable = { F = 0, B = 0, L = 0, R = 0, Q = 0, E = 0 }
+    vfLast = { F = 0, B = 0, L = 0, R = 0, Q = 0, E = 0 }
+    vfMag = 0
+    vfActive = true
+
+    local bg = Instance.new("BodyGyro")
+    local bv = Instance.new("BodyVelocity")
+    bg.P = 90000
+    bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+    bg.CFrame = hrp.CFrame
+    bv.Velocity = Vector3.zero
+    bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+    bg.Parent = hrp
+    bv.Parent = hrp
+
+    task.spawn(function()
+        while vfActive do
+            task.wait()
+            local cam = Workspace.CurrentCamera
+            if h then h.PlatformStand = true end
+            if vfTable.L + vfTable.R ~= 0 or vfTable.F + vfTable.B ~= 0 or vfTable.Q + vfTable.E ~= 0 then
+                vfMag = 50
+            elseif vfMag ~= 0 then
+                vfMag = 0
+            end
+            if vfTable.L + vfTable.R ~= 0 or vfTable.F + vfTable.B ~= 0 or vfTable.Q + vfTable.E ~= 0 then
+                local p = cam.CFrame.p
+                bv.Velocity = (cam.CFrame.LookVector * (vfTable.F + vfTable.B) + cam.CFrame * CFrame.new(vfTable.L + vfTable.R, (vfTable.F + vfTable.B + vfTable.Q + vfTable.E) * 0.2, 0).p - p) * vfMag
+                vfLast = { F = vfTable.F, B = vfTable.B, L = vfTable.L, R = vfTable.R }
+            elseif vfMag ~= 0 then
+                local p = cam.CFrame.p
+                bv.Velocity = (cam.CFrame.LookVector * (vfLast.F + vfLast.B) + cam.CFrame * CFrame.new(vfLast.L + vfLast.R, (vfLast.F + vfLast.B + vfTable.Q + vfTable.E) * 0.2, 0).p - p) * vfMag
+            else
+                bv.Velocity = Vector3.zero
+            end
+            bg.CFrame = cam.CFrame
+            if not vfActive then break end
+        end
+        vfTable = { F = 0, B = 0, L = 0, R = 0, Q = 0, E = 0 }
+        vfLast = { F = 0, B = 0, L = 0, R = 0, Q = 0, E = 0 }
+        vfMag = 0
+        bg:Destroy()
+        bv:Destroy()
+        if h then h.PlatformStand = false end
+    end)
+
+    vfConn1 = UserInputService.InputBegan:Connect(function(input, gp)
+        if gp then return end
+        if input.KeyCode == Enum.KeyCode.W then vfTable.F = vfSpeed
+        elseif input.KeyCode == Enum.KeyCode.S then vfTable.B = -vfSpeed
+        elseif input.KeyCode == Enum.KeyCode.A then vfTable.L = -vfSpeed
+        elseif input.KeyCode == Enum.KeyCode.D then vfTable.R = vfSpeed
+        elseif input.KeyCode == Enum.KeyCode.E then vfTable.Q = vfSpeed * 2
+        elseif input.KeyCode == Enum.KeyCode.Q then vfTable.E = -vfSpeed * 2
+        end
+        pcall(function() Workspace.CurrentCamera.CameraType = Enum.CameraType.Track end)
+    end)
+
+    vfConn2 = UserInputService.InputEnded:Connect(function(input, gp)
+        if gp then return end
+        if input.KeyCode == Enum.KeyCode.W then vfTable.F = 0
+        elseif input.KeyCode == Enum.KeyCode.S then vfTable.B = 0
+        elseif input.KeyCode == Enum.KeyCode.A then vfTable.L = 0
+        elseif input.KeyCode == Enum.KeyCode.D then vfTable.R = 0
+        elseif input.KeyCode == Enum.KeyCode.E then vfTable.Q = 0
+        elseif input.KeyCode == Enum.KeyCode.Q then vfTable.E = 0
+        end
+    end)
 end
 
 -- ===== 第三人称 =====
@@ -645,9 +1394,190 @@ local function stopAntiGucci()
     end
 end
 
+-- ============================================================
+-- 移除玩具核心
+-- ============================================================
+local REMOVE_ITEMS = {
+    NinjaKunai = true,
+    ToolPickaxe = true,
+    ToolPencil = true,
+    NinjaShuriken = true,
+    AntiKick = true,
+    ToolDiggingForkRusty = true,
+    ToolCleaver = true,
+    AntiKickCleaver = true,
+    NinjaKatana = true,
+}
+local REMOVE_DISTANCE = 35
+local REMOVE_CFRAME = CFrame.new(0, 1e9, 1e9)
+
+local function removeIsBlobman(obj)
+    if not obj then return false end
+    local n = string.lower(obj.Name)
+    return n == "creatureblobman" or n:find("blobman") ~= nil
+end
+
+local function removeGetParts(obj)
+    local parts = {}
+    if not obj then return parts end
+    if obj:IsA("BasePart") then table.insert(parts, obj) end
+    for _, d in pairs(obj:GetDescendants()) do
+        if d:IsA("BasePart") then table.insert(parts, d) end
+    end
+    return parts
+end
+
+local function removeAntiKickInventory(player)
+    if not player or not player.Character then return end
+    local folder = Workspace:FindFirstChild(player.Name .. "SpawnedInToys")
+    if not folder then return end
+    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return end
+    local myPos = myRoot.Position
+    local myName = LocalPlayer.Name
+    for _, child in ipairs(folder:GetChildren()) do
+        if not removeIsBlobman(child) and REMOVE_ITEMS[child.Name] then
+            local soundPart = child:FindFirstChild("SoundPart") or child:FindFirstChildWhichIsA("BasePart")
+            if soundPart and (myPos - soundPart.Position).Magnitude <= REMOVE_DISTANCE then
+                pcall(function()
+                    if SetOwner then SetOwner:FireServer(soundPart, soundPart.CFrame) end
+                end)
+                local partOwner = soundPart:FindFirstChild("PartOwner")
+                if partOwner and partOwner.Value == myName then
+                    soundPart.CFrame = REMOVE_CFRAME
+                end
+            end
+        end
+    end
+end
+
+local function removeAntiKickAura()
+    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return end
+    local myPos = myRoot.Position
+    local myName = LocalPlayer.Name
+    for _, child in ipairs(Workspace:GetChildren()) do
+        local name = child.Name
+        if name:find("SpawnedInToys$") and name ~= myName .. "SpawnedInToys" then
+            for _, child2 in ipairs(child:GetChildren()) do
+                if not removeIsBlobman(child2) and REMOVE_ITEMS[child2.Name] then
+                    local soundPart = child2:FindFirstChild("SoundPart") or child2:FindFirstChildWhichIsA("BasePart")
+                    if soundPart and (myPos - soundPart.Position).Magnitude <= REMOVE_DISTANCE then
+                        pcall(function()
+                            if SetOwner then SetOwner:FireServer(soundPart, soundPart.CFrame) end
+                        end)
+                        local partOwner = soundPart:FindFirstChild("PartOwner")
+                        if partOwner and partOwner.Value == myName then
+                            soundPart.CFrame = REMOVE_CFRAME
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+local function removeAllToyInventory(player)
+    if not player or not player.Character then return end
+    local folder = Workspace:FindFirstChild(player.Name .. "SpawnedInToys")
+    if not folder then return end
+    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return end
+    local myPos = myRoot.Position
+    local myName = LocalPlayer.Name
+    for _, child in ipairs(folder:GetChildren()) do
+        if not removeIsBlobman(child) then
+            local parts = removeGetParts(child)
+            for _, part in ipairs(parts) do
+                if part and part:IsA("BasePart") and part.Parent then
+                    if (myPos - part.Position).Magnitude <= REMOVE_DISTANCE then
+                        pcall(function()
+                            if SetOwner then SetOwner:FireServer(part, part.CFrame) end
+                        end)
+                        local partOwner = part:FindFirstChild("PartOwner")
+                        if partOwner and partOwner.Value == myName then
+                            part.CFrame = REMOVE_CFRAME
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+local function removeAllToyAura()
+    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return end
+    local myPos = myRoot.Position
+    local myName = LocalPlayer.Name
+    for _, child in ipairs(Workspace:GetChildren()) do
+        local name = child.Name
+        if name:find("SpawnedInToys$") and name ~= myName .. "SpawnedInToys" then
+            for _, child2 in ipairs(child:GetChildren()) do
+                if not removeIsBlobman(child2) then
+                    local parts = removeGetParts(child2)
+                    for _, part in ipairs(parts) do
+                        if part and part:IsA("BasePart") and part.Parent then
+                            if (myPos - part.Position).Magnitude <= REMOVE_DISTANCE then
+                                pcall(function()
+                                    if SetOwner then SetOwner:FireServer(part, part.CFrame) end
+                                end)
+                                local partOwner = part:FindFirstChild("PartOwner")
+                                if partOwner and partOwner.Value == myName then
+                                    part.CFrame = REMOVE_CFRAME
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+local function removeStartAntiKick()
+    if T.removeAntiKickThread then task.cancel(T.removeAntiKickThread) T.removeAntiKickThread = nil end
+    T.removeAntiKickThread = task.spawn(function()
+        while S.RemoveAntiKick do
+            if S.RemoveMethod == "Inventory" then
+                local player = T.removeKickPlayer
+                if player then
+                    pcall(function() removeAntiKickInventory(player) end)
+                end
+            else
+                pcall(function() removeAntiKickAura() end)
+            end
+            task.wait(0.2)
+        end
+    end)
+end
+local function removeStopAntiKick()
+    if T.removeAntiKickThread then task.cancel(T.removeAntiKickThread) T.removeAntiKickThread = nil end
+end
+
+local function removeStartAllToy()
+    if T.removeAllToyThread then task.cancel(T.removeAllToyThread) T.removeAllToyThread = nil end
+    T.removeAllToyThread = task.spawn(function()
+        while S.RemoveAllToy do
+            if S.RemoveAllToyMethod == "Inventory" then
+                local player = T.removeKickPlayer
+                if player then
+                    pcall(function() removeAllToyInventory(player) end)
+                end
+            else
+                pcall(function() removeAllToyAura() end)
+            end
+            task.wait(0.2)
+        end
+    end)
+end
+local function removeStopAllToy()
+    if T.removeAllToyThread then task.cancel(T.removeAllToyThread) T.removeAllToyThread = nil end
+end
+
 -- ===== 窗口 =====
 local Window = Library:CreateWindow({
-    Title = "Pluton Lite", Footer = "Pluton Lite", Icon = 0,
+    Title = "Pluton Lite", Footer = "Pluton Lite + Mercury", Icon = 0,
     NotifySide = "Right", ShowCustomCursor = false, Center = true,
     AutoShow = true, ToggleKeybind = Enum.KeyCode.RightControl, CornerRadius = 14,
 })
@@ -662,6 +1592,7 @@ local Tabs = {
     Loop = Window:AddTab("循环", "repeat"),
     Visuals = Window:AddTab("视觉", "eye"),
     Misc = Window:AddTab("杂项", "settings"),
+    Mercury = Window:AddTab("Mercury", "zap"),
 }
 
 -- ===== 主页 =====
@@ -1910,75 +2841,56 @@ grabSec:AddToggle("PhysicsGrab", {
     end,
 })
 
-local grabDebugSec = Tabs.Grab:AddRightGroupbox("缩放调试")
-do
-    local infZoomValue = 0
-    local infZoomConn1, infZoomConn2, infZoomLoop = nil, nil, nil
-    local function applyInfZoom()
-        local grabParts = Workspace:FindFirstChild("GrabParts")
-        if not grabParts then return end
-        local dragPart = grabParts:FindFirstChild("DragPart")
-        local dragAttach = dragPart and dragPart:FindFirstChild("DragAttach")
-        if dragAttach then
-            dragAttach.Position = Workspace.CurrentCamera.CFrame.LookVector * infZoomValue
+-- ===== 移除玩具（新增） =====
+local removeSec = Tabs.Grab:AddRightGroupbox("移除玩具")
+removeSec:AddDropdown("RemoveMethod", {
+    Text = "移除防踢方式",
+    Values = {"Aura", "Inventory"},
+    Default = "Aura",
+    Callback = function(v)
+        S.RemoveMethod = v
+        if S.RemoveAntiKick then
+            removeStopAntiKick()
+            removeStartAntiKick()
         end
-    end
-    local function startInfZoomLoop()
-        if infZoomLoop then return end
-        infZoomLoop = RunService.RenderStepped:Connect(function()
-            if not S.InfZoom then return end
-            applyInfZoom()
-        end)
-    end
-    local function stopInfZoom()
-        if infZoomConn1 then infZoomConn1:Disconnect() infZoomConn1 = nil end
-        if infZoomConn2 then infZoomConn2:Disconnect() infZoomConn2 = nil end
-        if infZoomLoop then infZoomLoop:Disconnect() infZoomLoop = nil end
-        infZoomValue = 0
-    end
-    grabDebugSec:AddToggle("InfZoom", {
-        Text = "无限缩放（滚轮拉远）",
-        Default = false,
-        Callback = function(v)
-            S.InfZoom = v
-            if v then
-                infZoomValue = 0
-                infZoomConn1 = UserInputService.InputChanged:Connect(function(input)
-                    if not S.InfZoom then return end
-                    if input.UserInputType == Enum.UserInputType.MouseWheel then
-                        if Workspace:FindFirstChild("GrabParts") then
-                            if input.Position.Z > 0 then
-                                infZoomValue = math.min(infZoomValue + S.InfZoomSpeed, S.InfZoomMax)
-                            else
-                                infZoomValue = math.max(infZoomValue - S.InfZoomSpeed, 0)
-                            end
-                        else
-                            infZoomValue = 0
-                        end
-                    end
-                end)
-                infZoomConn2 = Workspace.ChildAdded:Connect(function(child)
-                    if not S.InfZoom then return end
-                    if child.Name == "GrabParts" then
-                        infZoomValue = 0
-                    end
-                end)
-                startInfZoomLoop()
-                applyInfZoom()
-            else
-                stopInfZoom()
-            end
-        end,
-    })
-    grabDebugSec:AddSlider("InfZoomSpeed", {
-        Text = "缩放速度", Default = 1.5, Min = 0.5, Max = 10, Rounding = 1,
-        Callback = function(v) S.InfZoomSpeed = v end,
-    })
-    grabDebugSec:AddSlider("InfZoomMax", {
-        Text = "最大缩放距离", Default = 500, Min = 10, Max = 1000, Rounding = 0,
-        Callback = function(v) S.InfZoomMax = v end,
-    })
-end
+    end,
+})
+removeSec:AddToggle("RemoveAntiKick", {
+    Text = "移除防踢玩具",
+    Default = false,
+    Callback = function(v)
+        S.RemoveAntiKick = v
+        if v then
+            removeStartAntiKick()
+        else
+            removeStopAntiKick()
+        end
+    end,
+})
+removeSec:AddDropdown("RemoveAllToyMethod", {
+    Text = "移除全部玩具方式",
+    Values = {"Inventory", "Aura"},
+    Default = "Inventory",
+    Callback = function(v)
+        S.RemoveAllToyMethod = v
+        if S.RemoveAllToy then
+            removeStopAllToy()
+            removeStartAllToy()
+        end
+    end,
+})
+removeSec:AddToggle("RemoveAllToy", {
+    Text = "移除全部玩具",
+    Default = false,
+    Callback = function(v)
+        S.RemoveAllToy = v
+        if v then
+            removeStartAllToy()
+        else
+            removeStopAllToy()
+        end
+    end,
+})
 
 -- ===== 光环 =====
 local auraSetSec = Tabs.Aura:AddLeftGroupbox("光环设置")
@@ -2353,7 +3265,6 @@ auraAtkSec:AddToggle("FreezeAura", { Text = "冻结光环", Default = false, Cal
     end) end
 end })
 
--- 光环防御（光环右栏）
 local auraDefSec = Tabs.Aura:AddRightGroupbox("光环防御")
 auraDefSec:AddToggle("AntiBananaAura", { Text = "反香蕉光环", Default = false, Callback = function(enabled)
     S.AntiBananaAura = enabled
@@ -2888,7 +3799,7 @@ visualSec:AddSlider("FOVValue", {
     end,
 })
 
--- ===== 玩家离开/被踢提示 =====
+-- ===== 玩家离开提示 =====
 local notifyGui = Instance.new("ScreenGui")
 notifyGui.Name = "PlutonLeaveNotify"
 notifyGui.ResetOnSpawn = false
@@ -3036,6 +3947,139 @@ perfSec:AddToggle("NightMode", {
     end,
 })
 
+-- ============================================================
+-- Mercury 标签页 UI
+-- ============================================================
+local mercDefSec = Tabs.Mercury:AddLeftGroupbox("Mercury 防御")
+mercDefSec:AddToggle("MercuryDefense", {
+    Text = "启用全部防御",
+    Default = false,
+    Callback = function(v)
+        S.MercuryDefense = v
+        if v then
+            mercuryEnableDefense()
+        else
+            mercuryDisableDefense()
+        end
+    end,
+})
+mercDefSec:AddToggle("MercuryAntiVoid", {
+    Text = "Anti-Void（防虚空）",
+    Default = false,
+    Callback = function(v)
+        S.MercuryAntiVoid = v
+        if v then mercuryStartAntiVoid() else mercuryStopAntiVoid() end
+    end,
+})
+mercDefSec:AddToggle("AutoBreakPCLD", {
+    Text = "Auto Break PCLD",
+    Default = false,
+    Callback = function(v)
+        S.AutoBreakPCLD = v
+        if v then mercuryStartAutoBreak() else mercuryStopAutoBreak() end
+    end,
+})
+mercDefSec:AddToggle("AntiShurikenLag", {
+    Text = "Anti-Shuriken-Lag",
+    Default = false,
+    Callback = function(v)
+        S.AntiShurikenLag = v
+        if v then mercuryStartAntiShuriken() else mercuryStopAntiShuriken() end
+    end,
+})
+mercDefSec:AddToggle("AntiLineLag", {
+    Text = "Anti-Line-Lag",
+    Default = false,
+    Callback = function(v)
+        S.AntiLineLag = v
+        if v then mercuryStartAntiLineLag() else mercuryStopAntiLineLag() end
+    end,
+})
+mercDefSec:AddToggle("AntiNetworkStruggle", {
+    Text = "Anti-Network-Struggle",
+    Default = false,
+    Callback = function(v)
+        S.AntiNetworkStruggle = v
+        if v then mercuryStartAntiNetwork() else mercuryStopAntiNetwork() end
+    end,
+})
+mercDefSec:AddToggle("AntiBarrier", {
+    Text = "Anti-Barrier（穿屏障）",
+    Default = false,
+    Callback = function(v)
+        S.AntiBarrier = v
+        if v then mercuryStartAntiBarrier() else mercuryStopAntiBarrier() end
+    end,
+})
+mercDefSec:AddToggle("AntiBurn", {
+    Text = "Anti-Burn",
+    Default = false,
+    Callback = function(v)
+        S.AntiBurn = v
+        if v then mercuryStartAntiBurn() else mercuryStopAntiBurn() end
+    end,
+})
+
+local mercFlySec = Tabs.Mercury:AddRightGroupbox("载具飞行")
+mercFlySec:AddToggle("VehicleFly", {
+    Text = "载具飞行",
+    Default = false,
+    Callback = function(v)
+        S.VehicleFly = v
+        if v then
+            vfStart()
+        else
+            vfStop()
+        end
+    end,
+})
+mercFlySec:AddSlider("VehicleFlySpeed", {
+    Text = "飞行速度",
+    Default = 5,
+    Min = 1,
+    Max = 20,
+    Rounding = 0,
+    Callback = function(v)
+        S.VehicleFlySpeed = v
+        vfSpeed = v
+    end,
+})
+mercFlySec:AddButton({
+    Text = "手动开关载具飞行（X）",
+    Func = function()
+        if S.VehicleFly then
+            S.VehicleFly = false
+            vfStop()
+            if Toggles.VehicleFly then Toggles.VehicleFly:SetValue(false) end
+        else
+            S.VehicleFly = true
+            vfStart()
+            if Toggles.VehicleFly then Toggles.VehicleFly:SetValue(true) end
+        end
+    end,
+})
+
+-- 快捷键 X 开关载具飞行
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.X then
+        if S.VehicleFly then
+            S.VehicleFly = false
+            vfStop()
+            pcall(function()
+                if Toggles.VehicleFly then Toggles.VehicleFly:SetValue(false) end
+            end)
+        else
+            S.VehicleFly = true
+            vfStart()
+            pcall(function()
+                if Toggles.VehicleFly then Toggles.VehicleFly:SetValue(true) end
+            end)
+        end
+    end
+end)
+
+-- ===== 收尾 =====
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
 SaveManager:IgnoreThemeSettings()
@@ -3044,4 +4088,4 @@ SaveManager:SetFolder("PlutonLite")
 SaveManager:BuildConfigSection(Tabs.Misc)
 ThemeManager:ApplyToTab(Tabs.Misc)
 
-warn("Pluton Lite (完整版 + 防踢组 + 光环防御 + 循环选人 + 离开提示) 已加载")
+warn("Pluton Lite + Mercury 已加载 | 移除玩具已添加 | Mercury 标签页内可开启防御与载具飞行 | X = 载具飞行快捷键")
