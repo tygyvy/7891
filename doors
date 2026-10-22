@@ -1251,6 +1251,14 @@ local Translations = {
     ["Boat Speed"] = "船只速度",
     ["Boat Turn Speed"] = "船只转向速度",
     ["Jet Ski Speed"] = "水上摩托速度",
+    ["Tire Pop"] = "爆胎",
+    ["Spin Out"] = "打转",
+    ["Tire Pop开"] = "防爆胎开",
+    ["Spin Out开"] = "防打转开",
+    ["Breakdown"] = "故障",
+    ["Breakdown开"] = "故障开",
+    ["Roll Control"] = "侧倾控制",
+    ["Roll Control开"] = "侧倾控制开",
 
     -- ==========================================
     -- 【新增：抢劫任务(Robberies)】
@@ -1296,8 +1304,10 @@ local Translations = {
     ["Tomb: 关闭 opens in"] = "古墓：关闭 (开启倒计时:",
 
     -- ==========================================
-    -- 【新增：主要(Main)与交互】
+    -- 【新增：主要(Main)与交互】及修复
     -- ==========================================
+    ["Jump Modifier"] = "跳跃修改",
+    ["Custom Gravity"] = "自定义重力",
     ["Gravity"] = "重力",
     ["Always Sprinting"] = "始终冲刺",
     ["Always Juiced"] = "始终充满能量",
@@ -1380,15 +1390,39 @@ local Translations = {
     ["Include Turrets"] = "包含炮塔",
     ["Wall Check"] = "墙体检测",
     ["Target Players in Vehicles"] = "锁定载具内玩家",
+    ["Target 玩家 in 载具"] = "锁定载具内玩家",
     ["Target NPCs"] = "锁定NPC",
     ["Aim Distance"] = "自瞄距离",
     ["FOV Radius"] = "视野范围(FOV)",
+    ["视野范围 Radius"] = "视野范围(FOV)",
     ["Show FOV Circle"] = "显示视野范围圆圈",
     ["Fill FOV Circle"] = "填充视野范围圆圈",
+    ["显示 视野范围 Circle"] = "显示视野范围圆圈",
+    ["Fill 视野范围 Circle"] = "填充视野范围圆圈",
     ["No Taser Miss Cooldown"] = "无电击枪未命中冷却",
     ["Forcefield No Misses"] = "力场无未命中",
     ["Triple Damage To Forcefields"] = "对力场造成三倍伤害",
-    ["No Turret Overheat"] = "无炮塔过热"
+    ["No Turret Overheat"] = "无炮塔过热",
+    
+    -- ==========================================
+    -- 【新增：特别针对截断乱码的修复】
+    -- ==========================================
+    ["开 显示 Enemies"] = "开 显示敌人",
+    ["开ly 显示 Enemies"] = "开 显示敌人",
+    ["开 显示 Friends"] = "开 显示好友",
+    ["开 显示 Vehicles"] = "开 显示载具",
+    ["开 显示 Health Bars"] = "开 显示血条",
+    ["开 显示 Weapons"] = "开 显示武器",
+    ["开 显示 Bounties"] = "开 显示赏金",
+    ["开 显示 Health Text"] = "开 显示血量文本",
+    ["Defense Speed Limit"] = "防御速度限制",
+    ["Defense Eject Stun"] = "防御弹出眩晕",
+    ["Defense Breakdown"] = "防御损坏",
+    ["Defense Ragdoll"] = "防御布娃娃",
+    ["Defense Fall Damage"] = "防御摔落伤害",
+    ["Defense Skydiving"] = "防御跳伞",
+    ["Defense Taze"] = "防御电击",
+    ["Defense Tracking 聚光灯s"] = "防御追踪聚光灯"
 }
 
 local sortedKeys = {}
