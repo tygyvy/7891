@@ -960,6 +960,7 @@ local Translations = {
     ["Notify Item List"] = "提醒物品列表",
     ["Exit Closet"] = "离开躲藏点",
     ["Tp Next Door"] = "传送下一扇门",
+    ["Teleport To Next Door"] = "瞬移下一扇门",
     ["Auto Tp Next Door"] = "自动传送下一扇门",
     ["Item Number"] = "物品编号",
     ["Creak Aggression Meter"] = "Creak 攻击性计量表",
@@ -1522,7 +1523,12 @@ local Translations = {
     ["楼梯间 终端s"] = "楼梯间 终端",
     ["档案室 终端s"] = "档案室 终端",
     ["Chandeliers"] = "吊灯",
-    ["Seek Arms"] = "Seek 手臂"
+    ["Seek Arms"] = "Seek 手臂",
+    ["Wand"] = "魔杖",
+    ["Broom"] = "扫帚",
+    ["Small Cauldron"] = "小坩埚",
+    ["Large Cauldron"] = "大坩埚",
+    ["Small Cauldron开"] = "小坩埚开"
 }
 
 local sortedKeys = {}
