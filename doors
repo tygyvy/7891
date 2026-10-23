@@ -1304,6 +1304,25 @@ local Translations = {
     ["Tomb: 关闭 opens in"] = "古墓：关闭 (开启倒计时:",
 
     -- ==========================================
+    -- 【新增：糖果地图(Candy Vault)】
+    -- ==========================================
+    ["糖果 Event [Temp]"] = "糖果活动 [临时]",
+    ["Candy Vault"] = "糖果金库",
+    ["Only works in The Candy Vault floor."] = "仅在糖果金库楼层生效。",
+    ["Infinite Stamina"] = "无限体力",
+    ["No Candy Effects"] = "无糖果效果",
+    ["Chocolate"] = "巧克力",
+    ["Giant Gummyworm"] = "巨型软糖虫",
+    ["Wizard Hat"] = "巫师帽",
+    ["Candy Bucket"] = "糖果桶",
+    ["Candy Bag"] = "糖果袋",
+    ["Candy Basket"] = "糖果篮",
+    ["Lukeman"] = "卢克曼",
+    ["Haybale"] = "干草捆",
+    ["Chocolate Crate"] = "巧克力箱子",
+    ["糖果 Vault"] = "糖果金库",
+
+    -- ==========================================
     -- 【新增：主要(Main)与交互】及修复
     -- ==========================================
     ["Jump Modifier"] = "跳跃修改",
@@ -1405,24 +1424,66 @@ local Translations = {
     ["No Turret Overheat"] = "无炮塔过热",
     
     -- ==========================================
-    -- 【新增：特别针对截断乱码的修复】
+    -- 【新增：特别针对截断乱码、复数 s 的修复】
     -- ==========================================
+    ["Presets"] = "预设",
+    ["Enemies"] = "敌人",
+    ["Friends"] = "好友",
+    ["Weapons"] = "武器",
+    ["Bars"] = "条",
+    ["Lights"] = "灯光",
+    ["Bounties"] = "赏金",
+    ["Crushers"] = "粉碎机",
+    ["Turrets"] = "炮塔",
+    ["Guards"] = "警卫",
+    ["Airdrops"] = "空投",
+    ["Remotes"] = "遥控器",
+    ["Traps"] = "陷阱",
+    ["Spikes"] = "尖刺",
+    ["Planks"] = "木板",
+    ["Darts"] = "飞镖",
+    ["Lasers"] = "激光",
+    ["Pistons"] = "活塞",
+    ["Shutters"] = "卷帘门",
+    ["Alarms"] = "警报",
+    ["Crates"] = "箱子",
+    ["Jewels"] = "珠宝",
+    ["Computers"] = "电脑",
+    ["Passengers"] = "乘客",
+    ["Powerful"] = "强大",
+    ["Invalid"] = "无效",
+    ["Words"] = "词汇",
+    ["Mins"] = "分钟",
+    ["Secs"] = "秒",
+    ["Headstones"] = "墓碑",
+    ["Headstone"] = "墓碑",
+    ["Headst开e"] = "墓碑",
+    ["糖果_Headst开e"] = "糖果墓碑",
+    ["糖果_Buckets"] = "糖果桶",
+    ["糖果_Bucket"] = "糖果桶",
+    ["糖果_Barrels"] = "糖果桶",
+    ["糖果_Basket"] = "糖果篮",
+    ["糖果_Bag"] = "糖果袋",
+    ["Candy_Bucket"] = "糖果桶",
+    ["Candy_Barrels"] = "糖果桶",
+    ["Candy_Basket"] = "糖果篮",
+    ["Candy_Bag"] = "糖果袋",
+    ["Candy_Crate"] = "糖果箱",
+    ["Candy_Gummy"] = "糖果软糖",
+    ["Defense Speed Limit"] = "防御速度限制",
+    ["Defense Eject Stun"] = "防御弹出眩晕",
+    ["Defense Breakdown"] = "防御损坏",
+    ["Defense Tire Pop"] = "防御爆胎",
+    ["Defense Spin Out"] = "防御打转",
     ["开 显示 Enemies"] = "开 显示敌人",
-    ["开ly 显示 Enemies"] = "开 显示敌人",
     ["开 显示 Friends"] = "开 显示好友",
-    ["开 显示 Vehicles"] = "开 显示载具",
+    ["开 显示 Bars"] = "开 显示条",
     ["开 显示 Health Bars"] = "开 显示血条",
     ["开 显示 Weapons"] = "开 显示武器",
     ["开 显示 Bounties"] = "开 显示赏金",
     ["开 显示 Health Text"] = "开 显示血量文本",
-    ["Defense Speed Limit"] = "防御速度限制",
-    ["Defense Eject Stun"] = "防御弹出眩晕",
-    ["Defense Breakdown"] = "防御损坏",
-    ["Defense Ragdoll"] = "防御布娃娃",
-    ["Defense Fall Damage"] = "防御摔落伤害",
-    ["Defense Skydiving"] = "防御跳伞",
-    ["Defense Taze"] = "防御电击",
-    ["Defense Tracking 聚光灯s"] = "防御追踪聚光灯"
+    ["开 显示 Vehicles"] = "开 显示载具",
+    ["开ly works in The 糖果 Vault floor."] = "仅在糖果金库楼层生效。"
 }
 
 local sortedKeys = {}
