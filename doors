@@ -344,6 +344,9 @@ end
 -- ==========================================
 
 local Translations = {
+    -- ========== 【终极去 s 空白（如你所愿加在这里了）】 ==========
+    ["s"] = "",
+
     -- 核心修复：补齐残缺字段，全部翻译成杂项
     ["Miscellaneous"] = "杂项",
     ["ellaneous"] = "杂项",
@@ -1205,7 +1208,7 @@ local Translations = {
     ["Drive in Air"] = "空中驾驶",
     ["Auto Lock Vehicle"] = "自动锁车",
     ["Teleport Tow Vehicles"] = "传送拖车",
-    ["s"] = " ",
+    ["Vehicle Fly"] = "载具飞行",
     ["Vehicle Fly Speed"] = "载具飞行速度",
     ["Kick AI Passengers"] = "踢出AI乘客",
     ["Car Modifications"] = "汽车修改",
@@ -1259,7 +1262,7 @@ local Translations = {
     ["Breakdown"] = "故障",
     ["Breakdown开"] = "故障开",
     ["Roll Control"] = "侧倾控制",
-    ["Roll Control开"] = "侧倾控制开",
+    ["s"] = " ",
 
     -- ==========================================
     -- 【新增：抢劫任务(Robberies)】
