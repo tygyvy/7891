@@ -1483,7 +1483,46 @@ local Translations = {
     ["开 显示 Bounties"] = "开 显示赏金",
     ["开 显示 Health Text"] = "开 显示血量文本",
     ["开 显示 Vehicles"] = "开 显示载具",
-    ["开ly works in The 糖果 Vault floor."] = "仅在糖果金库楼层生效。"
+    ["开ly works in The 糖果 Vault floor."] = "仅在糖果金库楼层生效。",
+
+    -- ==========================================
+    -- 【本次截图终极修复：分类、复数 s 残留、混合截断】
+    -- ==========================================
+    ["Hotel"] = "酒店",
+    ["Mines"] = "矿山",
+    ["Outdoor"] = "户外",
+    ["Backdoor"] = "后门",
+    ["Archives"] = "档案室",
+    ["Stairwell"] = "楼梯间",
+    ["Others"] = "其他",
+    ["Candy Event [Temp]"] = "糖果活动 [临时]",
+    ["Breaker Box"] = "电闸盒",
+    ["Breaker 方框"] = "电闸盒",
+    ["Auto Terminal Shut"] = "自动关闭终端门",
+    ["Auto 终端门 Shut"] = "自动关闭终端门",
+    ["Collect 金币"] = "收集金币",
+    ["Collect 星尘"] = "收集星尘",
+    ["禁声 Gloombat"] = "静音 Gloombat",
+    ["禁声 Gloombats"] = "静音 Gloombat",
+    ["自动解开 Forget Me 点"] = "自动跳过 Forget Me Not",
+    ["防 Seek 手"] = "防 Seek 手臂",
+    ["防 Seek 手臂"] = "防 Seek 手臂",
+    ["Library 挂锁"] = "图书馆挂锁",
+    ["锚点s"] = "锚点",
+    ["发电机s"] = "发电机",
+    ["保险丝s"] = "保险丝",
+    ["包装存放处s"] = "包装存放处",
+    ["水流坑s"] = "水流坑",
+    ["大门拉杆s"] = "大门拉杆",
+    ["提示书s"] = "提示书",
+    ["电闸杆s"] = "电闸杆",
+    ["货船s"] = "货船",
+    ["火警s"] = "火警",
+    ["粉碎机s"] = "粉碎机",
+    ["楼梯间 终端s"] = "楼梯间 终端",
+    ["档案室 终端s"] = "档案室 终端",
+    ["Chandeliers"] = "吊灯",
+    ["Seek Arms"] = "Seek 手臂"
 }
 
 local sortedKeys = {}
@@ -1520,6 +1559,16 @@ local function translateText(text)
             return newText
         end
     end
+
+    -- 终极去 s 补丁：如果仍有中文+末尾s，尝试去s
+    if text:match("[%z\1-\127\194-\244][\128-\191]*s$") then
+        local baseText = text:sub(1, -2)
+        local translatedBase = translateText(baseText)
+        if translatedBase ~= baseText then
+            return translatedBase
+        end
+    end
+
     return text
 end
 
