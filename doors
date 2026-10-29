@@ -1,5 +1,5 @@
 -- ==========================================
--- Twinkhook 汉化版 (终极稳定版 - 完整拼接)
+-- Twinkhook 汉化版 (完美修复好友误伤与乱码)
 -- ==========================================
 
 local Services = setmetatable({}, {
@@ -27,7 +27,9 @@ local TIME_OPTIONS = {
 local SelectedCooldown = TIME_OPTIONS["24小时"]
 
 local function GetContainer()
-    if gethui then return gethui() end
+    if gethui then
+        return gethui()
+    end
     return Services.CoreGui
 end
 
@@ -251,7 +253,6 @@ local function ShowKeyUI()
     CloseButton.TextSize = 13
 
     local CloseCorner = Instance.new("UICorner", CloseButton)
-    CloseButton.CornerRadius = UDim.new(0, 8)
     CloseCorner.CornerRadius = UDim.new(0, 8)
 
     local CloseStroke = Instance.new("UIStroke", CloseButton)
@@ -279,6 +280,7 @@ local function ShowKeyUI()
 
     CopyButton.MouseButton1Click:Connect(function()
         if Finished then return end
+
         local Success = false
 
         if toclipboard then
@@ -327,6 +329,7 @@ local function ShowKeyUI()
             DestroyUI()
         end
     end)
+
     print("[卡密复制] UI 已加载")
 end
 
@@ -334,7 +337,35 @@ if ShouldShow() then
     ShowKeyUI()
 end
 
+-- ==========================================
+-- 以下是汉化 + 加载器部分
+-- ==========================================
+
 local Translations = {
+    -- 核心修复：补齐残缺字段，全部翻译成杂项
+    ["Miscellaneous"] = "杂项",
+    ["ellaneous"] = "杂项",
+    ["ellaneos"] = "杂项",
+    
+    ["Visuals"] = "视觉", 
+    ["Exploits"] = "功能",
+    ["Games"] = "游戏", 
+    ["Game"] = "游戏",
+    ["Profile"] = "个人资料", 
+    ["Information"] = "信息",
+    ["Latest Changelog"] = "最新更新日志",
+    ["Added Jailbreak support"] = "添加了 Jailbreak 支持",
+    ["Less FPS with doors maybe"] = "玩门的时候帧数可能会变低",
+    ["yep i did stuff"] = "是的，我做了些东西",
+    ["Supported:"] = "已支持：",
+    ["Want a game added? Ask in the Discord."] = "想添加游戏？请在 Discord 中询问。",
+    ["this game"] = "本游戏",
+    ["coming soon"] = "即将推出",
+    ["supported"] = "已支持",
+    ["Join Discord"] = "加入 Discord",
+    ["Copy Link"] = "复制链接",
+    ["Executions:"] = "执行次数：",
+    
     ["on"] = "开",
     ["off"] = "关",
     ["Enabled"] = "开启", 
@@ -343,6 +374,18 @@ local Translations = {
     ["Off"] = "关",
     ["Yes"] = "是", 
     ["No"] = "否",
+
+    ["Anti-Cheat Bypass"] = "反作弊绕过", 
+    ["Speed Bypass"] = "速度绕过",
+    ["Noclip Bypass"] = "穿墙绕过", 
+    ["Crouch Spoof"] = "蹲下伪装",
+    ["Anti-Cheat Manipulation"] = "反作弊操控", 
+    ["Position Manipulation"] = "位置操控(无敌模式)",
+    ["Position Manipulation Range"] = "位置操控范围", 
+    ["No Roblox Void"] = "无 Roblox 虚空",
+
+    ["Twinkhook V3"] = "Twinkhook V3",
+    ["Twinkhook"] = "Twinkhook",
     ["Toggle"] = "开关", 
     ["Lock"] = "锁定", 
     ["Unlock"] = "解锁",
@@ -391,6 +434,7 @@ local Translations = {
     ["Puzzles"] = "解谜", 
     ["Minigames"] = "小游戏", 
     ["Trolling"] = "整蛊",
+    
     ["Auto Pull Fire Alarms"] = "自动拉火警", 
     ["Anti Noise"] = "防噪音",
     ["Auto Break Noise TV"] = "自动破坏噪音电视", 
@@ -446,6 +490,7 @@ local Translations = {
     ["Ignore List"] = "忽略列表", 
     ["Ignore Items"] = "忽略物品",
     ["Notifications are turned on in the Settings tab."] = "通知已在「设置」标签中开启。",
+
     ["Batteries"] = "电池", 
     ["Books"] = "书", 
     ["Book"] = "书",
@@ -1071,6 +1116,10 @@ local Translations = {
     ["Toggle Heavy Items"] = "开关重型物品",
     ["Egg Game"] = "彩蛋游戏",
     ["Always Win Egg Game"] = "彩蛋游戏总是赢",
+
+    -- ==========================================
+    -- 【侧边栏、通用设置与UI】
+    -- ==========================================
     ["Robberies"] = "抢劫任务", 
     ["Combat"] = "战斗", 
     ["Vehicles"] = "载具",
@@ -1119,6 +1168,10 @@ local Translations = {
     ["Test Notification"] = "测试通知",
     ["Put .mp3 or .ogg files in Twinkhook/Music and execute again to see them."] = "将 .mp3 或 .ogg 文件放入 Twinkhook/Music 文件夹，再次执行即可看到。",
     ["Use the toggle button to open and close the menu."] = "使用切换按钮打开和关闭菜单。",
+
+    -- ==========================================
+    -- 【视觉(Vision)与相机(Camera)】
+    -- ==========================================
     ["Team List"] = "队伍列表",
     ["Police, Prisoner, Crim..."] = "警察, 囚犯, 罪犯...",
     ["Hide Whitelisted"] = "隐藏白名单",
@@ -1136,6 +1189,10 @@ local Translations = {
     ["Corner"] = "圆角",
     ["Fill"] = "填充",
     ["Show AI Players on Minimap"] = "在小地图上显示AI玩家",
+
+    -- ==========================================
+    -- 【载具(Vehicles)】
+    -- ==========================================
     ["Infinite Nitro"] = "无限氮气",
     ["Infinite Traction"] = "无限牵引力",
     ["Infinite Tracti开"] = "无限牵引力开", 
@@ -1201,6 +1258,10 @@ local Translations = {
     ["Breakdown开"] = "故障开",
     ["Roll Control"] = "侧倾控制",
     ["Roll Control开"] = "侧倾控制开",
+
+    -- ==========================================
+    -- 【抢劫任务(Robberies)】
+    -- ==========================================
     ["Notify Robbery"] = "通知抢劫任务",
     ["No Laser Damage"] = "无激光伤害",
     ["Auto Collect"] = "自动收集",
@@ -1240,6 +1301,10 @@ local Translations = {
     ["Auto Breach Vault"] = "自动突破金库",
     ["Auto Break Glass"] = "自动打碎玻璃",
     ["Tomb: 关闭 opens in"] = "古墓：关闭 (开启倒计时:",
+
+    -- ==========================================
+    -- 【糖果地图(Candy Vault)】
+    -- ==========================================
     ["糖果 Event [Temp]"] = "糖果活动 [临时]",
     ["Candy Vault"] = "糖果金库",
     ["Only works in The Candy Vault floor."] = "仅在糖果金库楼层生效。",
@@ -1255,6 +1320,10 @@ local Translations = {
     ["Haybale"] = "干草捆",
     ["Chocolate Crate"] = "巧克力箱子",
     ["糖果 Vault"] = "糖果金库",
+
+    -- ==========================================
+    -- 【主要(Main)与交互】及修复
+    -- ==========================================
     ["Jump Modifier"] = "跳跃修改",
     ["Custom Gravity"] = "自定义重力",
     ["Gravity"] = "重力",
@@ -1296,6 +1365,10 @@ local Translations = {
     ["10 单位/16 单位"] = "10 单位/16 单位",
     ["16 单位/16 单位"] = "16 单位/16 单位",
     ["120 单位/120 单位"] = "120 单位/120 单位",
+
+    -- ==========================================
+    -- 【战斗(Combat)】
+    -- ==========================================
     ["Gun Modifications"] = "枪械修改",
     ["Always Auto"] = "始终全自动",
     ["No Recoil"] = "无后坐力",
@@ -1348,6 +1421,10 @@ local Translations = {
     ["Forcefield No Misses"] = "力场无未命中",
     ["Triple Damage To Forcefields"] = "对力场造成三倍伤害",
     ["No Turret Overheat"] = "无炮塔过热",
+
+    -- ==========================================
+    -- 【精准修复：只替换功能里的 s 尾巴，绝不误伤好友名字】
+    -- ==========================================
     ["Presets"] = "预设",
     ["Enemies"] = "敌人",
     ["Friends"] = "好友",
@@ -1372,60 +1449,7 @@ local Translations = {
     ["Jewels"] = "珠宝",
     ["Computers"] = "电脑",
     ["Passengers"] = "乘客",
-    ["Powerful"] = "强大",
-    ["Invalid"] = "无效",
-    ["Words"] = "词汇",
-    ["Mins"] = "分钟",
-    ["Secs"] = "秒",
     ["Headstones"] = "墓碑",
-    ["Headstone"] = "墓碑",
-    ["Headst开e"] = "墓碑",
-    ["糖果_Headst开e"] = "糖果墓碑",
-    ["糖果_Buckets"] = "糖果桶",
-    ["糖果_Bucket"] = "糖果桶",
-    ["糖果_Barrels"] = "糖果桶",
-    ["糖果_Basket"] = "糖果篮",
-    ["糖果_Bag"] = "糖果袋",
-    ["Candy_Bucket"] = "糖果桶",
-    ["Candy_Barrels"] = "糖果桶",
-    ["Candy_Basket"] = "糖果篮",
-    ["Candy_Bag"] = "糖果袋",
-    ["Candy_Crate"] = "糖果箱",
-    ["Candy_Gummy"] = "糖果软糖",
-    ["Defense Speed Limit"] = "防御速度限制",
-    ["Defense Eject Stun"] = "防御弹出眩晕",
-    ["Defense Breakdown"] = "防御损坏",
-    ["Defense Tire Pop"] = "防御爆胎",
-    ["Defense Spin Out"] = "防御打转",
-    ["开 显示 Enemies"] = "开 显示敌人",
-    ["开 显示 Friends"] = "开 显示好友",
-    ["开 显示 Bars"] = "开 显示条",
-    ["开 显示 Health Bars"] = "开 显示血条",
-    ["开 显示 Weapons"] = "开 显示武器",
-    ["开 显示 Bounties"] = "开 显示赏金",
-    ["开 显示 Health Text"] = "开 显示血量文本",
-    ["开 显示 Vehicles"] = "开 显示载具",
-    ["开ly works in The 糖果 Vault floor."] = "仅在糖果金库楼层生效。",
-    ["Hotel"] = "酒店",
-    ["Mines"] = "矿山",
-    ["Outdoor"] = "户外",
-    ["Backdoor"] = "后门",
-    ["Archives"] = "档案室",
-    ["Stairwell"] = "楼梯间",
-    ["Others"] = "其他",
-    ["Candy Event [Temp]"] = "糖果活动 [临时]",
-    ["Breaker Box"] = "电闸盒",
-    ["Breaker 方框"] = "电闸盒",
-    ["Auto Terminal Shut"] = "自动关闭终端门",
-    ["Auto 终端门 Shut"] = "自动关闭终端门",
-    ["Collect 金币"] = "收集金币",
-    ["Collect 星尘"] = "收集星尘",
-    ["禁声 Gloombat"] = "静音 Gloombat",
-    ["禁声 Gloombats"] = "静音 Gloombat",
-    ["自动解开 Forget Me 点"] = "自动跳过 Forget Me Not",
-    ["防 Seek 手"] = "防 Seek 手臂",
-    ["防 Seek 手臂"] = "防 Seek 手臂",
-    ["Library 挂锁"] = "图书馆挂锁",
     ["锚点s"] = "锚点",
     ["发电机s"] = "发电机",
     ["保险丝s"] = "保险丝",
@@ -1439,16 +1463,28 @@ local Translations = {
     ["粉碎机s"] = "粉碎机",
     ["楼梯间 终端s"] = "楼梯间 终端",
     ["档案室 终端s"] = "档案室 终端",
-    ["Chandeliers"] = "吊灯",
-    ["Seek Arms"] = "Seek 手臂",
+    ["开 显示 Enemies"] = "开 显示敌人",
+    ["开 显示 Friends"] = "开 显示好友",
+    ["开 显示 Bars"] = "开 显示条",
+    ["开 显示 Health Bars"] = "开 显示血条",
+    ["开 显示 Weapons"] = "开 显示武器",
+    ["开 显示 Bounties"] = "开 显示赏金",
+    ["开 显示 Health Text"] = "开 显示血量文本",
+    ["开 显示 Vehicles"] = "开 显示载具",
+    ["Breaker 方框"] = "电闸盒",
+    ["Auto 终端门 Shut"] = "自动关闭终端门",
+    ["Collect 金币"] = "收集金币",
+    ["Collect 星尘"] = "收集星尘",
+    ["禁声 Gloombat"] = "静音 Gloombat",
+    ["自动解开 Forget Me 点"] = "自动跳过 Forget Me Not",
+    ["防 Seek 手"] = "防 Seek 手臂",
+    ["Library 挂锁"] = "图书馆挂锁",
     ["Wand"] = "魔杖",
     ["Broom"] = "扫帚",
     ["Small Cauldron"] = "小坩埚",
     ["Large Cauldron"] = "大坩埚",
     ["Small Cauldron开"] = "小坩埚开"
 }
-
--- ========== 第 2 部分逻辑 ==========
 
 local sortedKeys = {}
 for en, cn in pairs(Translations) do
@@ -1478,10 +1514,14 @@ local function translateText(text)
     for _, pair in ipairs(sortedKeys) do
         if text:find(pair.en, 1, true) then
             local newText = text:gsub(pair.en:gsub("(%W)", "%%%1"), pair.cn)
-            -- 极其重要：这里绝对不能加去 s 的逻辑，否则全乱码
+            if newText ~= text and newText:find(pair.en, 1, true) then
+                return text
+            end
             return newText
         end
     end
+
+    -- 【彻底删除了会导致好友名字变短的烂代码，这里是纯净的返回原样】
     return text
 end
 
