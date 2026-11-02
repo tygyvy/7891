@@ -4,7 +4,14 @@
 -- ============================================================
 
 -- ===================== WindUI 初始化 =====================
-local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/ss"))()
+local ok, WindUI = pcall(function()
+    return loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua", true))()
+end)
+if not ok or not WindUI then
+    warn("WindUI 加载失败，检查执行器是否支持 HttpGet/loadstring")
+    return
+end
+
 
 local Window = WindUI:CreateWindow({
     Title = "Dead Rails Hub",
