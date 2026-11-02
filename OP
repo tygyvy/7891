@@ -1,5 +1,5 @@
 -- ============================================================
--- Dead Rails Hub - Complete Edition (WindUI)
+-- Dead Rails Hub - Complete Edition (WindUI) [FIXED]
 -- 包含：Player / Combat / Misc / ESP / Visuals / Settings
 -- ============================================================
 
@@ -541,8 +541,9 @@ local function hasBandage()
 end
 
 local function getRevivePrompt(pl)
-    local model = workspace:FindFirstChild(pl.Name) or pl.Character
-    local root = model and model:FindFirstChild("HumanoidRootPart")
+    local model = pl.Character or workspace:FindFirstChild(pl.Name)
+    if not model then return nil, nil end
+    local root = model:FindFirstChild("HumanoidRootPart")
     local prompt = root and root:FindFirstChild("RevivePrompt")
     if prompt and prompt:IsA("ProximityPrompt") then return prompt, root end
     return nil, root
@@ -1060,9 +1061,9 @@ local function collectPass(modules)
     if not myPos then return end
     local bondNear, bondFar = {}, {}; local bondTotal = 0; local checked = 0
     for id in world:query(comps.Storable, comps.ObjectId) do
-        if not (farm.collectAll or farm.bond or farm.moneyBag or farm.nearby or farm.pickup) then return end
         local objectId = world:get(id, comps.ObjectId)
-        if objectId == "bond" then bondTotal += 1 end
+        if not objectId then continue end
+        if not (farm.collectAll or farm.bond or farm.moneyBag or farm.nearby or farm.pickup) then return end
         local isBond = (farm.bond and objectId == "bond") or (farm.moneyBag and objectId == "money_bag")
         local function allowed(key) return next(farm.filters[key]) == nil or farm.filterNorm[key][normalizeName(tostring(objectId))] == true end
         local isBring = not isBond and farm.collectAll and allowed("bring")
@@ -1332,7 +1333,7 @@ local function iecCreateLabel(part)
     local bb = Instance.new("BillboardGui"); bb.Name = "ESP_ItemLabel"; bb.Adornee = part; bb.AlwaysOnTop = true
     bb.Size = UDim2.new(0, 200, 0, 50); bb.StudsOffset = Vector3.new(0, 2, 0); bb.ClipsDescendants = false; bb.Parent = part
     local tl = Instance.new("TextLabel"); tl.Size = UDim2.new(1, 0, 1, 0); tl.BackgroundTransparency = 1; tl.TextColor3 = ItemESP.color
-    tl.TextSize = 10; tl.Font = Enum.Font.GothamBold; tl.TextStrokeTransparency = 0; tl.TextWrapped = true; tl.Parent = bb; return bb
+    tl.TextSize = 10; tl.Font = Enum.Font.GothamBold; tl.TextStrokeTransparency = 0; tl.TextWrapped = true; tl.Parent = bb; return bb, tl
 end
 local function iecCreateHighlight(inst)
     local hl = Instance.new("Highlight"); hl.Name = "ESP_ItemHighlight"; hl.Adornee = inst; hl.FillColor = ItemESP.color; hl.OutlineColor = ItemESP.color
@@ -1354,10 +1355,13 @@ local function iecRender(entry, settings, dist, name)
         if not esp.highlight or not esp.highlight.Parent then esp.highlight = iecCreateHighlight(entry.model) end
     else drop("highlight") end
     if settings.Names or settings.Distance then
-        if not esp.label or not esp.label.Parent then esp.label = iecCreateLabel(part) end
+        if not esp.label or not esp.label.Parent then
+            local bb, tl = iecCreateLabel(part)
+            esp.label = bb; esp.labelText = tl
+        end
         local lines = {}; if settings.Names then table.insert(lines, name) end
         if settings.Distance then table.insert(lines, string.format("Distance: %.0f", dist)) end
-        esp.label.InfoLabel.Text = table.concat(lines, "\n")
+        esp.labelText.Text = table.concat(lines, "\n")
     else drop("label") end
 end
 local function iecClear(entry) if entry.esp then for _, inst in pairs(entry.esp) do inst:Destroy() end end; entry.esp = nil end
@@ -1367,7 +1371,8 @@ local function iecUpdate()
     for id in ECS.world:query(ECS.comps.Storable, ECS.comps.ObjectId, ECS.comps.ModelInstance) do
         local model = ecsGet(id, ECS.comps.ModelInstance)
         if model and model.Parent then
-            local name = ecsGet(id, ECS.comps.ObjectId)
+            local objectId = ecsGet(id, ECS.comps.ObjectId)
+            if not objectId then continue end
             local t = ecsGet(id, ECS.comps.Transform)
             local pos = t and (t.Position or t.p) or model:GetPivot().Position
             local part = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart", true) or model
@@ -1375,7 +1380,7 @@ local function iecUpdate()
             alive[model] = true
             local entry = ItemESP.entries[model]
             if not entry then entry = { model = model, part = part }; ItemESP.entries[model] = entry else entry.part = part end
-            iecRender(entry, settings, dist, name or model.Name)
+            iecRender(entry, settings, dist, tostring(objectId))
         end
     end
     for model, entry in pairs(ItemESP.entries) do if not alive[model] then iecClear(entry); ItemESP.entries[model] = nil end end
@@ -1592,7 +1597,6 @@ local function saveConfig(name)
         end
     end
     local data = HttpService:JSONEncode({ name = name, config = config, savedAt = os.time() })
-    -- 保存到外部文件
     local success, err = pcall(function()
         writefile and writefile(CONFIG_KEY .. "_" .. name .. ".json", data)
     end)
@@ -1661,11 +1665,10 @@ Tabs.Settings:Button({ Title = "Delete Config", Callback = function()
     deleteConfig(configNameInput)
 end })
 
--- 配置列表显示
 Tabs.Settings:Dropdown({
     Title = "Saved Configs", Flag = "SavedConfigsDropdown", Values = getConfigList(), Value = nil, Callback = function(v)
         if v then configNameInput = v end
-    end
+    end,
 })
 
 Tabs.Settings:Button({ Title = "Refresh Config List", Callback = function()
@@ -1678,11 +1681,9 @@ Tabs.Settings:Section({ Title = "UI Control", TextSize = 20 })
 Tabs.Settings:Divider()
 
 Tabs.Settings:Button({ Title = "Destroy UI", Desc = "Completely destroy the hub", Callback = function()
-    -- 停止所有功能
     stopDoubleJump(); setNoclip(false); stopVFly(); stopAutoHeal(); stopAutoRevive()
     stopAutoSwing(); stopOpSwing(); stopAimbot(); stopGunAura(); stopAutoReload()
     stopESP(); iecStop(); stopWeldAnywhere(); refreshCollect()
-    -- 销毁窗口
     if Window and Window.Destroy then Window:Destroy() else WindUI:Destroy() end
     WindUI:Notify({ Title = "Dead Rails Hub", Content = "UI Destroyed", Duration = 2 })
 end })
@@ -1696,7 +1697,6 @@ Tabs.Settings:Button({ Title = "Unload Script", Desc = "Fully unload everything"
     stopAutoSwing(); stopOpSwing(); stopAimbot(); stopGunAura(); stopAutoReload()
     stopESP(); iecStop(); stopWeldAnywhere(); refreshCollect()
     if Window and Window.Destroy then Window:Destroy() else WindUI:Destroy() end
-    -- 清理全局
     getgenv().DeadRailsHub = nil
 end })
 
