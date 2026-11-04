@@ -1,3 +1,4 @@
+
 --	Functions.Notify({Title = "Used For Notifications."})
 -- 	Disabled = not Functions.CheckCompatability({"require"}), DisabledTooltip = Globals.IncompatibleMessage
 -- 	Risky = Floor ~= "Mines" (Means it only works on mines)
@@ -17,12 +18,6 @@ getgenv().Abysall = {
 
 
 local BaseUrl = "https://raw.githubusercontent.com/therealcookiemonsterof1966/AbysallContinued/main/"
-
--- 原生 Linoria 加载
-local LinoriaRepo = "https://raw.githubusercontent.com/mstudio45/LinoriaLib/main/"
-local Library = loadstring(game:HttpGet(LinoriaRepo .. "Library.lua"))()
-local ThemeManager = loadstring(game:HttpGet(LinoriaRepo .. "addons/ThemeManager.lua"))()
-local SaveManager = loadstring(game:HttpGet(LinoriaRepo .. "addons/SaveManager.lua"))()
 
 getgenv().Abysall = {
     Environment = loadstring(game:HttpGet(BaseUrl .. "Components/Environment.luau"))(),
@@ -50,7 +45,7 @@ if Abysall.Environment.writefile and Abysall.Environment.readfile then
     if not Abysall.Environment.isfile("Abysall/UserData.json") then
         local Data = {
             TotalExecutions = 0,
-            UILibrary = "Linoria"
+            UILibrary = "Obsidian"
         }
 
         Abysall.Environment.writefile(
@@ -69,7 +64,7 @@ if Abysall.Environment.writefile and Abysall.Environment.readfile then
     Decoded.TotalExecutions = Decoded.TotalExecutions + 1
 
     if not Decoded.UILibrary then
-        Decoded.UILibrary = "Linoria"
+        Decoded.UILibrary = "Obsidian"
     end
 
     Abysall.TotalExecutions = Decoded.TotalExecutions
@@ -81,18 +76,16 @@ if Abysall.Environment.writefile and Abysall.Environment.readfile then
     )
 end
 
+Abysall.Interface = loadstring(game:HttpGet(
+    BaseUrl .. "Components/Interface.luau"
+))()
+
 Abysall.Analytics = loadstring(game:HttpGet(
     BaseUrl .. "Components/Analytics.luau"
 ))()
 
 
 Abysall.SavePath = "Doors/Game"
-
-Abysall.Interface = {
-    Library = Library,
-    SaveManager = SaveManager,
-    ThemeManager = ThemeManager,
-}
 
 local Library = Abysall.Interface.Library
 local SaveManager = Abysall.Interface.SaveManager
@@ -1248,6 +1241,9 @@ local Window = Library:CreateWindow({
 	MenuFadeTime = 0,
 	CornerRadius = 6,
 })
+
+
+
 
 Abysall.Interface.ApplyInfoTab(Window)
 
