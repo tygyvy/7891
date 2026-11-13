@@ -1,0 +1,151 @@
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- ==================== 自制 UI 选择器 ====================
+local UIChooserGui = Instance.new("ScreenGui")
+UIChooserGui.Name = "UIChooser"
+UIChooserGui.ResetOnSpawn = false
+UIChooserGui.IgnoreGuiInset = true
+UIChooserGui.DisplayOrder = 999
+UIChooserGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+-- 主框
+local MainFrame = Instance.new("Frame", UIChooserGui)
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 0, 0, 0) -- 初始为0，用于打开动画
+MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+MainFrame.BackgroundTransparency = 1
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+
+local Corner = Instance.new("UICorner", MainFrame)
+Corner.CornerRadius = UDim.new(0, 14)
+
+local Stroke = Instance.new("UIStroke", MainFrame)
+Stroke.Color = Color3.fromRGB(0, 170, 255)
+Stroke.Thickness = 1.5
+Stroke.Transparency = 1
+
+-- 标题
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Size = UDim2.new(1, 0, 0, 34)
+Title.Position = UDim2.new(0, 0, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "选择 UI"
+Title.TextColor3 = Color3.fromRGB(0, 200, 255)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 16
+Title.TextTransparency = 1
+
+-- 按钮 1：Linoria
+local Btn1 = Instance.new("TextButton", MainFrame)
+Btn1.Size = UDim2.new(1, -40, 0, 36)
+Btn1.Position = UDim2.new(0, 20, 0, 46)
+Btn1.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+Btn1.BackgroundTransparency = 1
+Btn1.Text = "Linoria"
+Btn1.TextColor3 = Color3.fromRGB(0, 230, 255)
+Btn1.Font = Enum.Font.GothamBold
+Btn1.TextSize = 14
+Btn1.AutoButtonColor = false
+Btn1.TextTransparency = 1
+Instance.new("UICorner", Btn1).CornerRadius = UDim.new(0, 8)
+local Btn1Stroke = Instance.new("UIStroke", Btn1)
+Btn1Stroke.Color = Color3.fromRGB(0, 170, 255)
+Btn1Stroke.Transparency = 1
+
+-- 按钮 2：Obsidian
+local Btn2 = Instance.new("TextButton", MainFrame)
+Btn2.Size = UDim2.new(1, -40, 0, 36)
+Btn2.Position = UDim2.new(0, 20, 0, 94)
+Btn2.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+Btn2.BackgroundTransparency = 1
+Btn2.Text = "Obsidian"
+Btn2.TextColor3 = Color3.fromRGB(0, 230, 255)
+Btn2.Font = Enum.Font.GothamBold
+Btn2.TextSize = 14
+Btn2.AutoButtonColor = false
+Btn2.TextTransparency = 1
+Instance.new("UICorner", Btn2).CornerRadius = UDim.new(0, 8)
+local Btn2Stroke = Instance.new("UIStroke", Btn2)
+Btn2Stroke.Color = Color3.fromRGB(0, 170, 255)
+Btn2Stroke.Transparency = 1
+
+-- ==================== 打开过场动画 ====================
+task.spawn(function()
+    task.wait(0.1)
+    local openTween = TweenService:Create(
+        MainFrame,
+        TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+        {
+            Size = UDim2.new(0, 240, 0, 150),
+            BackgroundTransparency = 0.08
+        }
+    )
+    openTween:Play()
+
+    TweenService:Create(Stroke, TweenInfo.new(0.35), {Transparency = 0.3}):Play()
+    TweenService:Create(Title, TweenInfo.new(0.35), {TextTransparency = 0}):Play()
+    TweenService:Create(Btn1, TweenInfo.new(0.35), {BackgroundTransparency = 0, TextTransparency = 0}):Play()
+    TweenService:Create(Btn2, TweenInfo.new(0.35), {BackgroundTransparency = 0, TextTransparency = 0}):Play()
+    TweenService:Create(Btn1Stroke, TweenInfo.new(0.35), {Transparency = 0.5}):Play()
+    TweenService:Create(Btn2Stroke, TweenInfo.new(0.35), {Transparency = 0.5}):Play()
+end)
+
+-- ==================== 悬停效果 ====================
+local function hover(btn, stroke)
+    btn.MouseEnter:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play()
+        TweenService:Create(stroke, TweenInfo.new(0.15), {Transparency = 0.1}):Play()
+    end)
+    btn.MouseLeave:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(25, 25, 35)}):Play()
+        TweenService:Create(stroke, TweenInfo.new(0.15), {Transparency = 0.5}):Play()
+    end)
+end
+hover(Btn1, Btn1Stroke)
+hover(Btn2, Btn2Stroke)
+
+-- ==================== 关闭过场动画 + 执行 ====================
+local function closeAndLoad(link)
+    -- 关闭动画
+    local closeTween = TweenService:Create(
+        MainFrame,
+        TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.In),
+        {
+            Size = UDim2.new(0, 0, 0, 0),
+            BackgroundTransparency = 1
+        }
+    )
+    closeTween:Play()
+
+    TweenService:Create(Stroke, TweenInfo.new(0.25), {Transparency = 1}):Play()
+    TweenService:Create(Title, TweenInfo.new(0.25), {TextTransparency = 1}):Play()
+    TweenService:Create(Btn1, TweenInfo.new(0.25), {BackgroundTransparency = 1, TextTransparency = 1}):Play()
+    TweenService:Create(Btn2, TweenInfo.new(0.25), {BackgroundTransparency = 1, TextTransparency = 1}):Play()
+    TweenService:Create(Btn1Stroke, TweenInfo.new(0.25), {Transparency = 1}):Play()
+    TweenService:Create(Btn2Stroke, TweenInfo.new(0.25), {Transparency = 1}):Play()
+
+    closeTween.Completed:Connect(function()
+        UIChooserGui:Destroy()
+        task.spawn(function()
+            pcall(function()
+                loadstring(game:HttpGet(link))()
+            end)
+        end)
+    end)
+end
+
+-- 按钮 1：Linoria
+Btn1.MouseButton1Click:Connect(function()
+    closeAndLoad('https://raw.githubusercontent.com/tygyvy/7891/refs/heads/main/ui2')
+end)
+
+-- 按钮 2：Obsidian
+Btn2.MouseButton1Click:Connect(function()
+    closeAndLoad('https://raw.githubusercontent.com/tygyvy/7891/refs/heads/main/ui1')
+end)
